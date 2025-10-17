@@ -1,9 +1,21 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
-import { useSession } from '../lib/auth-client';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
+
+// Mock user data for frontend-only demonstration
+const MOCK_USER: User = {
+  id: 'user123',
+  name: 'Alex Rivera',
+  email: 'alex.rivera@example.com',
+  avatarUrl: 'https://i.pravatar.cc/150?u=user123',
+  subscription: {
+    plan: 'Creator',
+    status: 'active',
+    nextBillingDate: '2024-12-31',
+  },
+};
 
 interface AppContextType {
   page: Page;
@@ -29,28 +41,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
-  
-  const { data: session, isPending } = useSession();
-  const isAuthenticated = !!session?.user && !isPending;
-  const user = session?.user ? {
-    id: session.user.id,
-    name: session.user.name || 'User',
-    email: session.user.email,
-    avatarUrl: session.user.image || `https://i.pravatar.cc/150?u=${session.user.id}`,
-    subscription: {
-      plan: 'Free' as const,
-      status: 'active' as const,
-      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    },
-  } : null;
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
 
+  // Simulate checking auth status on load
   useEffect(() => {
-    if (session?.user) {
-      setCurrentUserId(session.user.id);
-    } else {
-      setCurrentUserId(null);
-    }
-  }, [session]);
+    const checkAuth = () => {
+      const storedAuth = sessionStorage.getItem('isAuthenticated');
+      if (storedAuth === 'true') {
+        setUser(MOCK_USER);
+        setIsAuthenticated(true);
+        setCurrentUserId(MOCK_USER.id);
+      }
+    };
+    checkAuth();
+  }, []);
   
   const navigateTo = (page: Page) => {
     setPage(page);
@@ -76,17 +81,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setItemToLoad(null);
   }, []);
 
-  const login = () => {
+  const login = (userData: User) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    sessionStorage.setItem('isAuthenticated', 'true');
+    setCurrentUserId(userData.id);
     navigateTo('main');
   };
 
   const logout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('isAuthenticated');
+    setCurrentUserId(null);
     navigateTo('main');
   };
 
   const upgradeSubscription = useCallback((plan: User['subscription']['plan']) => {
-    // In a real app, this would make an API call to update the subscription
-    console.log('Upgrading subscription to:', plan);
+    setUser(currentUser => {
+      if (!currentUser) return null;
+      return {
+        ...currentUser,
+        subscription: {
+          ...currentUser.subscription,
+          plan: plan,
+          status: 'active' as const,
+        }
+      };
+    });
   }, []);
 
   const value = {
