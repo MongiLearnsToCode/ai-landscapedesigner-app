@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/auth/[...all].ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/auth/(.*)",
+      "destination": "/api/auth/[...all]"
+    }
+  ]
+}
