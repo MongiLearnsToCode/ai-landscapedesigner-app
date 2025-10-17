@@ -3,7 +3,7 @@ import * as historyService from '../services/historyService';
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
 import { useToast } from './ToastContext';
 import { useApp } from './AppContext';
-import { authClient } from '../lib/auth-client';
+
 
 interface NewRedesignData {
     originalImage: ImageFile;
