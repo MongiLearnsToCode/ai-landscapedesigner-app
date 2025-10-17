@@ -1,13 +1,7 @@
 {
   "functions": {
     "api/auth/[...all].ts": {
-      "runtime": "nodejs18.x"
+      "runtime": "@vercel/node@3"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/auth/(.*)",
-      "destination": "/api/auth/[...all]"
-    }
-  ]
+  }
 }
