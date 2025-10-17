@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/auth/[...all].ts": {
-      "runtime": "@vercel/node@3"
-    }
-  }
-}
+{}
