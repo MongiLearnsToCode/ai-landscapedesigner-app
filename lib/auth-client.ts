@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 
 const baseURL = import.meta.env.PROD 
-  ? "https://www.ai-landscapedesigner.com/auth" 
+  ? "https://www.ai-landscapedesigner.com/api/auth" 
   : "http://localhost:3001";
 
 export const authClient = createAuthClient({
