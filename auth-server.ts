@@ -7,7 +7,7 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors({
-  origin: ['https://www.ai-landscapedesigner.com', 'http://localhost:5173'],
+  origin: ['https://www.ai-landscapedesigner.com', 'https://ai-landscapedesigner.com', 'http://localhost:5173'],
   credentials: true,
 }));
 
