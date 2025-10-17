@@ -1,30 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import type { User } from '../types';
-
-// Mock user data for frontend-only demonstration
-const MOCK_USER: User = {
-  id: 'user123',
-  name: 'Alex Rivera',
-  email: 'alex.rivera@example.com',
-  avatarUrl: 'https://i.pravatar.cc/150?u=user123',
-  subscription: {
-    plan: 'Creator',
-    status: 'active',
-    nextBillingDate: '2024-12-31',
-  },
-};
+import { signIn } from '../lib/auth-client';
 
 export const SignInPage: React.FC = () => {
-  const { navigateTo, login } = useApp();
+  const { navigateTo } = useApp();
   const { addToast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    addToast('Signed in successfully!', 'success');
-    login(MOCK_USER);
-    navigateTo('main');
+    setIsLoading(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const result = await signIn.email({
+        email,
+        password,
+      });
+
+      if (result.error) {
+        addToast(result.error.message || 'Sign in failed', 'error');
+      } else {
+        addToast('Signed in successfully!', 'success');
+        navigateTo('main');
+      }
+    } catch (error) {
+      addToast('An error occurred during sign in', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputClasses = "w-full h-11 px-4 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400";
@@ -45,7 +53,7 @@ export const SignInPage: React.FC = () => {
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         <div>
           <label htmlFor="email" className={labelClasses}>Email address</label>
-          <input id="email" name="email" type="email" autoComplete="email" required className={inputClasses} placeholder="you@example.com" defaultValue="alex.rivera@example.com"/>
+          <input id="email" name="email" type="email" autoComplete="email" required className={inputClasses} placeholder="you@example.com" />
         </div>
 
         <div>
@@ -59,12 +67,16 @@ export const SignInPage: React.FC = () => {
                 Forgot your password?
               </button>
            </div>
-          <input id="password" name="password" type="password" required className={inputClasses} placeholder="••••••••" defaultValue="password123"/>
+          <input id="password" name="password" type="password" required className={inputClasses} placeholder="••••••••" />
         </div>
 
         <div>
-          <button type="submit" className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
-            Sign In
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+          >
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
         </div>
       </form>

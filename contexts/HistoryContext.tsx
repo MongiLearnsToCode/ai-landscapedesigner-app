@@ -3,6 +3,7 @@ import * as historyService from '../services/historyService';
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
 import { useToast } from './ToastContext';
 import { useApp } from './AppContext';
+import { authClient } from '../lib/auth-client';
 
 interface NewRedesignData {
     originalImage: ImageFile;
@@ -28,11 +29,15 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { addToast } = useToast();
   const { loadItem } = useApp();
 
-  // Set user ID for history service (in real app, this would come from auth)
+  // Use Better Auth session instead of demo user
+  const { data: session } = authClient.useSession();
+
+  // Set user ID when session changes
   useEffect(() => {
-    const userId = 'demo-user-123'; // In real app, get from authentication context
-    historyService.setCurrentUserId(userId);
-  }, []);
+    if (session?.user?.id) {
+      historyService.setCurrentUserId(session.user.id);
+    }
+  }, [session?.user?.id]);
 
   const refreshHistory = useCallback(async () => {
     const historyItems = await historyService.getHistory();

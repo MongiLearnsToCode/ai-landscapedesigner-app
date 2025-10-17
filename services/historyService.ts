@@ -1,22 +1,31 @@
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
 import * as dbService from './databaseService';
-import { getDeviceFingerprint } from './fingerprintService';
+
+// We'll get the user ID from the auth context in the components
+let currentUserId: string | null = null;
 
 export const setCurrentUserId = (userId: string) => {
-    // Not needed anymore - using fingerprint
+    currentUserId = userId;
 };
 
 export const getCurrentUserId = (): string | null => {
-    return getDeviceFingerprint();
+    return currentUserId;
 };
 
 export const checkRedesignLimit = async () => {
-    return await dbService.checkRedesignLimit();
+    if (!currentUserId) {
+        return { canRedesign: false, remaining: 0 };
+    }
+    return await dbService.checkRedesignLimit(currentUserId);
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
+    if (!currentUserId) {
+        return [];
+    }
+
     try {
-        const redesigns = await dbService.getRedesigns();
+        const redesigns = await dbService.getRedesigns(currentUserId);
         
         return redesigns.map(redesign => ({
             id: redesign.id,
@@ -43,6 +52,10 @@ export const saveHistoryItemMetadata = async (
     styles: LandscapingStyle[], 
     climateZone: string
 ): Promise<HydratedHistoryItem | null> => {
+    if (!currentUserId) {
+        throw new Error("Please sign in to save redesigns");
+    }
+
     try {
         const result = await dbService.saveRedesign({
             originalImage,
@@ -50,7 +63,7 @@ export const saveHistoryItemMetadata = async (
             catalog,
             styles,
             climateZone,
-            userId: getDeviceFingerprint()
+            userId: currentUserId
         });
 
         return {
