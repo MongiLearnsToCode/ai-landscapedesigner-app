@@ -61,16 +61,6 @@ export const Header: React.FC = () => {
   };
 
   // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
   return (
     <>
       <header className="px-4 sm:px-6 lg:px-8 py-4 border-b border-slate-200/80">
