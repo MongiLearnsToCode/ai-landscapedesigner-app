@@ -6,7 +6,11 @@ import { auth } from './lib/auth';
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://www.ai-landscapedesigner.com', 'http://localhost:5173'],
+  credentials: true,
+}));
+
 app.use('/api/auth', toNodeHandler(auth));
 
 app.listen(PORT, () => {
