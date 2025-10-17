@@ -29,15 +29,11 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { addToast } = useToast();
   const { loadItem } = useApp();
 
-  // Use Better Auth session instead of demo user
-  const { data: session } = authClient.useSession();
+  // Use app context for authentication state
+  const { isAuthenticated } = useApp();
 
-  // Set user ID when session changes
-  useEffect(() => {
-    if (session?.user?.id) {
-      historyService.setCurrentUserId(session.user.id);
-    }
-  }, [session?.user?.id]);
+  // Authentication is handled by AppContext
+  // User ID is set automatically in AppContext when user changes
 
   const refreshHistory = useCallback(async () => {
     const historyItems = await historyService.getHistory();
