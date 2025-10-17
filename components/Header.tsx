@@ -1,10 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Leaf, User as UserIcon, LogOut, Menu, X } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { signOut } from '../lib/auth-client';
 import type { Page } from '../contexts/AppContext';
 
 export const Header: React.FC = () => {
-  const { navigateTo, page, isAuthenticated, user, logout } = useApp();
+  const { navigateTo, page, isAuthenticated, user } = useApp();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsDropdownOpen(false);
+    navigateTo('main');
+  };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
@@ -120,7 +127,7 @@ export const Header: React.FC = () => {
                       <span>My Profile</span>
                     </button>
                      <button
-                      onClick={() => { logout(); setIsDropdownOpen(false); }}
+                      onClick={handleSignOut}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 flex items-center gap-2 rounded-md text-red-600"
                     >
                       <LogOut className="h-4 w-4" />

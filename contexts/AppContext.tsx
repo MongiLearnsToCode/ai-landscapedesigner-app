@@ -1,21 +1,9 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
+import { useSession } from '../lib/auth-client';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
-
-// Mock user data for frontend-only demonstration
-const MOCK_USER: User = {
-  id: 'user123',
-  name: 'Alex Rivera',
-  email: 'alex.rivera@example.com',
-  avatarUrl: 'https://i.pravatar.cc/150?u=user123',
-  subscription: {
-    plan: 'Creator',
-    status: 'active',
-    nextBillingDate: '2024-12-31',
-  },
-};
 
 interface AppContextType {
   page: Page;
@@ -41,24 +29,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | null>(null);
+  
+  const { data: session, isPending } = useSession();
+  const isAuthenticated = !!session?.user && !isPending;
+  const user = session?.user ? {
+    id: session.user.id,
+    name: session.user.name || 'User',
+    email: session.user.email,
+    avatarUrl: session.user.image || `https://i.pravatar.cc/150?u=${session.user.id}`,
+    subscription: {
+      plan: 'Free' as const,
+      status: 'active' as const,
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+  } : null;
 
-  // Simulate checking auth status on load
   useEffect(() => {
-    const checkAuth = () => {
-      // In a real app, you'd check a token here.
-      // We'll simulate being logged out by default.
-      const storedAuth = sessionStorage.getItem('isAuthenticated');
-      if (storedAuth === 'true') {
-        setUser(MOCK_USER);
-        setIsAuthenticated(true);
-        // Set the user ID in the history service for backend requests
-        setCurrentUserId(MOCK_USER.id);
-      }
-    };
-    checkAuth();
-  }, []);
+    if (session?.user) {
+      setCurrentUserId(session.user.id);
+    } else {
+      setCurrentUserId(null);
+    }
+  }, [session]);
   
   const navigateTo = (page: Page) => {
     setPage(page);
@@ -84,37 +76,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setItemToLoad(null);
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    sessionStorage.setItem('isAuthenticated', 'true');
-    // Set the user ID in the history service for backend requests
-    setCurrentUserId(userData.id);
+  const login = () => {
     navigateTo('main');
   };
 
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('isAuthenticated');
-    // Clear the user ID in the history service
-    setCurrentUserId(null);
     navigateTo('main');
   };
 
   const upgradeSubscription = useCallback((plan: User['subscription']['plan']) => {
-    setUser(currentUser => {
-      if (!currentUser) return null;
-      // Return a new user object to trigger state update
-      return {
-        ...currentUser,
-        subscription: {
-          ...currentUser.subscription,
-          plan: plan,
-          status: 'active' as const,
-        }
-      };
-    });
+    // In a real app, this would make an API call to update the subscription
+    console.log('Upgrading subscription to:', plan);
   }, []);
 
   const value = {

@@ -15,6 +15,13 @@
       "when": 1760711921537,
       "tag": "0001_left_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760717734965,
+      "tag": "0002_icy_epoch",
+      "breakpoints": true
     }
   ]
 }

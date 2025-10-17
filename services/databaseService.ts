@@ -1,8 +1,7 @@
 import { db } from '../db/client';
-import { landscapeRedesigns, users } from '../db/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { landscapeRedesigns } from '../db/schema';
+import { eq, desc, count } from 'drizzle-orm';
 import { uploadImageToCloudinary } from './cloudinaryService';
-import { getDeviceFingerprint } from './fingerprintService';
 import type { ImageFile, DesignCatalog, LandscapingStyle } from '../types';
 
 const MAX_REDESIGNS = 3;
@@ -29,17 +28,20 @@ export interface RedesignRecord {
   updatedAt: Date;
 }
 
-export const checkRedesignLimit = async (): Promise<{ canRedesign: boolean; remaining: number }> => {
-  const fingerprint = getDeviceFingerprint();
+export const checkRedesignLimit = async (userId: string): Promise<{ canRedesign: boolean; remaining: number }> => {
+  if (!userId) {
+    return { canRedesign: false, remaining: 0 };
+  }
   
   try {
-    const [user] = await db.select().from(users).where(eq(users.fingerprint, fingerprint));
+    const [result] = await db
+      .select({ count: count() })
+      .from(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.userId, userId));
     
-    if (!user) {
-      return { canRedesign: true, remaining: MAX_REDESIGNS };
-    }
+    const userCount = result?.count || 0;
+    const remaining = MAX_REDESIGNS - userCount;
     
-    const remaining = MAX_REDESIGNS - user.redesignCount;
     return { canRedesign: remaining > 0, remaining: Math.max(0, remaining) };
   } catch (error) {
     console.error('Error checking redesign limit:', error);
@@ -48,19 +50,13 @@ export const checkRedesignLimit = async (): Promise<{ canRedesign: boolean; rema
 };
 
 export const saveRedesign = async (data: SaveRedesignData): Promise<RedesignRecord> => {
-  const fingerprint = getDeviceFingerprint();
-  
-  // Check limit first
-  const { canRedesign } = await checkRedesignLimit();
-  if (!canRedesign) {
-    throw new Error('Maximum redesign limit reached (3 redesigns per device)');
-  }
+  console.log('🔧 Starting saveRedesign for user:', data.userId);
 
-  console.log('🔧 Starting saveRedesign with data:', { 
-    userId: data.userId, 
-    styles: data.styles, 
-    climateZone: data.climateZone 
-  });
+  // Check limit first
+  const { canRedesign } = await checkRedesignLimit(data.userId);
+  if (!canRedesign) {
+    throw new Error('Maximum redesign limit reached (3 redesigns per user)');
+  }
 
   try {
     // Upload images to Cloudinary
@@ -81,24 +77,10 @@ export const saveRedesign = async (data: SaveRedesignData): Promise<RedesignReco
 
     const id = `redesign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create or update user and increment count
-    const fingerprint = getDeviceFingerprint();
-    await db.insert(users).values({
-      id: fingerprint,
-      fingerprint,
-      redesignCount: 1
-    }).onConflictDoUpdate({
-      target: users.fingerprint,
-      set: {
-        redesignCount: sql`${users.redesignCount} + 1`,
-        updatedAt: new Date()
-      }
-    });
-
     console.log('💾 Saving to database with ID:', id);
     const [result] = await db.insert(landscapeRedesigns).values({
       id,
-      userId: fingerprint, // Use fingerprint as userId
+      userId: data.userId,
       originalImageUrl: originalUpload.secure_url,
       redesignedImageUrl: redesignedUpload.secure_url,
       designCatalog: data.catalog,
@@ -115,17 +97,16 @@ export const saveRedesign = async (data: SaveRedesignData): Promise<RedesignReco
   }
 };
 
-export const getRedesigns = async (userId?: string): Promise<RedesignRecord[]> => {
-  const fingerprint = getDeviceFingerprint();
-  const actualUserId = userId || fingerprint;
+export const getRedesigns = async (userId: string): Promise<RedesignRecord[]> => {
+  if (!userId) return [];
   
-  console.log('🔍 Fetching redesigns for user:', actualUserId);
+  console.log('🔍 Fetching redesigns for user:', userId);
   
   try {
     const results = await db
       .select()
       .from(landscapeRedesigns)
-      .where(eq(landscapeRedesigns.userId, actualUserId))
+      .where(eq(landscapeRedesigns.userId, userId))
       .orderBy(desc(landscapeRedesigns.isPinned), desc(landscapeRedesigns.createdAt));
 
     console.log('✅ Found redesigns:', results.length);

@@ -1,30 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import type { User } from '../types';
-
-// Mock user data for frontend-only demonstration
-const MOCK_USER: User = {
-  id: 'user123',
-  name: 'Alex Rivera',
-  email: 'alex.rivera@example.com',
-  avatarUrl: 'https://i.pravatar.cc/150?u=user123',
-  subscription: {
-    plan: 'Free',
-    status: 'trialing',
-    nextBillingDate: '2024-12-31',
-  },
-};
+import { signUp } from '../lib/auth-client';
 
 export const SignUpPage: React.FC = () => {
-  const { navigateTo, login } = useApp();
+  const { navigateTo } = useApp();
   const { addToast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    addToast('Account created successfully!', 'success');
-    login(MOCK_USER);
-    navigateTo('main');
+    setIsLoading(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const result = await signUp.email({
+        email,
+        password,
+        name,
+      });
+
+      if (result.error) {
+        addToast(result.error.message || 'Sign up failed', 'error');
+      } else {
+        addToast('Account created successfully!', 'success');
+        navigateTo('main');
+      }
+    } catch (error) {
+      addToast('An error occurred during sign up', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputClasses = "w-full h-11 px-4 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400";
@@ -63,8 +73,12 @@ export const SignUpPage: React.FC = () => {
         </p>
 
         <div>
-          <button type="submit" className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
-            Create Account
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
         </div>
       </form>
