@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
-import { useSession } from '../lib/auth-client';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
 
@@ -30,13 +30,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
   
-  const { data: session, isPending } = useSession();
-  const isAuthenticated = !!session?.user && !isPending;
-  const user = session?.user ? {
-    id: session.user.id,
-    name: session.user.name || 'User',
-    email: session.user.email,
-    avatarUrl: session.user.image || `https://i.pravatar.cc/150?u=${session.user.id}`,
+  const { user: clerkUser, isLoaded } = useUser();
+  const isAuthenticated = isLoaded && !!clerkUser;
+  
+  const user: User | null = clerkUser ? {
+    id: clerkUser.id,
+    name: clerkUser.fullName || clerkUser.firstName || 'User',
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    avatarUrl: clerkUser.imageUrl || `https://i.pravatar.cc/150?u=${clerkUser.id}`,
     subscription: {
       plan: 'Free' as const,
       status: 'active' as const,
@@ -45,12 +46,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   } : null;
 
   useEffect(() => {
-    if (session?.user) {
-      setCurrentUserId(session.user.id);
+    if (clerkUser) {
+      setCurrentUserId(clerkUser.id);
     } else {
       setCurrentUserId(null);
     }
-  }, [session]);
+  }, [clerkUser]);
   
   const navigateTo = (page: Page) => {
     setPage(page);
@@ -85,8 +86,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const upgradeSubscription = useCallback((plan: User['subscription']['plan']) => {
-    // In a real app, this would make an API call to update the subscription
-    console.log('Upgrading subscription to:', plan);
+    setUser(currentUser => {
+      if (!currentUser) return null;
+      return {
+        ...currentUser,
+        subscription: {
+          ...currentUser.subscription,
+          plan: plan,
+          status: 'active' as const,
+        }
+      };
+    });
   }, []);
 
   const value = {

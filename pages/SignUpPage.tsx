@@ -1,87 +1,15 @@
-import React, { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
-import { useToast } from '../contexts/ToastContext';
-import { signUp } from '../lib/auth-client';
+import React from 'react';
+import { SignUp } from '@clerk/clerk-react';
 
 export const SignUpPage: React.FC = () => {
-  const { navigateTo } = useApp();
-  const { addToast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
-    try {
-      const result = await signUp.email({
-        email,
-        password,
-        name,
-      });
-
-      if (result.error) {
-        addToast(result.error.message || 'Sign up failed', 'error');
-      } else {
-        addToast('Account created successfully!', 'success');
-        navigateTo('main');
-      }
-    } catch (error) {
-      addToast('An error occurred during sign up', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const inputClasses = "w-full h-11 px-4 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400";
-  const labelClasses = "block text-sm font-medium text-slate-700 mb-1.5";
-
   return (
-    <div className="w-full max-w-md mx-auto my-auto bg-white p-8 sm:p-10 rounded-2xl shadow-lg border border-slate-200/80">
-      <div className="text-center">
-        <h2 className="text-3xl font-extrabold text-slate-900">Create a new account</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Already have an account?{' '}
-          <button onClick={() => navigateTo('signin')} className="font-medium text-orange-500 hover:text-orange-600">
-            Sign in
-          </button>
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-        <div>
-          <label htmlFor="name" className={labelClasses}>Full Name</label>
-          <input id="name" name="name" type="text" autoComplete="name" required className={inputClasses} placeholder="Alex Rivera"/>
-        </div>
-        <div>
-          <label htmlFor="email" className={labelClasses}>Email address</label>
-          <input id="email" name="email" type="email" autoComplete="email" required className={inputClasses} placeholder="you@example.com"/>
-        </div>
-        <div>
-          <label htmlFor="password" className={labelClasses}>Password</label>
-          <input id="password" name="password" type="password" required className={inputClasses} placeholder="••••••••"/>
-        </div>
-
-        <p className="text-xs text-slate-500 text-center">
-            By creating an account, you agree to our{' '}
-            <button type="button" onClick={() => navigateTo('terms')} className="font-medium underline hover:text-slate-700">Terms of Service</button> and{' '}
-            <button type="button" onClick={() => navigateTo('privacy')} className="font-medium underline hover:text-slate-700">Privacy Policy</button>.
-        </p>
-
-        <div>
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-          >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </div>
-      </form>
+    <div className="flex justify-center items-center min-h-[60vh]">
+      <SignUp 
+        routing="path" 
+        path="/signup"
+        signInUrl="/signin"
+        afterSignUpUrl="/"
+      />
     </div>
   );
 };
