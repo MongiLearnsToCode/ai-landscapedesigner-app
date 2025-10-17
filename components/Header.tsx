@@ -1,21 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Leaf, User as UserIcon, LogOut, Menu, X } from 'lucide-react';
+import { Leaf, Menu, X } from 'lucide-react';
+import { UserButton } from '@clerk/clerk-react';
 import { useApp } from '../contexts/AppContext';
-import { signOut } from '../lib/auth-client';
 import type { Page } from '../contexts/AppContext';
 
 export const Header: React.FC = () => {
-  const { navigateTo, page, isAuthenticated, user } = useApp();
-
-  const handleSignOut = async () => {
-    await signOut();
-    setIsDropdownOpen(false);
-    navigateTo('main');
-  };
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { navigateTo, page, isAuthenticated } = useApp();
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const openMobileMenu = () => {
@@ -104,38 +96,12 @@ export const Header: React.FC = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {isAuthenticated && user ? (
-              <div className="relative" ref={dropdownRef}>
-                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                  <img 
-                      src={user.avatarUrl}
-                      alt="User profile"
-                      className="h-9 w-9 rounded-full ring-2 ring-offset-2 ring-offset-white ring-slate-200"
-                  />
-                </button>
-                {isDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200/80 p-1 z-20">
-                    <div className="px-3 py-2 border-b border-slate-200/80">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{user.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={() => { navigateTo('profile'); setIsDropdownOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 flex items-center gap-2 rounded-md text-slate-700"
-                    >
-                      <UserIcon className="h-4 w-4 text-slate-500" />
-                      <span>My Profile</span>
-                    </button>
-                     <button
-                      onClick={handleSignOut}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 flex items-center gap-2 rounded-md text-red-600"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+            {isAuthenticated ? (
+              <UserButton 
+                afterSignOutUrl="/"
+                userProfileMode="navigation"
+                userProfileUrl="/profile"
+              />
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
                  <button 

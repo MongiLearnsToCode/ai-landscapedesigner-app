@@ -1,21 +1,9 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
-
-// Mock user data for frontend-only demonstration
-const MOCK_USER: User = {
-  id: 'user123',
-  name: 'Alex Rivera',
-  email: 'alex.rivera@example.com',
-  avatarUrl: 'https://i.pravatar.cc/150?u=user123',
-  subscription: {
-    plan: 'Creator',
-    status: 'active',
-    nextBillingDate: '2024-12-31',
-  },
-};
 
 interface AppContextType {
   page: Page;
@@ -41,21 +29,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | null>(null);
+  
+  const { user: clerkUser, isLoaded } = useUser();
+  const isAuthenticated = isLoaded && !!clerkUser;
+  
+  const user: User | null = clerkUser ? {
+    id: clerkUser.id,
+    name: clerkUser.fullName || clerkUser.firstName || 'User',
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    avatarUrl: clerkUser.imageUrl || `https://i.pravatar.cc/150?u=${clerkUser.id}`,
+    subscription: {
+      plan: 'Free' as const,
+      status: 'active' as const,
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+  } : null;
 
-  // Simulate checking auth status on load
   useEffect(() => {
-    const checkAuth = () => {
-      const storedAuth = sessionStorage.getItem('isAuthenticated');
-      if (storedAuth === 'true') {
-        setUser(MOCK_USER);
-        setIsAuthenticated(true);
-        setCurrentUserId(MOCK_USER.id);
-      }
-    };
-    checkAuth();
-  }, []);
+    if (clerkUser) {
+      setCurrentUserId(clerkUser.id);
+    } else {
+      setCurrentUserId(null);
+    }
+  }, [clerkUser]);
   
   const navigateTo = (page: Page) => {
     setPage(page);
@@ -81,19 +77,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setItemToLoad(null);
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    sessionStorage.setItem('isAuthenticated', 'true');
-    setCurrentUserId(userData.id);
+  const login = () => {
     navigateTo('main');
   };
 
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('isAuthenticated');
-    setCurrentUserId(null);
     navigateTo('main');
   };
 
