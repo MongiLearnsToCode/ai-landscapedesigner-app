@@ -55,7 +55,7 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated } = useApp();
+  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo } = useApp();
   const { saveNewRedesign, history, viewFromHistory } = useHistory();
   const { addToast } = useToast();
 
@@ -130,6 +130,12 @@ export const DesignerPage: React.FC = () => {
       return;
     }
 
+    // Redirect unauthenticated users to sign-in page
+    if (!isAuthenticated) {
+      navigateTo('signin');
+      return;
+    }
+
     // Check limit before proceeding
     const { canRedesign, remaining } = await checkRedesignLimit();
     if (!canRedesign) {
@@ -179,7 +185,7 @@ export const DesignerPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast]);
+  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast, isAuthenticated, navigateTo]);
 
   const Section: React.FC<{title: string, children: React.ReactNode}> = ({title, children}) => (
     <div>
@@ -217,7 +223,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || isLoading || remainingRedesigns === 0}
+              disabled={!originalImage || isLoading || (!isAuthenticated ? false : remainingRedesigns === 0)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
@@ -229,12 +235,15 @@ export const DesignerPage: React.FC = () => {
                   {redesignedImage ? 'Refining...' : 'Redesigning...'}
                 </>
               ) : (
+                !isAuthenticated ? 'Sign up or sign in to get free designs' : 
                 remainingRedesigns === 0 ? 'Limit Reached' : 'Generate Redesign'
               )}
             </button>
-            <p className="text-xs text-center mt-2 text-slate-500">
-              {remainingRedesigns} redesign{remainingRedesigns !== 1 ? 's' : ''} remaining
-            </p>
+            {isAuthenticated && (
+              <p className="text-xs text-center mt-2 text-slate-500">
+                {remainingRedesigns} redesign{remainingRedesigns !== 1 ? 's' : ''} remaining
+              </p>
+            )}
         </div>
          {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
       </div>
