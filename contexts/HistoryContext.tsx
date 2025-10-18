@@ -44,6 +44,15 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refreshHistory();
   }, [refreshHistory]);
 
+  // Refresh history when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshHistory();
+    } else {
+      setHistory([]); // Clear history when logged out
+    }
+  }, [isAuthenticated, refreshHistory]);
+
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {
     try {
       // Call the updated service function that handles image uploads and saves to backend
