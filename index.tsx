@@ -19,7 +19,12 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={publishableKey}>
+    <ClerkProvider 
+      publishableKey={publishableKey}
+      routing="hash"
+      signInUrl="/signin"
+      signUpUrl="/signup"
+    >
       <App />
     </ClerkProvider>
   </React.StrictMode>
