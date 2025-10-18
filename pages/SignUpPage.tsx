@@ -9,7 +9,7 @@ export const SignUpPage: React.FC = () => {
     <div className="flex flex-col justify-center items-center min-h-[60vh] space-y-4">
       <SignUp 
         routing="virtual"
-        afterSignUpUrl="/"
+        fallbackRedirectUrl="/"
         appearance={{
           elements: {
             rootBox: "mx-auto",
