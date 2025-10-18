@@ -19,16 +19,16 @@ export const SignInPage: React.FC = () => {
             }
           }}
         />
-        <p className="text-sm text-slate-600 text-center mt-4 px-2">
-          Don't have an account?{' '}
-          <button 
-            onClick={() => navigateTo('signup')}
-            className="font-medium text-orange-500 hover:text-orange-600"
-          >
-            Sign up
-          </button>
-        </p>
       </div>
+      <p className="text-sm text-slate-600 text-center mt-4 px-2">
+        Don't have an account?{' '}
+        <button 
+          onClick={() => navigateTo('signup')}
+          className="font-medium text-orange-500 hover:text-orange-600"
+        >
+          Sign up
+        </button>
+      </p>
     </div>
   );
 };
