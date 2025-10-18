@@ -182,8 +182,8 @@ export const DesignerPage: React.FC = () => {
   );
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 xl:items-start gap-8">
-      <div className="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-6 h-fit">
+    <div className="grid grid-cols-1 xl:grid-cols-3 xl:items-start gap-4 sm:gap-6 lg:gap-8">
+      <div className="xl:col-span-1 bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6 h-fit">
         <Section title="Upload Your Space">
             <ImageUploader onImageUpload={handleImageUpload} initialImage={originalImage} />
         </Section>
