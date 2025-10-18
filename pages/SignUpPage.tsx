@@ -13,7 +13,8 @@ export const SignUpPage: React.FC = () => {
         appearance={{
           elements: {
             rootBox: "mx-auto",
-            card: "shadow-lg"
+            card: "shadow-lg",
+            footer: "hidden"
           }
         }}
       />
