@@ -182,8 +182,8 @@ export const DesignerPage: React.FC = () => {
   );
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 xl:items-start gap-8">
-      <div className="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-6 h-fit">
+    <div className="grid grid-cols-1 lg:grid-cols-3 lg:items-start gap-4 sm:gap-6 lg:gap-8">
+      <div className="lg:col-span-1 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-4 sm:space-y-6 h-fit">
         <Section title="Upload Your Space">
             <ImageUploader onImageUpload={handleImageUpload} initialImage={originalImage} />
         </Section>
@@ -232,7 +232,7 @@ export const DesignerPage: React.FC = () => {
          {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
       </div>
       
-      <div className="xl:col-span-2 flex flex-col">
+      <div className="lg:col-span-2 flex flex-col">
         <ResultDisplay
           originalImageFile={originalImage}
           redesignedImage={redesignedImage}

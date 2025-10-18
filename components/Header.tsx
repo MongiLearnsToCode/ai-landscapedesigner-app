@@ -63,18 +63,19 @@ export const Header: React.FC = () => {
   // Close dropdown on outside click
   return (
     <>
-      <header className="px-4 sm:px-6 lg:px-8 py-4 border-b border-slate-200/80">
+      <header className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-slate-200/80">
         <div className="flex items-center justify-between">
           {/* Left Section */}
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-4 sm:space-x-8">
             <div 
               className="flex items-center space-x-2 cursor-pointer"
               onClick={() => navigateTo('main')}
               role="button"
               aria-label="Go to homepage"
             >
-              <Leaf className="h-7 w-7 text-orange-500" />
-              <h1 className="text-lg font-bold text-slate-800 tracking-wide">AI Landscape Designer</h1>
+              <Leaf className="h-6 w-6 sm:h-7 sm:w-7 text-orange-500" />
+              <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-wide hidden xs:block">AI Landscape Designer</h1>
+              <h1 className="text-base font-bold text-slate-800 tracking-wide block xs:hidden">AI Designer</h1>
             </div>
             <nav className="hidden md:flex items-center space-x-2">
               <NavLink targetPage="main">Home</NavLink>
