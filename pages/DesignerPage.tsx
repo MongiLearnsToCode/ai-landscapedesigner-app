@@ -55,7 +55,7 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded } = useApp();
+  const { itemToLoad, onItemLoaded, isAuthenticated } = useApp();
   const { saveNewRedesign, history, viewFromHistory } = useHistory();
   const { addToast } = useToast();
 
