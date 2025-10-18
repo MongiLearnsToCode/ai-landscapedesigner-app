@@ -2,10 +2,13 @@ import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } 
 import * as dbService from './databaseService';
 
 // We'll get the user ID from the auth context in the components
+// When a user signs in, setCurrentUserId is called, and the HistoryContext
+// automatically fetches the user's history from the Neon database
 let currentUserId: string | null = null;
 
 export const setCurrentUserId = (userId: string | null) => {
     currentUserId = userId;
+    // Note: The HistoryContext will automatically fetch user history when this changes
 };
 
 export const getCurrentUserId = (): string | null => {

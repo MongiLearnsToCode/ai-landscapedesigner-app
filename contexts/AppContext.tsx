@@ -57,6 +57,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clerkUser) {
       console.log('✅ Setting current user ID:', clerkUser.id);
       setCurrentUserId(clerkUser.id);
+      // Navigate to main page after successful sign-in
+      if (page === 'signin' || page === 'signup') {
+        navigateTo('main');
+      }
       
       // Auto-create user in Neon database
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
@@ -101,17 +105,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const upgradeSubscription = useCallback((plan: User['subscription']['plan']) => {
-    setUser(currentUser => {
-      if (!currentUser) return null;
-      return {
-        ...currentUser,
-        subscription: {
-          ...currentUser.subscription,
-          plan: plan,
-          status: 'active' as const,
-        }
-      };
-    });
+    // In a real implementation, this would update the user's subscription in the backend
+    // For now, we'll just show a success message since Clerk handles the actual user data
+    console.log(`Upgrading to ${plan} plan`);
   }, []);
 
   const value = {
