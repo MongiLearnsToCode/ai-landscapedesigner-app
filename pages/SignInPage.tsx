@@ -10,7 +10,6 @@ export const SignInPage: React.FC = () => {
       <SignIn 
         routing="virtual"
         fallbackRedirectUrl="/"
-        redirectUrl="/"
         appearance={{
           elements: {
             rootBox: "mx-auto",
