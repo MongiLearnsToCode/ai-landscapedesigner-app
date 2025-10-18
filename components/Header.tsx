@@ -89,8 +89,6 @@ export const Header: React.FC = () => {
             {isAuthenticated ? (
               <UserButton 
                 afterSignOutUrl="/"
-                userProfileMode="navigation"
-                userProfileUrl="/profile"
               />
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
