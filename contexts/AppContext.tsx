@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useCallback, useEffect } fr
 import { useUser } from '@clerk/clerk-react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
+import { ensureUserExists } from '../services/databaseService';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
 
@@ -56,6 +57,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clerkUser) {
       console.log('✅ Setting current user ID:', clerkUser.id);
       setCurrentUserId(clerkUser.id);
+      
+      // Auto-create user in Neon database
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const name = clerkUser.fullName || clerkUser.firstName || 'User';
+      ensureUserExists(clerkUser.id, email, name);
     } else {
       console.log('❌ No Clerk user, clearing user ID');
       setCurrentUserId(null);
