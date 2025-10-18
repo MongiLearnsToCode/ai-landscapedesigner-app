@@ -1,6 +1,6 @@
 import React from 'react';
 import { useToast } from '../contexts/ToastContext';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 
 export const ContactPage: React.FC = () => {
   const { addToast } = useToast();
@@ -49,14 +49,11 @@ export const ContactPage: React.FC = () => {
             Have a question or feedback? Fill out the form below and we'll get back to you as soon as possible.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div className="mt-8">
             <ContactInfoItem icon={<Mail className="h-5 w-5 text-slate-600" />} title="Email Us">
               <a href="mailto:support@ai-landscapedesigner.com" className="text-orange-500 hover:underline">
                 support@ai-landscapedesigner.com
               </a>
-            </ContactInfoItem>
-            <ContactInfoItem icon={<Phone className="h-5 w-5 text-slate-600" />} title="Call Us">
-              <p>+1 (555) 123-4567</p>
             </ContactInfoItem>
           </div>
           

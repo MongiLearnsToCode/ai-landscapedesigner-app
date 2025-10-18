@@ -38,7 +38,11 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
             timestamp: redesign.createdAt.getTime(),
             isPinned: redesign.isPinned,
             originalImageInfo: { id: redesign.id, name: 'Original Image', type: 'image/jpeg' },
-            redesignedImageInfo: { id: redesign.id, type: 'image/jpeg' },
+            redesignedImageInfo: { 
+                id: redesign.id, 
+                type: 'image/jpeg',
+                storagePath: redesign.redesignedImageUrl 
+            },
             originalImage: { name: 'Original Image', type: 'image/jpeg', base64: '' },
             redesignedImage: redesign.redesignedImageUrl
         }));

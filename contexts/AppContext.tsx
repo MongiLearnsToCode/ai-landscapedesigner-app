@@ -48,6 +48,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (clerkUser) {
       setCurrentUserId(clerkUser.id);
+      
+      // Auto-create user in Neon database
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const name = clerkUser.fullName || clerkUser.firstName || 'User';
+      ensureUserExists(clerkUser.id, email, name);
+      
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigateTo('main');
