@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useCallback, useEffect } fr
 import { useUser } from '@clerk/clerk-react';
 import type { HydratedHistoryItem, User } from '../types';
 import { setCurrentUserId } from '../services/historyService';
+import { ensureUserExists } from '../services/databaseService';
 
 export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
 
@@ -30,7 +31,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
   
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const isAuthenticated = isLoaded && !!clerkUser;
   
   const user: User | null = clerkUser ? {
@@ -46,16 +47,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   } : null;
 
   useEffect(() => {
+    console.log('👤 Clerk user state:', { 
+      isLoaded, 
+      isSignedIn, 
+      userId: clerkUser?.id,
+      email: clerkUser?.emailAddresses?.[0]?.emailAddress 
+    });
+    
     if (clerkUser) {
+      console.log('✅ Setting current user ID:', clerkUser.id);
       setCurrentUserId(clerkUser.id);
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigateTo('main');
       }
+      
+      // Auto-create user in Neon database
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const name = clerkUser.fullName || clerkUser.firstName || 'User';
+      ensureUserExists(clerkUser.id, email, name);
     } else {
+      console.log('❌ No Clerk user, clearing user ID');
       setCurrentUserId(null);
     }
-  }, [clerkUser, page]);
+  }, [clerkUser, isLoaded, isSignedIn]);
   
   const navigateTo = (page: Page) => {
     setPage(page);

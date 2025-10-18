@@ -1,5 +1,5 @@
 import { db } from '../db/client';
-import { landscapeRedesigns } from '../db/schema';
+import { landscapeRedesigns, user } from '../db/schema';
 import { eq, desc, count } from 'drizzle-orm';
 import { uploadImageToCloudinary } from './cloudinaryService';
 import type { ImageFile, DesignCatalog, LandscapingStyle } from '../types';
@@ -27,6 +27,38 @@ export interface RedesignRecord {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const ensureUserExists = async (userId: string, email: string, name: string): Promise<void> => {
+  try {
+    // Check if user already exists
+    const existingUser = await db.select().from(user).where(eq(user.id, userId)).limit(1);
+    
+    if (existingUser.length === 0) {
+      // Create new user
+      await db.insert(user).values({
+        id: userId,
+        name: name || 'User',
+        email: email,
+        emailVerified: true, // Clerk handles verification
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log('✅ Created new user in database:', userId);
+    } else {
+      // Update existing user with latest info from Clerk
+      await db.update(user)
+        .set({
+          name: name || 'User',
+          email: email,
+          updatedAt: new Date()
+        })
+        .where(eq(user.id, userId));
+      console.log('✅ Updated existing user in database:', userId);
+    }
+  } catch (error) {
+    console.error('Error ensuring user exists:', error);
+  }
+};
 
 export const checkRedesignLimit = async (userId: string): Promise<{ canRedesign: boolean; remaining: number }> => {
   if (!userId) {

@@ -16,10 +16,14 @@ export const getCurrentUserId = (): string | null => {
 };
 
 export const checkRedesignLimit = async () => {
+    console.log('🔍 Checking redesign limit for user:', currentUserId);
     if (!currentUserId) {
+        console.log('❌ No current user ID, returning 0 remaining');
         return { canRedesign: false, remaining: 0 };
     }
-    return await dbService.checkRedesignLimit(currentUserId);
+    const result = await dbService.checkRedesignLimit(currentUserId);
+    console.log('✅ Limit check result:', result);
+    return result;
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
@@ -37,9 +41,23 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
             climateZone: redesign.climateZone || '',
             timestamp: redesign.createdAt.getTime(),
             isPinned: redesign.isPinned,
-            originalImageInfo: { id: redesign.id, name: 'Original Image', type: 'image/jpeg' },
-            redesignedImageInfo: { id: redesign.id, type: 'image/jpeg' },
-            originalImage: { name: 'Original Image', type: 'image/jpeg', base64: '' },
+            originalImageInfo: { 
+                id: redesign.id, 
+                name: 'Original Image', 
+                type: 'image/jpeg',
+                storagePath: redesign.originalImageUrl // Use Cloudinary URL as storagePath
+            },
+            redesignedImageInfo: { 
+                id: redesign.id, 
+                type: 'image/jpeg',
+                storagePath: redesign.redesignedImageUrl // Use Cloudinary URL as storagePath
+            },
+            originalImage: {
+                name: 'Original Image',
+                type: 'image/jpeg',
+                base64: '', // Empty for saved images
+                url: redesign.originalImageUrl // Cloudinary URL
+            },
             redesignedImage: redesign.redesignedImageUrl
         }));
     } catch (error) {

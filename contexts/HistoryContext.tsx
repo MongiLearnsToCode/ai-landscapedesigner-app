@@ -54,12 +54,12 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refreshHistory();
   }, [refreshHistory]);
 
-  // Fetch history when user authentication state changes
+  // Refresh history when authentication state changes
   useEffect(() => {
     if (isAuthenticated) {
       refreshHistory();
     } else {
-      setHistory([]);
+      setHistory([]); // Clear history when logged out
     }
   }, [isAuthenticated, refreshHistory]);
 
