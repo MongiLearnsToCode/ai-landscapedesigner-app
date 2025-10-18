@@ -14,7 +14,7 @@ export const SignInPage: React.FC = () => {
           appearance={{
             elements: {
               rootBox: "w-full",
-              card: "shadow-lg w-full",
+              card: "shadow-lg",
               footer: "hidden"
             }
           }}
