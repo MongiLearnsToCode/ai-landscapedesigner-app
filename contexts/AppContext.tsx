@@ -30,7 +30,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
   
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const isAuthenticated = isLoaded && !!clerkUser;
   
   const user: User | null = clerkUser ? {
