@@ -14,7 +14,7 @@ export const SignInPage: React.FC = () => {
           appearance={{
             elements: {
               rootBox: "w-full",
-              card: "shadow-lg w-full p-4 sm:p-6",
+              card: "shadow-lg w-full p-4 sm:p-6 mx-auto",
               headerTitle: "text-lg sm:text-xl font-semibold",
               headerSubtitle: "text-sm sm:text-base",
               socialButtonsBlockButton: "w-full h-10 sm:h-12 text-sm sm:text-base mb-2",
