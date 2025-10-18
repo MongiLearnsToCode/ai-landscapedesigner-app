@@ -32,12 +32,18 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { loadItem } = useApp();
 
   // Use app context for authentication state
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, user } = useApp();
 
   // Authentication is handled by AppContext
   // User ID is set automatically in AppContext when user changes
 
   const refreshHistory = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setHistory([]);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const historyItems = await historyService.getHistory();
@@ -48,7 +54,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [isAuthenticated, user, addToast]);
 
   useEffect(() => {
     refreshHistory();
@@ -56,11 +62,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Refresh history when authentication state changes
   useEffect(() => {
-    if (isAuthenticated) {
-      refreshHistory();
-    } else {
-      setHistory([]); // Clear history when logged out
-    }
+    refreshHistory();
   }, [isAuthenticated, refreshHistory]);
 
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {

@@ -26,7 +26,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [page, setPage] = useState<Page>('main');
+  // Initialize page from URL hash or default to 'main'
+  const getInitialPage = (): Page => {
+    const hash = window.location.hash.slice(1) as Page;
+    const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
+    return validPages.includes(hash) ? hash : 'main';
+  };
+
+  const [page, setPage] = useState<Page>(getInitialPage());
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [itemToLoad, setItemToLoad] = useState<HydratedHistoryItem | null>(null);
@@ -45,6 +52,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     },
   } : null;
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1) as Page;
+      const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
+      const newPage = validPages.includes(hash) ? hash : 'main';
+      setPage(newPage);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     console.log('👤 Clerk user state:', { 
@@ -75,6 +94,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const navigateTo = (page: Page) => {
     setPage(page);
+    window.location.hash = page === 'main' ? '' : page;
     window.scrollTo(0, 0); // Scroll to top on page change
   };
 
