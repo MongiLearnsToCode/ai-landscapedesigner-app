@@ -56,10 +56,10 @@ const PageContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen text-slate-800 font-sans flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="w-full flex-grow bg-white/90 backdrop-blur-sm shadow-sm border-b border-slate-200/50 flex flex-col">
+    <div className="min-h-screen text-slate-800 font-sans p-2 sm:p-4 lg:p-6 xl:p-8 flex flex-col">
+      <div className="w-full flex-grow mx-auto bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-lg ring-1 ring-black/5 flex flex-col">
         <Header />
-        <main className="p-4 sm:p-6 lg:p-8 xl:p-12 flex-grow overflow-y-auto flex flex-col">
+        <main className="p-3 sm:p-4 lg:p-6 xl:p-8 flex-grow overflow-y-auto flex flex-col">
           {pages[page] || <DesignerPage />}
         </main>
         <Footer />
