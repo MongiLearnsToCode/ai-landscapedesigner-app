@@ -69,7 +69,7 @@ export const DesignerPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
 
-  // Check redesign limit on component mount
+  // Check redesign limit on component mount and when user changes
   useEffect(() => {
     const checkLimit = async () => {
       try {
@@ -80,7 +80,7 @@ export const DesignerPage: React.FC = () => {
       }
     };
     checkLimit();
-  }, []);
+  }, [isAuthenticated]); // Add isAuthenticated as dependency
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
