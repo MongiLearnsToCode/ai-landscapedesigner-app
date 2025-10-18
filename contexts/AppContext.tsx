@@ -46,12 +46,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   } : null;
 
   useEffect(() => {
+    console.log('👤 Clerk user state:', { 
+      isLoaded, 
+      isSignedIn, 
+      userId: clerkUser?.id,
+      email: clerkUser?.emailAddresses?.[0]?.emailAddress 
+    });
+    
     if (clerkUser) {
+      console.log('✅ Setting current user ID:', clerkUser.id);
       setCurrentUserId(clerkUser.id);
     } else {
+      console.log('❌ No Clerk user, clearing user ID');
       setCurrentUserId(null);
     }
-  }, [clerkUser]);
+  }, [clerkUser, isLoaded, isSignedIn]);
   
   const navigateTo = (page: Page) => {
     setPage(page);
