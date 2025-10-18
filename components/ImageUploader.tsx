@@ -24,7 +24,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
   
   useEffect(() => {
     if (initialImage) {
-      const imageUrl = `data:${initialImage.type};base64,${initialImage.base64}`;
+      // Use Cloudinary URL if available, otherwise use base64
+      const imageUrl = initialImage.url || `data:${initialImage.type};base64,${initialImage.base64}`;
       setPreview(imageUrl);
     } else {
       setPreview(null);
