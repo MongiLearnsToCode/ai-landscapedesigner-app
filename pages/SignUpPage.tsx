@@ -7,16 +7,16 @@ export const SignUpPage: React.FC = () => {
 
   return (
     <div className="flex flex-col justify-center items-center min-h-[60vh] px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
-      <div className="w-full max-w-sm sm:max-w-md">
+      <div className="w-full max-w-sm sm:max-w-md flex justify-center">
         <SignUp 
           routing="virtual"
           fallbackRedirectUrl="/"
           appearance={{
             elements: {
-              rootBox: "w-full",
-              card: "shadow-lg w-full p-4 sm:p-6 mx-auto",
-              headerTitle: "text-lg sm:text-xl font-semibold",
-              headerSubtitle: "text-sm sm:text-base",
+              rootBox: "w-full flex justify-center",
+              card: "shadow-lg w-full max-w-sm p-4 sm:p-6",
+              headerTitle: "text-lg sm:text-xl font-semibold text-center",
+              headerSubtitle: "text-sm sm:text-base text-center",
               socialButtonsBlockButton: "w-full h-10 sm:h-12 text-sm sm:text-base mb-2",
               formFieldInput: "w-full h-10 sm:h-12 text-sm sm:text-base px-3 sm:px-4",
               formButtonPrimary: "w-full h-10 sm:h-12 text-sm sm:text-base font-semibold",
