@@ -4,7 +4,7 @@ import * as dbService from './databaseService';
 // We'll get the user ID from the auth context in the components
 let currentUserId: string | null = null;
 
-export const setCurrentUserId = (userId: string) => {
+export const setCurrentUserId = (userId: string | null) => {
     currentUserId = userId;
 };
 
@@ -13,10 +13,14 @@ export const getCurrentUserId = (): string | null => {
 };
 
 export const checkRedesignLimit = async () => {
+    console.log('🔍 Checking redesign limit for user:', currentUserId);
     if (!currentUserId) {
+        console.log('❌ No current user ID, returning 0 remaining');
         return { canRedesign: false, remaining: 0 };
     }
-    return await dbService.checkRedesignLimit(currentUserId);
+    const result = await dbService.checkRedesignLimit(currentUserId);
+    console.log('✅ Limit check result:', result);
+    return result;
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
