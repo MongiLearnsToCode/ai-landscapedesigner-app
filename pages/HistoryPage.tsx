@@ -17,7 +17,7 @@ type SortOption = 'default' | 'date-desc' | 'date-asc' | 'name-asc';
 type DateFilterOption = 'all' | '7d' | '30d';
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, onPin, onDelete }) => {
-  const { deleteMultipleItems } = useHistory();
+  const { deleteMultipleItems, isLoading } = useHistory();
 
   const [unpinModalState, setUnpinModalState] = useState({ isOpen: false, itemId: null as string | null });
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false });
@@ -175,7 +175,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
             </div>
           )}
 
-          {historyItems.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80">
+              <div className="animate-spin mx-auto h-16 w-16 border-4 border-slate-200 border-t-orange-500 rounded-full"></div>
+              <h3 className="mt-4 text-xl font-medium text-slate-700">Loading Projects</h3>
+              <p className="mt-1 text-sm text-slate-500">Fetching your design history...</p>
+            </div>
+          ) : historyItems.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80"><SlidersHorizontal className="mx-auto h-16 w-16 text-slate-300" strokeWidth={1} /><h3 className="mt-4 text-xl font-medium text-slate-700">No Projects Yet</h3><p className="mt-1 text-sm text-slate-500">Create a new design, and it will show up here!</p></div>
           ) : filteredAndSortedItems.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80"><Search className="mx-auto h-16 w-16 text-slate-300" strokeWidth={1} /><h3 className="mt-4 text-xl font-medium text-slate-700">No Projects Found</h3><p className="mt-1 text-sm text-slate-500">Your search and filter criteria did not match any projects.</p></div>

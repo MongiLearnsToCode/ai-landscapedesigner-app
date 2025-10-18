@@ -15,6 +15,7 @@ interface NewRedesignData {
 
 interface HistoryContextType {
   history: HydratedHistoryItem[];
+  isLoading: boolean;
   saveNewRedesign: (data: NewRedesignData) => Promise<void>;
   deleteItem: (id: string) => void;
   deleteMultipleItems: (ids: string[]) => Promise<void>;
@@ -26,6 +27,7 @@ const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
 
 export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [history, setHistory] = useState<HydratedHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { addToast } = useToast();
   const { loadItem } = useApp();
 
@@ -36,13 +38,30 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // User ID is set automatically in AppContext when user changes
 
   const refreshHistory = useCallback(async () => {
-    const historyItems = await historyService.getHistory();
-    setHistory(historyItems);
-  }, []);
+    setIsLoading(true);
+    try {
+      const historyItems = await historyService.getHistory();
+      setHistory(historyItems);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+      addToast('Failed to load history', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
 
   useEffect(() => {
     refreshHistory();
   }, [refreshHistory]);
+
+  // Fetch history when user authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshHistory();
+    } else {
+      setHistory([]);
+    }
+  }, [isAuthenticated, refreshHistory]);
 
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {
     try {
@@ -118,6 +137,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const value = {
     history,
+    isLoading,
     saveNewRedesign,
     deleteItem,
     deleteMultipleItems,
