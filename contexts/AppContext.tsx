@@ -57,15 +57,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (clerkUser) {
       console.log('✅ Setting current user ID:', clerkUser.id);
       setCurrentUserId(clerkUser.id);
-      // Navigate to main page after successful sign-in
-      if (page === 'signin' || page === 'signup') {
-        navigateTo('main');
-      }
       
       // Auto-create user in Neon database
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
       ensureUserExists(clerkUser.id, email, name);
+      
+      // Navigate to main page after successful sign-in
+      if (page === 'signin' || page === 'signup') {
+        navigateTo('main');
+      }
     } else {
       console.log('❌ No Clerk user, clearing user ID');
       setCurrentUserId(null);

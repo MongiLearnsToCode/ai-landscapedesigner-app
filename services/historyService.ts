@@ -45,18 +45,18 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
                 id: redesign.id, 
                 name: 'Original Image', 
                 type: 'image/jpeg',
-                storagePath: redesign.originalImageUrl // Use Cloudinary URL as storagePath
+                storagePath: redesign.originalImageUrl
             },
             redesignedImageInfo: { 
                 id: redesign.id, 
                 type: 'image/jpeg',
-                storagePath: redesign.redesignedImageUrl // Use Cloudinary URL as storagePath
+                storagePath: redesign.redesignedImageUrl
             },
             originalImage: {
                 name: 'Original Image',
                 type: 'image/jpeg',
-                base64: '', // Empty for saved images
-                url: redesign.originalImageUrl // Cloudinary URL
+                base64: '',
+                url: redesign.originalImageUrl
             },
             redesignedImage: redesign.redesignedImageUrl
         }));
