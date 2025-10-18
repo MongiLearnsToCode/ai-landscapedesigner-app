@@ -44,6 +44,16 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
         updatedAt: new Date()
       });
       console.log('✅ Created new user in database:', userId);
+    } else {
+      // Update existing user with latest info from Clerk
+      await db.update(user)
+        .set({
+          name: name || 'User',
+          email: email,
+          updatedAt: new Date()
+        })
+        .where(eq(user.id, userId));
+      console.log('✅ Updated existing user in database:', userId);
     }
   } catch (error) {
     console.error('Error ensuring user exists:', error);

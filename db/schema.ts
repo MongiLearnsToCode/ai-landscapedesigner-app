@@ -64,7 +64,7 @@ export const verification = pgTable("verification", {
 // App-specific tables
 export const landscapeRedesigns = pgTable('landscape_redesigns', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull(), // Removed foreign key constraint for Clerk compatibility
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: "cascade" }),
   originalImageUrl: text('original_image_url').notNull(),
   redesignedImageUrl: text('redesigned_image_url').notNull(),
   designCatalog: json('design_catalog').notNull(),
