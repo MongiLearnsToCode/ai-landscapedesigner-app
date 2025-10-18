@@ -72,6 +72,8 @@ export const DesignerPage: React.FC = () => {
   // Check redesign limit on component mount and when user changes
   useEffect(() => {
     const checkLimit = async () => {
+      // Small delay to ensure user ID is set
+      await new Promise(resolve => setTimeout(resolve, 100));
       try {
         const { remaining } = await checkRedesignLimit();
         setRemainingRedesigns(remaining);
@@ -79,7 +81,12 @@ export const DesignerPage: React.FC = () => {
         console.error('Failed to check redesign limit:', error);
       }
     };
-    checkLimit();
+    
+    if (isAuthenticated) {
+      checkLimit();
+    } else {
+      setRemainingRedesigns(0);
+    }
   }, [isAuthenticated]); // Add isAuthenticated as dependency
 
   // Persist state to localStorage whenever it changes
