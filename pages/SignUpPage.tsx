@@ -14,7 +14,7 @@ export const SignUpPage: React.FC = () => {
           appearance={{
             elements: {
               rootBox: "w-full flex justify-center",
-              card: "shadow-lg w-full max-w-sm mx-auto",
+              card: "shadow-lg w-full mx-auto",
               footer: "hidden"
             }
           }}
