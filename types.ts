@@ -4,6 +4,7 @@ export interface ImageFile {
   name: string;
   type: string;
   base64: string;
+  url?: string; // Optional Cloudinary URL for saved images
 }
 
 export type LandscapingStyle = 'modern' | 'minimalist' | 'rustic' | 'mediterranean' | 'japanese' | 'tropical' | 'farmhouse' | 'coastal' | 'desert' | 'urban-modern' | 'bohemian' | 'english-cottage';
