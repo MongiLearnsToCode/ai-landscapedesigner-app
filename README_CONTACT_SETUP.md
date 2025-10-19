@@ -31,7 +31,7 @@ For production use, you need to verify your domain in Resend:
 1. Go to Domains in your Resend dashboard
 2. Add your domain (e.g., `ai-landscapedesigner.com`)
 3. Follow the DNS verification steps
-4. Update the `from` email in `contactService.ts` to use your verified domain
+4. Update the `from` email in `api/contact.ts` to use your verified domain
 
 ### 4. Update Email Addresses (Optional)
 
@@ -70,7 +70,13 @@ from: 'Your App <noreply@yourdomain.com>'
 ## Testing
 
 ### Development Testing
-The contact form will work in development even without a real API key - it will log mock emails to the console.
+A valid `RESEND_API_KEY` is required for development. Set it in your `.env.local` file:
+
+```bash
+RESEND_API_KEY=re_your_actual_api_key_here
+```
+
+The contact form will send real emails during development, so use a test API key or ensure your domain is verified.
 
 ### Production Testing
 1. Set up a real Resend API key
@@ -96,7 +102,7 @@ The contact form will work in development even without a real API key - it will 
    - Check your Resend dashboard for delivery status
 
 ### Logs
-Check the browser console for detailed logs:
+Check your server/serverless logs (e.g., Vercel deployment logs) for detailed email sending activity:
 - `📧 Sending contact email to support team...`
 - `✅ Contact email sent successfully: [email-id]`
 - `📧 Sending auto-reply email to user...`
