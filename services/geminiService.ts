@@ -4,9 +4,10 @@
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { LandscapingStyle, DesignCatalog, RedesignDensity } from '../types';
 import { LANDSCAPING_STYLES } from '../constants';
+import { geminiRateLimiter } from './rateLimit';
 
 // Get API key from environment variables
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+const apiKey = (globalThis as any).process?.env?.GEMINI_API_KEY;
 if (!apiKey) {
   throw new Error('GEMINI_API_KEY is not configured');
 }
@@ -242,6 +243,12 @@ export const redesignOutdoorSpace = async (
   lockAspectRatio: boolean,
   redesignDensity: RedesignDensity
 ): Promise<{ base64ImageBytes: string; mimeType: string; catalog: DesignCatalog }> => {
+  // Check rate limit before making API call
+  if (!geminiRateLimiter.checkLimit()) {
+    const remainingTime = Math.ceil(geminiRateLimiter.getTimeUntilReset() / 1000);
+    throw new Error(`Rate limit exceeded. Please wait ${remainingTime} seconds before trying again.`);
+  }
+
   const prompt = getPrompt(styles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity);
   const imagePart = { inlineData: { data: base64Image, mimeType } };
 

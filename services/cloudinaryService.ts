@@ -1,5 +1,6 @@
 // Cloudinary service for handling image uploads and transformations
 import type { ImageFile } from '../types';
+import { cloudinaryRateLimiter } from './rateLimit';
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -27,8 +28,8 @@ export interface CloudinaryUploadResult {
 
 // Configuration - these would typically be stored in environment variables
 const CLOUDINARY_CONFIG: CloudinaryConfig = {
-  cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '', // Would be set in .env.local
-  uploadPreset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '' // For unsigned uploads
+  cloudName: (globalThis as any).process?.env?.VITE_CLOUDINARY_CLOUD_NAME || '', // Would be set in .env.local
+  uploadPreset: (globalThis as any).process?.env?.VITE_CLOUDINARY_UPLOAD_PRESET || '' // For unsigned uploads
 };
 
 /**
@@ -41,6 +42,12 @@ export const uploadImageToCloudinary = async (
   imageFile: ImageFile,
   retries: number = 3
 ): Promise<CloudinaryUploadResult> => {
+  // Check rate limit before uploading
+  if (!cloudinaryRateLimiter.checkLimit()) {
+    const remainingTime = Math.ceil(cloudinaryRateLimiter.getTimeUntilReset() / 1000);
+    throw new Error(`Upload rate limit exceeded. Please wait ${remainingTime} seconds before trying again.`);
+  }
+
   const { cloudName, uploadPreset } = CLOUDINARY_CONFIG;
 
   console.log('🔧 Cloudinary Config:', { cloudName, uploadPreset });
