@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import type { HistoryItem } from '../types';
+import type { HydratedHistoryItem } from '../types';
 import { getCloudinaryUrl } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 import { ImageWithLoader } from './ImageWithLoader';
 import { Eye } from 'lucide-react';
 
 interface HistoryGalleryItemProps {
-    item: HistoryItem;
-    onClick: (item: HistoryItem) => void;
+    item: HydratedHistoryItem;
+    onClick: (item: HydratedHistoryItem) => void;
 }
 
 export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, onClick }) => {
@@ -15,18 +15,15 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
 
     useEffect(() => {
         let isMounted = true;
-        // Use the storage path from the image info as the Cloudinary URL
-        // In a real implementation, item.redesignedImageInfo.id would be the Cloudinary public ID
-        // and we'd use that to generate the image URL
-        const cloudinaryUrl = item.redesignedImageInfo.storagePath || 
-            getCloudinaryUrl(item.redesignedImageInfo.id); // fallback to generating from ID
-            
+        // Use the direct image URL from the minimized data structure
+        const cloudinaryUrl = item.redesignedImageUrl;
+
         if (isMounted && cloudinaryUrl) {
             setImageUrl(cloudinaryUrl);
         }
-        
+
         return () => { isMounted = false; };
-    }, [item.redesignedImageInfo.id, item.redesignedImageInfo.storagePath]);
+    }, [item.redesignedImageUrl]);
 
     const styleNames = item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' & ');
 

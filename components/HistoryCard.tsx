@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import type { HistoryItem } from '../types';
+import type { HydratedHistoryItem } from '../types';
 import { Pin, Trash2, Eye } from 'lucide-react';
 import { ImageWithLoader } from './ImageWithLoader';
 import { getCloudinaryUrl } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 
 interface HistoryCardProps {
-  item: HistoryItem;
-  onView: (item: HistoryItem) => void;
+  item: HydratedHistoryItem;
+  onView: (item: HydratedHistoryItem) => void;
   onPin: (id: string) => void;
   onAttemptUnpin: (id: string) => void;
   onDelete: (id: string) => void;
@@ -25,18 +25,15 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    // Use the storage path from the image info as the Cloudinary URL
-    // In a real implementation, item.redesignedImageInfo.id would be the Cloudinary public ID
-    // and we'd use that to generate the image URL
-    const cloudinaryUrl = item.redesignedImageInfo.storagePath || 
-      getCloudinaryUrl(item.redesignedImageInfo.id); // fallback to generating from ID
-    
+    // Use the direct image URL from the minimized data structure
+    const cloudinaryUrl = item.redesignedImageUrl;
+
     if (isMounted && cloudinaryUrl) {
       setImageUrl(cloudinaryUrl);
     }
-    
+
     return () => { isMounted = false; };
-  }, [item.redesignedImageInfo.id, item.redesignedImageInfo.storagePath]);
+  }, [item.redesignedImageUrl]);
 
   const styleNames = item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' & ');
     

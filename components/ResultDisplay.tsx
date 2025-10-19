@@ -1,6 +1,6 @@
 import React from 'react';
 import { DesignCatalog } from './DesignCatalog';
-import type { DesignCatalog as DesignCatalogType, ImageFile, HistoryItem } from '../types';
+import type { DesignCatalog as DesignCatalogType, ImageFile, HydratedHistoryItem } from '../types';
 import { Download, Share2, Expand, Wand, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
@@ -12,8 +12,8 @@ interface ResultDisplayProps {
   redesignedImage: string | null;
   designCatalog: DesignCatalogType | null;
   isLoading: boolean;
-  historyItems?: HistoryItem[];
-  onHistoryItemClick?: (item: HistoryItem) => void;
+  historyItems?: HydratedHistoryItem[];
+  onHistoryItemClick?: (item: HydratedHistoryItem) => void;
 }
 
 const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCatalogType | null; }> = ({ title, imageUrl, catalog }) => {
