@@ -23,20 +23,20 @@ export const ContactPage: React.FC = () => {
 
        // Send POST request to API route
        const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactData),
-      });
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify(contactData),
+       });
 
-      const result = await response.json();
+       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send message');
-      }
+       if (!response.ok) {
+         throw new Error(result.error || 'Failed to send message');
+       }
 
-      addToast(result.message || 'Thank you for your message! We\'ll get back to you soon.', 'success');
+       addToast(result.message || 'Thank you for your message! We\'ll get back to you soon.', 'success');
       form.reset();
     } catch (error) {
       console.error('Contact form submission error:', error);
