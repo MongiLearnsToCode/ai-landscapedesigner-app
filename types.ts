@@ -62,6 +62,9 @@ export interface HydratedHistoryItem {
     // Minimized data structure - only essential URLs to reduce response size
     originalImageUrl: string;
     redesignedImageUrl: string;
+    // Full data for view functionality (populated when viewing)
+    originalImage?: ImageFile;
+    redesignedImage?: string;
 }
 
 
