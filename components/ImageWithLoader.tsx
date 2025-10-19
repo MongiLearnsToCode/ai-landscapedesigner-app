@@ -31,6 +31,11 @@ export const ImageWithLoader: React.FC<ImageWithLoaderProps> = ({ src, alt, lazy
     return () => observer.disconnect();
   }, [lazy]);
 
+  // Reset loading state when src changes
+  useEffect(() => {
+    setIsLoading(true);
+  }, [src]);
+
   return (
     <div ref={containerRef} className="absolute inset-0 w-full h-full">
       {isLoading && (
