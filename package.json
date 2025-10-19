@@ -12,7 +12,7 @@
     "db:migrate": "tsx migrate.ts"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.53.1",
+    "@clerk/clerk-react": "^5.53.2",
     "@google/genai": "^1.20.0",
     "@neondatabase/serverless": "^1.0.2",
 
@@ -21,9 +21,9 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "express": "^5.1.0",
-    "lucide-react": "^0.417.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "lucide-react": "^0.418.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
