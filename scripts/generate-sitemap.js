@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Get domain from environment variable or use default
-const SITE_DOMAIN = process.env.VITE_SITE_DOMAIN || 'https://mongilearnstocode.github.io/ai-landscapedesigner-app';
+const SITE_DOMAIN = process.env.VITE_SITE_DOMAIN || 'https://ai-landscapedesigner.com';
 const BUILD_DATE = process.env.VITE_BUILD_DATE || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
 // Ensure domain doesn't end with slash for consistent URL building
