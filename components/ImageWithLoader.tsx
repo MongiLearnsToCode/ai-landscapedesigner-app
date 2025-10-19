@@ -9,7 +9,7 @@ interface ImageWithLoaderProps {
 export const ImageWithLoader: React.FC<ImageWithLoaderProps> = ({ src, alt, lazy = false }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isInView, setIsInView] = useState(!lazy);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!lazy) return;
@@ -24,21 +24,20 @@ export const ImageWithLoader: React.FC<ImageWithLoaderProps> = ({ src, alt, lazy
       { threshold: 0.1 }
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
     return () => observer.disconnect();
   }, [lazy]);
 
   return (
-    <div className="absolute inset-0 w-full h-full">
+    <div ref={containerRef} className="absolute inset-0 w-full h-full">
       {isLoading && (
         <div className="w-full h-full bg-gray-300 dark:bg-gray-700 animate-pulse"></div>
       )}
       {isInView && (
         <img
-          ref={imgRef}
           src={src}
           alt={alt}
           className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
