@@ -23,7 +23,16 @@ export default defineConfig(({ mode }) => {
         }
       },
       optimizeDeps: {
-        include: ['react', 'react-dom', 'lucide-react', '@google/genai']
+        include: ['react', 'react-dom', 'lucide-react', '@google/genai'],
+        exclude: ['resend'] // Exclude resend from pre-bundling
+      },
+      build: {
+        rollupOptions: {
+          external: (id) => {
+            // Externalize resend module to avoid build-time resolution
+            return id === 'resend';
+          }
+        }
       }
     };
-});
+  });
