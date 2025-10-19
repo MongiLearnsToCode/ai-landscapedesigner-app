@@ -131,10 +131,18 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [addToast]);
 
   const viewFromHistory = useCallback(async (item: HydratedHistoryItem) => {
-    // In a backend implementation, we would fetch the full image data from the backend
-    // For now, we'll pass the item as-is since in a real implementation the image data
-    // would already be part of the backend response
-    loadItem(item);
+    // Convert minimized data structure back to full format expected by the designer
+    const fullItem = {
+      ...item,
+      originalImage: {
+        name: 'Original Image',
+        type: 'image/jpeg',
+        base64: '', // Will be loaded when needed
+        url: item.originalImageUrl
+      },
+      redesignedImage: item.redesignedImageUrl
+    } as HydratedHistoryItem;
+    loadItem(fullItem);
   }, [loadItem]);
 
   const value = {
