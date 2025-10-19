@@ -26,4 +26,4 @@ export default defineConfig(({ mode }) => {
         include: ['react', 'react-dom', 'lucide-react', '@google/genai']
       }
     };
-});
+  });
