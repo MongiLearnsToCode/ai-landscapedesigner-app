@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { RotateCcw, Undo, Redo, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { sanitizeError } from '../services/errorUtils';
 
 interface EditingModalProps {
   isOpen: boolean;
@@ -150,8 +151,8 @@ export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, ima
       onClose();
     } catch (error) {
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      addToast(`Failed to save edits: ${errorMessage}`, 'error');
+      const sanitizedMessage = sanitizeError(error);
+      addToast(`Failed to save edits: ${sanitizedMessage}`, 'error');
     } finally {
       setIsSaving(false);
     }

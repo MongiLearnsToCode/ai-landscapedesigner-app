@@ -6,6 +6,7 @@ import type { DesignCatalog as DesignCatalogType, Plant, Feature } from '../type
 import { Sprout, Sofa, Clipboard, ChevronDown, Loader2 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { getElementImage, getElementInfo } from '../services/geminiService';
+import { sanitizeError } from '../services/errorUtils';
 
 interface DesignCatalogProps {
   catalog: DesignCatalogType | null;
@@ -102,8 +103,8 @@ export const DesignCatalog: React.FC<DesignCatalogProps> = ({ catalog }) => {
         setElementDetails(prev => ({ ...prev, [itemName]: { isLoading: false, imageUrl, info } }));
       } catch (error) {
         console.error(`Failed to fetch details for ${itemName}:`, error);
-        const errorMessage = error instanceof Error ? error.message : "Could not load details.";
-        setElementDetails(prev => ({ ...prev, [itemName]: { isLoading: false, error: errorMessage } }));
+        const sanitizedMessage = sanitizeError(error);
+        setElementDetails(prev => ({ ...prev, [itemName]: { isLoading: false, error: sanitizedMessage } }));
         addToast(`Error loading details for ${itemName}.`, 'error');
       }
     }
