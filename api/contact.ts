@@ -50,10 +50,15 @@ const checkRateLimit = (identifier: string): boolean => {
 
 // Get client identifier (IP-based for server-side rate limiting)
 const getClientIdentifier = (req: any): string => {
+  // Guard against undefined headers
+  if (!req.headers) {
+    return 'unknown-ip';
+  }
+
   // Try to get IP from various headers (common in serverless environments)
-  const forwarded = req.headers.get('x-forwarded-for');
-  const realIp = req.headers.get('x-real-ip');
-  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  const forwarded = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
 
   // Use the first available IP, fallback to a generic identifier
   const ip = forwarded?.split(',')[0]?.trim() ||
@@ -228,13 +233,18 @@ export default async function handler(req: any, res: any) {
 
   try {
     // Validate Content-Type header
-    const contentType = req.headers.get('content-type');
+    const contentType = req.headers['content-type'];
     if (!contentType || !contentType.includes('application/json')) {
       return res.status(415).json({ error: 'Content-Type must be application/json' });
     }
 
     // Parse request body
-    const formData: ContactFormData = await req.json();
+    const formData: ContactFormData = req.body;
+
+    // Validate request body exists and has expected shape
+    if (!formData || typeof formData !== 'object') {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
 
     // Validate required fields
     if (!formData.name?.trim() || !formData.email?.trim() || !formData.message?.trim()) {
