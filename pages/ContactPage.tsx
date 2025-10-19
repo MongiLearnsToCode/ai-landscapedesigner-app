@@ -21,8 +21,8 @@ export const ContactPage: React.FC = () => {
         message: formData.get('message') as string,
       };
 
-      // Send POST request to API route
-      const response = await fetch('/api/contact', {
+       // Send POST request to API route
+       const response = await fetch('http://localhost:3001/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
