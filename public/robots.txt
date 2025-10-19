@@ -3,7 +3,6 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 Disallow: /_next/
-Disallow: /api/
 
 # Block access to sensitive or internal paths
 Disallow: /signin
