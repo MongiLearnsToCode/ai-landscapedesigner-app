@@ -20,8 +20,8 @@ This guide explains how to set up the contact form email functionality using Res
 Create a `.env.local` file in the project root (copy from `.env.example`):
 
 ```bash
-# Resend API Key (required for contact form emails)
-VITE_RESEND_API_KEY=re_your_actual_api_key_here
+# Resend API Key (required for contact form emails - server-side only)
+RESEND_API_KEY=re_your_actual_api_key_here
 ```
 
 ### 3. Verify Domain (Production Only)
@@ -35,7 +35,7 @@ For production use, you need to verify your domain in Resend:
 
 ### 4. Update Email Addresses (Optional)
 
-In `services/contactService.ts`, update these email addresses:
+In `api/contact.ts`, update these email addresses:
 
 ```typescript
 // Change this to your support email
@@ -48,8 +48,8 @@ from: 'Your App <noreply@yourdomain.com>'
 ## Features
 
 ### Rate Limiting
-- Maximum 3 contact form submissions per hour per session
-- Client-side rate limiting using sessionStorage
+- Maximum 3 contact form submissions per hour per IP address
+- Server-side rate limiting using IP-based tracking
 - Prevents spam and abuse
 
 ### Email Templates
@@ -83,8 +83,8 @@ The contact form will work in development even without a real API key - it will 
 ### Common Issues
 
 1. **"Email service is not configured"**
-   - Check that `VITE_RESEND_API_KEY` is set in your environment variables
-   - Make sure the API key is valid
+    - Check that `RESEND_API_KEY` is set in your environment variables
+    - Make sure the API key is valid
 
 2. **"Too many contact form submissions"**
    - Rate limit exceeded (3 per hour)
@@ -104,9 +104,10 @@ Check the browser console for detailed logs:
 
 ## Security Notes
 
-- API keys are exposed to the client-side (this is expected for Resend)
-- Rate limiting is client-side only (consider server-side rate limiting for production)
-- Email content is sanitized to prevent injection attacks
+- API keys are securely stored server-side and never exposed to the client
+- Server-side rate limiting prevents abuse and spam
+- All user input is HTML-escaped to prevent XSS attacks in email templates
+- Email functionality is handled via secure Vercel serverless functions
 - No sensitive data is logged or exposed
 
 ## Cost

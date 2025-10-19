@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { Mail, MapPin } from 'lucide-react';
-import { sendContactEmail, sendAutoReplyEmail, ContactFormData } from '../services/contactService';
+import type { ContactFormData } from '../services/contactService';
 
 export const ContactPage: React.FC = () => {
   const { addToast } = useToast();
@@ -21,16 +21,22 @@ export const ContactPage: React.FC = () => {
         message: formData.get('message') as string,
       };
 
-      // Send contact email to support
-      await sendContactEmail(contactData);
-
-      // Send auto-reply to user (non-blocking)
-      sendAutoReplyEmail(contactData).catch(error => {
-        console.warn('Auto-reply failed:', error);
-        // Don't show error to user for auto-reply failures
+      // Send POST request to API route
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactData),
       });
 
-      addToast('Thank you for your message! We\'ll get back to you soon.', 'success');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send message');
+      }
+
+      addToast(result.message || 'Thank you for your message! We\'ll get back to you soon.', 'success');
       form.reset();
     } catch (error) {
       console.error('Contact form submission error:', error);
@@ -38,7 +44,7 @@ export const ContactPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+   };
 
   const inputClasses = "w-full h-11 px-4 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400";
   const labelClasses = "block text-sm font-medium text-slate-700 mb-1.5";

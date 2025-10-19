@@ -24,8 +24,7 @@
     "just-throttle": "^4.2.0",
     "lucide-react": "^0.418.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "resend": "^6.2.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
