@@ -70,6 +70,11 @@ const getResendInstance = (): Resend => {
     throw new Error('RESEND_API_KEY environment variable not configured');
   }
 
+  // Basic validation that API key follows Resend format (starts with 're_')
+  if (!apiKey.startsWith('re_')) {
+    throw new Error('Invalid RESEND_API_KEY format. API keys should start with "re_"');
+  }
+
   return new Resend(apiKey);
 };
 

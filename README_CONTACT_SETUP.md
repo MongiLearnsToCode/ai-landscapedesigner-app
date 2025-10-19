@@ -12,8 +12,11 @@ This guide explains how to set up the contact form email functionality using Res
 ### 1. Get Your Resend API Key
 
 1. Sign up for a Resend account at [resend.com](https://resend.com)
-2. Go to your dashboard and create an API key
-3. Copy the API key (it starts with `re_`)
+2. Go to your dashboard and create an API key:
+   - Select **Sending access** permission (more secure than Full access)
+   - Optionally restrict to your domain for additional security
+3. **Important**: Copy the API key immediately - it can only be viewed once
+4. Store it securely - never commit API keys to version control
 
 ### 2. Configure Environment Variables
 
@@ -23,6 +26,10 @@ Create a `.env.local` file in the project root (copy from `.env.example`):
 # Resend API Key (required for contact form emails - server-side only)
 RESEND_API_KEY=re_your_actual_api_key_here
 ```
+
+<Warning>
+**Security Note**: API keys are sensitive credentials that should never be committed to version control or shared publicly. Always use environment variables and keep your `.env.local` file secure.
+</Warning>
 
 ### 3. Verify Domain (Production Only)
 
@@ -107,6 +114,21 @@ Check your server/serverless logs (e.g., Vercel deployment logs) for detailed em
 - `✅ Contact email sent successfully: [email-id]`
 - `📧 Sending auto-reply email to user...`
 - `✅ Auto-reply email sent successfully: [email-id]`
+
+## API Key Management
+
+### Best Practices
+- Use **Sending access** API keys instead of Full access for better security
+- Restrict API keys to specific domains when possible
+- Regularly rotate API keys and delete unused ones
+- Monitor API key usage in your Resend dashboard
+- View request logs per API key to detect unusual activity
+
+### Troubleshooting
+- Check your Resend dashboard for API key status and recent usage
+- Verify domain verification if emails are not being delivered
+- Review server logs for detailed error messages
+- Test API key permissions if authentication fails
 
 ## Security Notes
 
