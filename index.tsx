@@ -5,7 +5,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import './styles.css'; // Import Tailwind CSS and custom styles
 import App from './App';
 
-const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || (globalThis as any).process?.env?.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!publishableKey) {
   throw new Error("Missing Publishable Key")

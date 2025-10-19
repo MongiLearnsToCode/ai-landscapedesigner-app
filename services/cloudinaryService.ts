@@ -28,8 +28,8 @@ export interface CloudinaryUploadResult {
 
 // Configuration - these would typically be stored in environment variables
 const CLOUDINARY_CONFIG: CloudinaryConfig = {
-  cloudName: (globalThis as any).process?.env?.VITE_CLOUDINARY_CLOUD_NAME || '', // Would be set in .env.local
-  uploadPreset: (globalThis as any).process?.env?.VITE_CLOUDINARY_UPLOAD_PRESET || '' // For unsigned uploads
+  cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '', // Would be set in .env.local
+  uploadPreset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '' // For unsigned uploads
 };
 
 /**
