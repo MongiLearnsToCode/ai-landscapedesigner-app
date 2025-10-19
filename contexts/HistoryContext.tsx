@@ -132,7 +132,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const viewFromHistory = useCallback(async (item: HydratedHistoryItem) => {
     // Convert minimized data structure back to full format expected by the designer
-    const fullItem: HydratedHistoryItem = {
+    const fullItem = {
       ...item,
       originalImage: {
         name: 'Original Image',
@@ -141,7 +141,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         url: item.originalImageUrl
       },
       redesignedImage: item.redesignedImageUrl
-    };
+    } as HydratedHistoryItem;
     loadItem(fullItem);
   }, [loadItem]);
 
