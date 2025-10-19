@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { HydratedHistoryItem } from '../types';
 import { Pin, Trash2, Eye } from 'lucide-react';
 import { ImageWithLoader } from './ImageWithLoader';
-import { getCloudinaryUrl } from '../services/cloudinaryService';
+import { getThumbnailUrl } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 
 interface HistoryCardProps {
@@ -25,11 +25,11 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    // Use the direct image URL from the minimized data structure
-    const cloudinaryUrl = item.redesignedImageUrl;
+    // Use thumbnail URL for better performance
+    const thumbnailUrl = getThumbnailUrl(item.redesignedImageUrl);
 
-    if (isMounted && cloudinaryUrl) {
-      setImageUrl(cloudinaryUrl);
+    if (isMounted && thumbnailUrl) {
+      setImageUrl(thumbnailUrl);
     }
 
     return () => { isMounted = false; };
@@ -69,7 +69,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
               <input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-slate-400 text-orange-600 focus:ring-orange-500 pointer-events-none"/>
             </div>
           )}
-          {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames} /> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}
+          {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames} lazy={true} /> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}
           {item.isPinned && !isSelectionMode && (
             <div className="absolute top-2 right-2 z-10 p-1.5 bg-orange-500/90 rounded-full shadow-md backdrop-blur-sm" title="Pinned"><Pin className="h-4 w-4 text-white fill-white"/></div>
           )}
@@ -97,7 +97,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
     <div className={`bg-white p-3 rounded-2xl border border-slate-200/80 transition-all duration-300 flex items-center space-x-4 cursor-pointer ${cardStateClasses}`} onClick={handleCardClick}>
       {isSelectionMode && <div className="flex-shrink-0"><input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-slate-400 text-orange-600 focus:ring-orange-500 pointer-events-none"/></div>}
       <div className="relative w-32 h-20 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
-        {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames}/> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}
+        {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames} lazy={true}/> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}
         {item.isPinned && <div className="absolute top-1 right-1 z-10 p-1 bg-orange-500/90 rounded-full shadow-sm" title="Pinned"><Pin className="h-3 w-3 text-white fill-white"/></div>}
       </div>
       <div className="flex-grow min-w-0">

@@ -14,6 +14,7 @@ interface ResultDisplayProps {
   isLoading: boolean;
   historyItems?: HydratedHistoryItem[];
   onHistoryItemClick?: (item: HydratedHistoryItem) => void;
+  historyLoading?: boolean;
 }
 
 const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCatalogType | null; }> = ({ title, imageUrl, catalog }) => {
@@ -123,13 +124,25 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   isLoading,
   historyItems,
   onHistoryItemClick,
+  historyLoading,
 }) => {
   if (isLoading) {
     return <EngagingLoader />;
   }
-  
+
   if (redesignedImage) {
       return <ImageCard title="Design Preview" imageUrl={redesignedImage} catalog={designCatalog} />;
+  }
+
+  if (historyLoading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex items-center justify-center min-h-[400px] w-full xl:min-h-0 xl:h-full">
+        <div className="text-center">
+          <div className="animate-spin mx-auto h-8 w-8 border-4 border-slate-200 border-t-slate-600 rounded-full mb-4"></div>
+          <h3 className="text-lg font-semibold text-slate-700">Loading your recent designs...</h3>
+        </div>
+      </div>
+    );
   }
 
   if (historyItems && historyItems.length > 0 && onHistoryItemClick) {
