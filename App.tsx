@@ -18,6 +18,7 @@ import { HistoryProvider, useHistory } from './contexts/HistoryContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { Footer } from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const PageContent: React.FC = () => {
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated } = useApp();
@@ -72,13 +73,15 @@ const PageContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AppProvider>
-        <HistoryProvider>
-          <PageContent />
-        </HistoryProvider>
-      </AppProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AppProvider>
+          <HistoryProvider>
+            <PageContent />
+          </HistoryProvider>
+        </AppProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /api/
+
+# Block access to sensitive or internal paths
+Disallow: /signin
+Disallow: /signup
+Disallow: /profile
+Disallow: /reset-password
+
+# Allow crawling of main content
+Allow: /designer
+Allow: /history
+Allow: /pricing
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+
+# Crawl delay to be respectful
+Crawl-delay: 1

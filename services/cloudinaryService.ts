@@ -1,6 +1,7 @@
 // Cloudinary service for handling image uploads and transformations
 import type { ImageFile } from '../types';
 import { cloudinaryRateLimiter } from './rateLimit';
+import { sanitizeError } from './errorUtils';
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -89,7 +90,7 @@ export const uploadImageToCloudinary = async (
       if (!response.ok) {
         const errorData = await response.text();
         console.error('❌ Upload error:', errorData);
-        throw new Error(`Cloudinary upload failed: ${response.status} - ${errorData}`);
+        throw new Error(sanitizeError(new Error(`Cloudinary upload failed: ${response.status} - ${errorData}`)));
       }
 
       const result = await response.json();
@@ -99,7 +100,7 @@ export const uploadImageToCloudinary = async (
       console.error(`Upload attempt ${attempt + 1} failed:`, error);
       
       if (attempt === retries) {
-        throw new Error(`Failed to upload after ${retries + 1} attempts: ${error}`);
+        throw new Error(sanitizeError(error));
       }
       
       // Wait before retry (exponential backoff)
@@ -107,7 +108,7 @@ export const uploadImageToCloudinary = async (
     }
   }
 
-  throw new Error('Upload failed after all retry attempts');
+  throw new Error(sanitizeError(new Error('Upload failed after all retry attempts')));
 };
 
 /**
@@ -180,13 +181,13 @@ export const deleteImageFromCloudinary = async (
 
     if (!response.ok) {
       const errorData = await response.text();
-      throw new Error(`Cloudinary deletion failed: ${response.status} - ${errorData}`);
+      throw new Error(sanitizeError(new Error(`Cloudinary deletion failed: ${response.status} - ${errorData}`)));
     }
     
     await response.json();
   } catch (error) {
     console.error('Error deleting image from Cloudinary:', error);
-    throw error;
+    throw new Error(sanitizeError(error));
   }
 };
 

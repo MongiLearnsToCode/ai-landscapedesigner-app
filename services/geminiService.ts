@@ -5,6 +5,7 @@ import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { LandscapingStyle, DesignCatalog, RedesignDensity } from '../types';
 import { LANDSCAPING_STYLES } from '../constants';
 import { geminiRateLimiter } from './rateLimit';
+import { sanitizeError } from './errorUtils';
 
 // Get API key from environment variables
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -216,10 +217,7 @@ const callGeminiForRedesign = async (parts: ({ inlineData: { data: string; mimeT
 
     } catch (error) {
         console.error('Error calling Gemini API:', error);
-        if (error instanceof Error) {
-            throw new Error(`Gemini API error: ${error.message}`);
-        }
-        throw new Error('An unknown error occurred while communicating with the Gemini API.');
+        throw new Error(sanitizeError(error));
     }
 };
 
@@ -289,7 +287,7 @@ export const getElementImage = async (elementName: string, description?: string)
     return `data:image/png;base64,${base64ImageBytes}`;
   } catch (error) {
     console.error(`Error generating image for "${elementName}":`, error);
-    throw new Error(`Failed to generate image for ${elementName}.`);
+    throw new Error(sanitizeError(error));
   }
 };
 
@@ -310,7 +308,7 @@ export const getElementInfo = async (elementName: string): Promise<string> => {
         return response.text;
     } catch (error) {
         console.error(`Error getting info for "${elementName}":`, error);
-        throw new Error(`Failed to get information for ${elementName}.`);
+        throw new Error(sanitizeError(error));
     }
 };
 
@@ -366,6 +364,6 @@ export const getReplacementSuggestions = async (
     }
   } catch (error) {
     console.error(`Error getting replacement suggestions for "${elementName}":`, error);
-    throw new Error(`Failed to get suggestions for ${elementName}.`);
+    throw new Error(sanitizeError(error));
   }
 };
