@@ -117,18 +117,25 @@ Check your server/serverless logs (e.g., Vercel deployment logs) for detailed em
 
 ## API Key Management
 
-### Best Practices
+### Best Practices (Following Resend Documentation)
 - Use **Sending access** API keys instead of Full access for better security
-- Restrict API keys to specific domains when possible
-- Regularly rotate API keys and delete unused ones
-- Monitor API key usage in your Resend dashboard
-- View request logs per API key to detect unusual activity
+- Restrict API keys to specific domains when possible for additional protection
+- Regularly rotate API keys and delete inactive ones (unused for 30+ days)
+- Monitor API key usage and logs in your Resend dashboard
+- Keep API keys confidential - they can only be viewed once during creation
+- Use separate API keys for different applications/actions
+
+### API Key Permissions
+- **Full access**: Complete control over all resources (use sparingly)
+- **Sending access**: Email sending only (recommended for contact forms)
+- Domain restrictions can be applied to Sending access keys
 
 ### Troubleshooting
-- Check your Resend dashboard for API key status and recent usage
+- Check your Resend dashboard for API key status and recent usage logs
 - Verify domain verification if emails are not being delivered
-- Review server logs for detailed error messages
-- Test API key permissions if authentication fails
+- Review server/serverless logs for detailed error messages
+- Test API key permissions and domain restrictions
+- Ensure API key follows `re_` format as specified in Resend docs
 
 ## Security Notes
 

@@ -21,23 +21,22 @@ export const ContactPage: React.FC = () => {
         message: formData.get('message') as string,
       };
 
-       // Send via mailto link (opens user's email client)
-       const subject = `Contact Form: Message from ${contactData.name}`;
-       const body = `Name: ${contactData.name}
-Email: ${contactData.email}
+       // Send POST request to API route
+       const response = await fetch('/api/contact', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify(contactData),
+       });
 
-Message:
-${contactData.message}
+       const result = await response.json();
 
----
-Sent from AI Landscape Designer contact form`;
+       if (!response.ok) {
+         throw new Error(result.error || 'Failed to send message');
+       }
 
-       const mailtoUrl = `mailto:your-email@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-       // Open email client
-       window.open(mailtoUrl, '_blank');
-
-       addToast('Opening your email client with the message...', 'success');
+       addToast(result.message || 'Thank you for your message! We\'ll get back to you soon.', 'success');
       form.reset();
     } catch (error) {
       console.error('Contact form submission error:', error);
