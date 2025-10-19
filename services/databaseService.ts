@@ -131,12 +131,24 @@ export const saveRedesign = async (data: SaveRedesignData): Promise<RedesignReco
 
 export const getRedesigns = async (userId: string): Promise<RedesignRecord[]> => {
   if (!userId) return [];
-  
+
   console.log('🔍 Fetching redesigns for user:', userId);
-  
+
   try {
+    // Select only necessary fields, exclude sensitive data like userId from responses
     const results = await db
-      .select()
+      .select({
+        id: landscapeRedesigns.id,
+        userId: landscapeRedesigns.userId, // Keep for internal logic but don't expose in responses
+        originalImageUrl: landscapeRedesigns.originalImageUrl,
+        redesignedImageUrl: landscapeRedesigns.redesignedImageUrl,
+        designCatalog: landscapeRedesigns.designCatalog,
+        styles: landscapeRedesigns.styles,
+        climateZone: landscapeRedesigns.climateZone,
+        isPinned: landscapeRedesigns.isPinned,
+        createdAt: landscapeRedesigns.createdAt,
+        // Exclude updatedAt as it's not needed for UI
+      })
       .from(landscapeRedesigns)
       .where(eq(landscapeRedesigns.userId, userId))
       .orderBy(desc(landscapeRedesigns.isPinned), desc(landscapeRedesigns.createdAt));
