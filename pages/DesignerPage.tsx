@@ -57,7 +57,7 @@ const getInitialState = (): DesignerState => {
 
 export const DesignerPage: React.FC = () => {
   const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo } = useApp();
-  const { saveNewRedesign, history, viewFromHistory } = useHistory();
+  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading } = useHistory();
   const { addToast } = useToast();
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
@@ -257,6 +257,7 @@ export const DesignerPage: React.FC = () => {
           isLoading={isLoading}
           historyItems={history}
           onHistoryItemClick={viewFromHistory}
+          historyLoading={historyLoading}
         />
       </div>
     </div>

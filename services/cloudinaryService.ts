@@ -144,6 +144,25 @@ export const getCloudinaryUrl = (
 };
 
 /**
+ * Gets a thumbnail URL for an image by modifying the existing Cloudinary URL
+ * @param fullUrl The full Cloudinary URL
+ * @param width Thumbnail width (default: 400)
+ * @param height Thumbnail height (default: 300)
+ * @returns The thumbnail URL
+ */
+export const getThumbnailUrl = (
+  fullUrl: string,
+  width: number = 400,
+  height: number = 300
+): string => {
+  // Replace /upload/ with /upload/w_{width},h_{height},c_fill,f_auto,q_auto/
+  return fullUrl.replace(
+    '/upload/',
+    `/upload/w_${width},h_${height},c_fill,f_auto,q_auto/`
+  );
+};
+
+/**
  * Deletes an image from Cloudinary
  * Note: This requires authentication and is typically done from the backend
  * @param publicId The public ID of the image to delete
