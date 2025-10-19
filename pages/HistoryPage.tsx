@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { HistoryCard } from '../components/HistoryCard';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import type { HistoryItem, LandscapingStyle } from '../types';
+import type { HydratedHistoryItem, LandscapingStyle } from '../types';
 import { SlidersHorizontal, Search, Trash2, List, LayoutGrid, ChevronsUpDown, Filter, X } from 'lucide-react';
 import { LANDSCAPING_STYLES } from '../constants';
 import { useHistory } from '../contexts/HistoryContext';
 
 interface HistoryPageProps {
-  historyItems: HistoryItem[];
-  onView: (item: HistoryItem) => void;
+  historyItems: HydratedHistoryItem[];
+  onView: (item: HydratedHistoryItem) => void;
   onPin: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -69,7 +69,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
       items = items.filter(item => item.timestamp >= cutoff);
     }
 
-    const getStyleNames = (item: HistoryItem) => item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' & ');
+    const getStyleNames = (item: HydratedHistoryItem) => item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' & ');
 
     switch (sortOption) {
       case 'date-desc': return items.sort((a, b) => b.timestamp - a.timestamp);

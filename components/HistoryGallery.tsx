@@ -1,12 +1,12 @@
 import React, { useState, useLayoutEffect, useRef } from 'react';
-import type { HistoryItem } from '../types';
+import type { HydratedHistoryItem } from '../types';
 import { HistoryGalleryItem } from './HistoryGalleryItem';
 import { GalleryHorizontal } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 
 interface HistoryGalleryProps {
-  items: HistoryItem[];
-  onItemClick: (item: HistoryItem) => void;
+  items: HydratedHistoryItem[];
+  onItemClick: (item: HydratedHistoryItem) => void;
 }
 
 export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ items, onItemClick }) => {
