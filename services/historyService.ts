@@ -34,6 +34,7 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
     try {
         const redesigns = await dbService.getRedesigns(currentUserId);
         
+        // Sanitize responses to minimize data exposure
         return redesigns.map(redesign => ({
             id: redesign.id,
             designCatalog: redesign.designCatalog,
@@ -41,24 +42,9 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
             climateZone: redesign.climateZone || '',
             timestamp: redesign.createdAt.getTime(),
             isPinned: redesign.isPinned,
-            originalImageInfo: { 
-                id: redesign.id, 
-                name: 'Original Image', 
-                type: 'image/jpeg',
-                storagePath: redesign.originalImageUrl
-            },
-            redesignedImageInfo: { 
-                id: redesign.id, 
-                type: 'image/jpeg',
-                storagePath: redesign.redesignedImageUrl
-            },
-            originalImage: {
-                name: 'Original Image',
-                type: 'image/jpeg',
-                base64: '',
-                url: redesign.originalImageUrl
-            },
-            redesignedImage: redesign.redesignedImageUrl
+            // Remove unnecessary nested objects and empty fields
+            originalImageUrl: redesign.originalImageUrl,
+            redesignedImageUrl: redesign.redesignedImageUrl
         }));
     } catch (error) {
         console.error("Failed to fetch history", error);
@@ -87,6 +73,7 @@ export const saveHistoryItemMetadata = async (
             userId: currentUserId
         });
 
+        // Sanitize response to minimize data exposure
         return {
             id: result.id,
             designCatalog: result.designCatalog,
@@ -94,10 +81,9 @@ export const saveHistoryItemMetadata = async (
             climateZone: result.climateZone || '',
             timestamp: result.createdAt.getTime(),
             isPinned: result.isPinned,
-            originalImageInfo: { id: result.id, name: originalImage.name, type: originalImage.type },
-            redesignedImageInfo: { id: result.id, type: redesignedImage.type },
-            originalImage: originalImage,
-            redesignedImage: result.redesignedImageUrl
+            // Only include essential URLs, remove full image objects
+            originalImageUrl: result.originalImageUrl,
+            redesignedImageUrl: result.redesignedImageUrl
         };
     } catch (error) {
         console.error("Failed to save redesign", error);

@@ -51,10 +51,17 @@ export interface HistoryItem {
     redesignedImageInfo: { id: string; type: string; storagePath?: string; cloudinaryPublicId?: string };
 }
 
-// Represents a fully loaded history item, with image data fetched from IndexedDB
-export interface HydratedHistoryItem extends HistoryItem {
-    originalImage: ImageFile;
-    redesignedImage: string; // This will be the full data URL for the component
+// Represents a fully loaded history item with minimized data structure
+export interface HydratedHistoryItem {
+    id: string;
+    designCatalog: DesignCatalog;
+    styles: LandscapingStyle[];
+    climateZone: string;
+    timestamp: number;
+    isPinned: boolean;
+    // Minimized data structure - only essential URLs to reduce response size
+    originalImageUrl: string;
+    redesignedImageUrl: string;
 }
 
 
