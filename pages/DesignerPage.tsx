@@ -9,6 +9,7 @@ import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from
 import { useApp } from '../contexts/AppContext';
 import { useHistory } from '../contexts/HistoryContext';
 import { useToast } from '../contexts/ToastContext';
+import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
 
@@ -178,10 +179,10 @@ export const DesignerPage: React.FC = () => {
       localStorage.removeItem('designerSession');
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-      console.error("Redesign failed:", errorMessage);
-      setError(`Failed to generate redesign. ${errorMessage}.`);
-      addToast(`Redesign failed: ${errorMessage}`, 'error');
+      const sanitizedMessage = sanitizeError(err);
+      console.error("Redesign failed:", err);
+      setError(`Failed to generate redesign. ${sanitizedMessage}`);
+      addToast(`Redesign failed: ${sanitizedMessage}`, 'error');
     } finally {
       setIsLoading(false);
     }

@@ -202,7 +202,8 @@ pnpm install
 
 ### Files to Modify:
 - `public/robots.txt` - Create new file
-- `public/sitemap.xml` - Create new file
+- `scripts/generate-sitemap.js` - Create sitemap generation script
+- `public/sitemap.xml` - Generated dynamically (added to .gitignore)
 
 ### Step-by-Step Implementation:
 
@@ -212,17 +213,18 @@ pnpm install
    Allow: /
    Disallow: /api/
    Disallow: /admin/
+   Disallow: /_next/
    ```
 
-2. **Create public/sitemap.xml:**
-   ```xml
-   <?xml version="1.0" encoding="UTF-8"?>
-   <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-     <url><loc>https://yourdomain.com/</loc></url>
-     <url><loc>https://yourdomain.com/designer</loc></url>
-     <url><loc>https://yourdomain.com/history</loc></url>
-   </urlset>
-   ```
+2. **Create scripts/generate-sitemap.js:**
+   - Dynamic sitemap generation with environment variable support
+   - Input validation and error handling
+   - File modification date tracking for legal pages
+   - XML escaping and schema compliance
+
+3. **Update build process:**
+   - Integrate sitemap generation into `npm run build`
+   - Add `public/sitemap.xml` to `.gitignore` as build artifact
 
 ### ✅ Verification Tests:
 

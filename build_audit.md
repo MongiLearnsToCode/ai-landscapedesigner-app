@@ -112,11 +112,12 @@
 
 ## 🗺️ 6. Sitemap / Endpoint Review
 
-* [ ] Check for `robots.txt`, `sitemap.xml`, and OpenAPI/Swagger specs.
-* [ ] Ensure sensitive endpoints aren't indexable or easily discoverable.
-* [ ] Review public documentation for exposed internal endpoints.
-* [ ] Check for `.well-known` directory exposure.
-* [ ] Verify admin/internal routes are not listed in public sitemaps.
+* [x] Check for `robots.txt`, `sitemap.xml`, and OpenAPI/Swagger specs.
+* [x] Ensure sensitive endpoints aren't indexable or easily discoverable.
+* [x] Review public documentation for exposed internal endpoints.
+* [x] Check for `.well-known` directory exposure.
+* [x] Verify admin/internal routes are not listed in public sitemaps.
+* [x] Confirm sitemap.xml is generated dynamically during build (not tracked in git).
 
 ---
 

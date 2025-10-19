@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/generate-sitemap.js && vite build",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx migrate.ts"
+    "db:migrate": "tsx migrate.ts",
+    "generate-sitemap": "node scripts/generate-sitemap.js",
+    "test": "tsx services/errorUtils.test.ts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.53.2",
