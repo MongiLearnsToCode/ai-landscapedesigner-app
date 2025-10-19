@@ -1,8 +1,8 @@
 // Basic test for error sanitization functionality
-// This can be run with: node services/errorUtils.test.js
+// This can be run with: pnpm run test (or tsx services/errorUtils.test.ts)
 
 // Import the real sanitizeError function using ES modules
-import { sanitizeError } from './errorUtils.ts';
+import { sanitizeError } from './errorUtils';
 
 console.log('🧪 Testing error sanitization...\n');
 
