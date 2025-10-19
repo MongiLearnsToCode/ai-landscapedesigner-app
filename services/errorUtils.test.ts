@@ -1,17 +1,8 @@
 // Basic test for error sanitization functionality
 // This can be run with: node services/errorUtils.test.js
 
-// Inline implementation of sanitizeError for testing
-const sanitizeError = (error) => {
-  // Handle both Error objects and strings
-  const message = typeof error === 'string' ? error : error?.message || '';
-
-  // Return generic messages, never internal details
-  if (message.includes('API key')) return 'Service temporarily unavailable';
-  if (message.includes('network') || message.includes('fetch')) return 'Network error occurred';
-  if (message.includes('timeout')) return 'Request timed out';
-  return 'An unexpected error occurred';
-};
+// Import the real sanitizeError function using ES modules
+import { sanitizeError } from './errorUtils.ts';
 
 console.log('🧪 Testing error sanitization...\n');
 

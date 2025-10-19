@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx migrate.ts",
-    "generate-sitemap": "node scripts/generate-sitemap.js"
+    "generate-sitemap": "node scripts/generate-sitemap.js",
+    "test": "tsx services/errorUtils.test.ts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.53.2",
