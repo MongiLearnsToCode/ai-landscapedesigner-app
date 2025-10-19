@@ -1,62 +1,84 @@
 // Contact service for handling contact form submissions via Resend
+import { Resend } from 'resend';
 import { sanitizeError } from './errorUtils';
 
-// Type definitions for Resend (to avoid importing the actual package)
-interface ResendEmailParams {
-  from: string;
-  to: string[] | string;
-  subject: string;
-  html: string;
-  reply_to?: string;
-}
+// Rate limiting for contact form submissions (max 3 per hour per session)
+const CONTACT_RATE_LIMIT = {
+  maxRequests: 3,
+  windowMs: 60 * 60 * 1000, // 1 hour
+};
 
-interface ResendResponse {
-  data: { id: string } | null;
-  error: any;
-}
+const contactSubmissions = new Map<string, { count: number; resetTime: number }>();
 
-interface ResendInstance {
-  emails: {
-    send: (params: ResendEmailParams) => Promise<ResendResponse>;
-  };
-}
+// Initialize Resend with API key
+let resendInstance: Resend | null = null;
 
-// Mock implementation for when Resend is not available
-const mockResend: ResendInstance = {
-  emails: {
-    send: async (params: ResendEmailParams) => {
-      console.log('📧 Mock email sent (Resend not configured):', params.subject);
-      return { data: { id: 'mock-id' }, error: null };
+const getResendInstance = (): Resend => {
+  if (!resendInstance) {
+    // @ts-ignore - Vite env types
+    const apiKey = import.meta.env?.VITE_RESEND_API_KEY || '';
+
+    if (!apiKey) {
+      throw new Error('Resend API key not configured. Please set VITE_RESEND_API_KEY environment variable.');
     }
+
+    resendInstance = new Resend(apiKey);
+  }
+
+  return resendInstance;
+};
+
+// Rate limiting check
+const checkRateLimit = (identifier: string): boolean => {
+  const now = Date.now();
+  const userLimit = contactSubmissions.get(identifier);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    // Reset or initialize limit
+    contactSubmissions.set(identifier, {
+      count: 1,
+      resetTime: now + CONTACT_RATE_LIMIT.windowMs
+    });
+    return true;
+  }
+
+  if (userLimit.count >= CONTACT_RATE_LIMIT.maxRequests) {
+    return false;
+  }
+
+  userLimit.count++;
+  return true;
+};
+
+// Get client identifier (session-based for client-side rate limiting)
+const getClientIdentifier = (): string => {
+  // Use session-based identifier for client-side rate limiting
+  let identifier = sessionStorage.getItem('contact_session_id');
+  if (!identifier) {
+    identifier = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem('contact_session_id', identifier);
+  }
+  return identifier;
+};
+
+// Validate environment configuration
+const validateEnvironment = (): void => {
+  // @ts-ignore - Vite env types
+  const apiKey = import.meta.env?.VITE_RESEND_API_KEY;
+
+  if (!apiKey) {
+    console.warn('⚠️  VITE_RESEND_API_KEY not configured. Contact form will not send emails.');
+  } else if (apiKey === 'your-resend-api-key-here') {
+    console.warn('⚠️  VITE_RESEND_API_KEY is set to placeholder value. Please configure with real API key.');
+  } else {
+    console.log('✅ Resend API key configured successfully');
   }
 };
 
-// Dynamic import for Resend to handle cases where it's not installed
-let resend: ResendInstance | null = null;
-
-const getResendInstance = async (): Promise<ResendInstance> => {
-  if (!resend) {
-    try {
-      // Try to dynamically import Resend
-      // This will work at runtime if the package is installed
-      const resendModule = await import('resend');
-      const Resend = resendModule.Resend;
-
-      // @ts-ignore - Vite env types
-      const apiKey = import.meta.env?.VITE_RESEND_API_KEY || '';
-      if (!apiKey) {
-        console.warn('VITE_RESEND_API_KEY not configured, using mock implementation');
-        resend = mockResend;
-      } else {
-        resend = new Resend(apiKey);
-      }
-    } catch (error) {
-      console.warn('Resend package not available, using mock implementation:', error);
-      resend = mockResend;
-    }
-  }
-  return resend;
-};
+// Initialize validation on module load
+if (typeof window !== 'undefined') {
+  validateEnvironment();
+}
 
 export interface ContactFormData {
   name: string;
@@ -73,7 +95,7 @@ export const sendContactEmail = async (formData: ContactFormData): Promise<void>
   const { name, email, message } = formData;
 
   // Validate required fields
-  if (!name || !email || !message) {
+  if (!name?.trim() || !email?.trim() || !message?.trim()) {
     throw new Error('All fields are required');
   }
 
@@ -83,17 +105,19 @@ export const sendContactEmail = async (formData: ContactFormData): Promise<void>
     throw new Error('Please enter a valid email address');
   }
 
-  // Check if Resend API key is configured
-  // @ts-ignore - Vite env types
-  if (!import.meta.env.VITE_RESEND_API_KEY) {
-    throw new Error('Email service is not configured. Please try again later.');
+  // Check rate limit
+  const clientId = getClientIdentifier();
+  if (!checkRateLimit(clientId)) {
+    throw new Error('Too many contact form submissions. Please try again later.');
   }
 
   try {
-    // Get Resend instance (real or mock)
-    const resendInstance = await getResendInstance();
+    // Get Resend instance
+    const resendInstance = getResendInstance();
 
     // Send email using Resend
+    console.log('📧 Sending contact email to support team...');
+
     const { data, error } = await resendInstance.emails.send({
       from: 'AI Landscape Designer <noreply@ai-landscapedesigner.com>',
       to: ['support@ai-landscapedesigner.com'], // Replace with your support email
@@ -151,15 +175,15 @@ export const sendContactEmail = async (formData: ContactFormData): Promise<void>
           </body>
         </html>
       `,
-      reply_to: email, // Allow replies to go back to the sender
+      replyTo: email, // Allow replies to go back to the sender
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      console.error('❌ Resend contact email error:', error);
       throw new Error('Failed to send email. Please try again later.');
     }
 
-    console.log('Contact email sent successfully:', data);
+    console.log('✅ Contact email sent successfully:', data?.id);
   } catch (error) {
     console.error('Error sending contact email:', error);
     throw new Error(sanitizeError(error));
@@ -175,8 +199,10 @@ export const sendAutoReplyEmail = async (formData: ContactFormData): Promise<voi
   const { name, email } = formData;
 
   try {
-    // Get Resend instance (real or mock)
-    const resendInstance = await getResendInstance();
+    // Get Resend instance
+    const resendInstance = getResendInstance();
+
+    console.log('📧 Sending auto-reply email to user...');
 
     const { data, error } = await resendInstance.emails.send({
       from: 'AI Landscape Designer <noreply@ai-landscapedesigner.com>',
@@ -229,10 +255,10 @@ export const sendAutoReplyEmail = async (formData: ContactFormData): Promise<voi
     });
 
     if (error) {
-      console.error('Auto-reply email error:', error);
+      console.error('❌ Auto-reply email error:', error);
       // Don't throw error for auto-reply failures - the main contact email was sent successfully
     } else {
-      console.log('Auto-reply email sent successfully:', data);
+      console.log('✅ Auto-reply email sent successfully:', data?.id);
     }
   } catch (error) {
     console.error('Error sending auto-reply email:', error);
