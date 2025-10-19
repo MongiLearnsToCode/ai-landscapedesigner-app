@@ -1,3 +1,6 @@
+// Force Node.js runtime for Vercel (required for Resend SDK)
+export const runtime = 'nodejs';
+
 import { Resend } from 'resend';
 import type { ContactFormData } from '../services/contactService';
 
@@ -226,6 +229,15 @@ export default async function handler(request: Request) {
   }
 
   try {
+    // Validate Content-Type header
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
+        status: 415, // Unsupported Media Type
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Parse request body
     const formData: ContactFormData = await request.json();
 
@@ -258,10 +270,8 @@ export default async function handler(request: Request) {
     // Send contact email (blocking)
     await sendContactEmail(formData);
 
-    // Send auto-reply email (non-blocking)
-    sendAutoReplyEmail(formData).catch(error => {
-      console.error('Auto-reply failed:', error);
-    });
+    // Send auto-reply email (also blocking for reliability)
+    await sendAutoReplyEmail(formData);
 
     // Return success response
     return new Response(JSON.stringify({
