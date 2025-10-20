@@ -19,9 +19,9 @@ interface HistoryState {
 
 interface HistoryActions {
   saveNewRedesign: (data: NewRedesignData) => Promise<void>;
-  deleteItem: (id: string) => void;
+  deleteItem: (id: string) => Promise<void>;
   deleteMultipleItems: (ids: string[]) => Promise<void>;
-  pinItem: (id: string) => void;
+  pinItem: (id: string) => Promise<void>;
   viewFromHistory: (item: HydratedHistoryItem) => void;
   refreshHistory: () => Promise<void>;
   setHistory: (history: HydratedHistoryItem[]) => void;

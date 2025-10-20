@@ -9,6 +9,7 @@ import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from
 import { useAppStore } from '../stores/appStore';
 import { useHistoryStore } from '../stores/historyStore';
 import { useToastStore } from '../stores/toastStore';
+import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
@@ -56,9 +57,27 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useAppStore();
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore();
-  const { addToast } = useToastStore();
+  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useAppStore(
+    useShallow((state) => ({
+      itemToLoad: state.itemToLoad,
+      onItemLoaded: state.onItemLoaded,
+      isAuthenticated: state.isAuthenticated,
+      navigateTo: state.navigateTo,
+      page: state.page,
+    }))
+  );
+  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore(
+    useShallow((state) => ({
+      saveNewRedesign: state.saveNewRedesign,
+      history: state.history,
+      viewFromHistory: state.viewFromHistory,
+      isLoading: state.isLoading,
+      refreshHistory: state.refreshHistory,
+    }))
+  );
+  const { addToast } = useToastStore(
+    useShallow((state) => ({ addToast: state.addToast }))
+  );
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;

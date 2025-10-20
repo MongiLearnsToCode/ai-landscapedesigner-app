@@ -77,7 +77,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   upgradeSubscription: (plan: User['subscription']['plan']) => {
-    console.log(`Upgrading to ${plan} plan`);
     // Update user subscription if user exists
     set((state) => ({
       user: state.user ? {

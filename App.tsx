@@ -27,15 +27,9 @@ const AuthInitializer: React.FC = () => {
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
 
   useEffect(() => {
-    console.log('👤 Clerk user state:', {
-      isLoaded,
-      isSignedIn,
-      userId: clerkUser?.id,
-      email: clerkUser?.emailAddresses?.[0]?.emailAddress
-    });
+    if (!isLoaded) return;
 
-    if (clerkUser) {
-      console.log('✅ Setting current user ID:', clerkUser.id);
+    if (isSignedIn && clerkUser) {
       setCurrentUserId(clerkUser.id);
 
       const user = {
@@ -52,23 +46,28 @@ const AuthInitializer: React.FC = () => {
 
       setUser(user);
       setAuthenticated(true);
+    } else {
+      setCurrentUserId(null);
+      setUser(null);
+      setAuthenticated(false);
+    }
+  }, [isLoaded, isSignedIn, clerkUser, setUser, setAuthenticated]);
 
-      // Auto-create user in Neon database
+  useEffect(() => {
+    if (isLoaded && isSignedIn && clerkUser) {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
       ensureUserExists(clerkUser.id, email, name);
+
+      // Refresh history immediately after sign-in
+      useHistoryStore.getState().refreshHistory();
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigateTo('main');
       }
-    } else {
-      console.log('❌ No Clerk user, clearing user ID');
-      setCurrentUserId(null);
-      setUser(null);
-      setAuthenticated(false);
     }
-  }, [clerkUser, isLoaded, isSignedIn, setUser, setAuthenticated, navigateTo, page]);
+  }, [isLoaded, isSignedIn, clerkUser, page, navigateTo]);
 
   return null;
 };
