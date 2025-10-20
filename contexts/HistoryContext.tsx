@@ -60,6 +60,13 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refreshHistory();
   }, [isAuthenticated, user]);
 
+  // Load history on app mount if authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      refreshHistory();
+    }
+  }, []);
+
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {
     try {
       // Call the updated service function that handles image uploads and saves to backend
