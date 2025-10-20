@@ -21,6 +21,7 @@ interface HistoryContextType {
   deleteMultipleItems: (ids: string[]) => Promise<void>;
   pinItem: (id: string) => void;
   viewFromHistory: (item: HydratedHistoryItem) => void;
+  refreshHistory: () => Promise<void>;
 }
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
@@ -38,27 +39,56 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // User ID is set automatically in AppContext when user changes
 
   const refreshHistory = useCallback(async () => {
+    console.log('🔄 refreshHistory called - isAuthenticated:', isAuthenticated, 'user:', user?.id);
+    
     if (!isAuthenticated || !user) {
+      console.log('❌ Not authenticated or no user, clearing history');
       setHistory([]);
       setIsLoading(false);
       return;
     }
 
+    console.log('📥 Starting history fetch for user:', user.id);
     setIsLoading(true);
     try {
       const historyItems = await historyService.getHistory();
+      console.log('✅ History fetched successfully:', historyItems.length, 'items');
       setHistory(historyItems);
     } catch (error) {
-      console.error('Failed to fetch history:', error);
+      console.error('❌ Failed to fetch history:', error);
       addToast('Failed to load history', 'error');
     } finally {
       setIsLoading(false);
     }
   }, [isAuthenticated, user, addToast]);
 
+  // Register callback to refresh history when user ID changes
   useEffect(() => {
-    refreshHistory();
-  }, [isAuthenticated, user]);
+    historyService.setOnUserIdChangeCallback(() => {
+      console.log('🔄 User ID changed, refreshing history');
+      refreshHistory();
+    });
+    
+    // Cleanup callback on unmount
+    return () => {
+      historyService.setOnUserIdChangeCallback(null);
+    };
+  }, [refreshHistory]);
+
+  // Also refresh when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Small delay to ensure user ID is properly set
+      const timer = setTimeout(() => {
+        console.log('🔄 Auto-refreshing history after authentication change');
+        refreshHistory();
+      }, 100);
+      return () => clearTimeout(timer);
+    } else if (!isAuthenticated) {
+      // Clear history when user logs out
+      setHistory([]);
+    }
+  }, [isAuthenticated, user, refreshHistory]);
 
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {
     try {
@@ -148,6 +178,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     deleteMultipleItems,
     pinItem,
     viewFromHistory,
+    refreshHistory,
   };
 
   return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;
