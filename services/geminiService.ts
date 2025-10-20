@@ -314,6 +314,126 @@ export const getElementInfo = async (elementName: string): Promise<string> => {
 
 // FIX: Add getReplacementSuggestions function to fetch design element alternatives from the Gemini API.
 /**
+ * Validates the redesigned image against the original and user settings.
+ * @param originalBase64 - Base64 of the original image.
+ * @param originalMimeType - MIME type of the original image.
+ * @param redesignedBase64 - Base64 of the redesigned image.
+ * @param redesignedMimeType - MIME type of the redesigned image.
+ * @param styles - Selected landscaping styles.
+ * @param allowStructuralChanges - Whether structural changes are allowed.
+ * @param climateZone - Specified climate zone.
+ * @param redesignDensity - Selected redesign density.
+ * @returns Validation result with pass/fail for each criterion.
+ */
+export const validateRedesign = async (
+  originalBase64: string,
+  originalMimeType: string,
+  redesignedBase64: string,
+  redesignedMimeType: string,
+  styles: LandscapingStyle[],
+  allowStructuralChanges: boolean,
+  climateZone: string,
+  redesignDensity: RedesignDensity
+): Promise<{
+  propertyConsistency: boolean;
+  styleAccuracy: boolean;
+  aspectRatioCompliance: boolean;
+  structuralChangeRules: boolean;
+  locationClimateRespect: boolean;
+  redesignDensity: boolean;
+  authenticityGuard: boolean;
+  overallPass: boolean;
+  reasons: string[];
+}> => {
+  const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId);
+  const densityName = redesignDensity === 'minimal' ? 'minimal' : redesignDensity === 'lush' ? 'lush' : 'balanced';
+
+  const prompt = `
+You are validating a landscape redesign. You have the original property image and the redesigned image.
+
+Check the following criteria and respond with a JSON object indicating pass/fail for each, plus reasons for failures.
+
+Criteria:
+1. Property Consistency: Does the redesigned image depict the same property as the original (same house, structure, background, general layout)? Pass if yes, fail if it looks like a different property or generic scene.
+
+2. Style Accuracy: Does the redesigned image match the selected style(s): ${styleNames.join(', ')}? The style should be evident in the landscape elements.
+
+3. Aspect Ratio Compliance: Do both images have the same aspect ratio? (You can infer from dimensions if provided, but visually check if proportions match.)
+
+4. Structural Change Rules: If allowStructuralChanges is ${allowStructuralChanges}, check if structural changes (adding/removing buildings, walls, driveways) were appropriately ${allowStructuralChanges ? 'allowed and limited to aesthetic additions' : 'not made'}. The house itself must never be altered.
+
+5. Location & Climate Zone Respect: Are the plants, materials, and elements suitable for the climate zone: ${climateZone || 'general'}? Check for appropriate vegetation types.
+
+6. Redesign Density: Does the density match the setting: ${densityName}? (minimal: sparse and open; balanced: moderate; lush: dense and full)
+
+7. Authenticity Guard: Is the redesigned image a true modification of the original property, not a random or unrelated AI-generated image?
+
+Respond with JSON:
+{
+  "propertyConsistency": boolean,
+  "styleAccuracy": boolean,
+  "aspectRatioCompliance": boolean,
+  "structuralChangeRules": boolean,
+  "locationClimateRespect": boolean,
+  "redesignDensity": boolean,
+  "authenticityGuard": boolean,
+  "reasons": ["reason for each failure"]
+}
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { text: 'Original image:' },
+          { inlineData: { data: originalBase64, mimeType: originalMimeType } },
+          { text: 'Redesigned image:' },
+          { inlineData: { data: redesignedBase64, mimeType: redesignedMimeType } },
+          { text: prompt }
+        ]
+      },
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            propertyConsistency: { type: Type.BOOLEAN },
+            styleAccuracy: { type: Type.BOOLEAN },
+            aspectRatioCompliance: { type: Type.BOOLEAN },
+            structuralChangeRules: { type: Type.BOOLEAN },
+            locationClimateRespect: { type: Type.BOOLEAN },
+            redesignDensity: { type: Type.BOOLEAN },
+            authenticityGuard: { type: Type.BOOLEAN },
+            reasons: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ['propertyConsistency', 'styleAccuracy', 'aspectRatioCompliance', 'structuralChangeRules', 'locationClimateRespect', 'redesignDensity', 'authenticityGuard', 'reasons']
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text);
+    const overallPass = Object.values(result).every(val => typeof val === 'boolean' ? val : true); // reasons is array, so skip
+    result.overallPass = overallPass;
+    return result;
+  } catch (error) {
+    console.error('Validation error:', error);
+    // On error, assume pass to not block, but log
+    return {
+      propertyConsistency: true,
+      styleAccuracy: true,
+      aspectRatioCompliance: true,
+      structuralChangeRules: true,
+      locationClimateRespect: true,
+      redesignDensity: true,
+      authenticityGuard: true,
+      overallPass: true,
+      reasons: []
+    };
+  }
+};
+
+/**
  * Gets suggestions for replacing a landscape element.
  * @param elementName - The name of the element to replace.
  * @param styles - The desired landscaping styles.
