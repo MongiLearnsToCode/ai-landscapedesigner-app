@@ -6,9 +6,9 @@ import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
-import { useApp } from '../contexts/AppContext';
-import { useHistory } from '../contexts/HistoryContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useHistoryStore } from '../stores/historyStore';
+import { useToastStore } from '../stores/toastStore';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
@@ -56,9 +56,9 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useApp();
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistory();
-  const { addToast } = useToast();
+  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useAppStore();
+  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore();
+  const { addToast } = useToastStore();
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;

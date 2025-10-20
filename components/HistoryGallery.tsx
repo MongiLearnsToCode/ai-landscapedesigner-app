@@ -2,7 +2,7 @@ import React, { useState, useLayoutEffect, useRef } from 'react';
 import type { HydratedHistoryItem } from '../types';
 import { HistoryGalleryItem } from './HistoryGalleryItem';
 import { GalleryHorizontal } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
+import { useAppStore } from '../stores/appStore';
 
 interface HistoryGalleryProps {
   items: HydratedHistoryItem[];
@@ -10,7 +10,7 @@ interface HistoryGalleryProps {
 }
 
 export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ items, onItemClick }) => {
-  const { navigateTo } = useApp();
+  const { navigateTo } = useAppStore();
   const gridRef = useRef<HTMLDivElement>(null);
   const [visibleItemCount, setVisibleItemCount] = useState(6);
 

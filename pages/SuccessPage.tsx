@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useAppStore } from '../stores/appStore';
 import { CheckCircle, LayoutDashboard, User } from 'lucide-react';
 
 export const SuccessPage: React.FC = () => {
-  const { navigateTo, upgradeSubscription } = useApp();
+  const { navigateTo, upgradeSubscription } = useAppStore();
 
   useEffect(() => {
     // Simulate updating the user's subscription status upon landing on this page.

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { Header } from './components/Header';
 import { Modal } from './components/Modal';
 import { DesignerPage } from './pages/DesignerPage';
@@ -13,16 +14,107 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { FairUsePolicyPage } from './pages/FairUsePolicyPage';
 import { SuccessPage } from './pages/SuccessPage';
-import { AppProvider, useApp } from './contexts/AppContext';
-import { HistoryProvider, useHistory } from './contexts/HistoryContext';
-import { ToastProvider } from './contexts/ToastContext';
 import { ToastContainer } from './components/ToastContainer';
 import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useAppStore, type Page } from './stores/appStore';
+import { useHistoryStore } from './stores/historyStore';
+import { setCurrentUserId, setOnUserIdChangeCallback } from './services/historyService';
+import { ensureUserExists } from './services/databaseService';
+
+const AuthInitializer: React.FC = () => {
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
+
+  useEffect(() => {
+    console.log('👤 Clerk user state:', {
+      isLoaded,
+      isSignedIn,
+      userId: clerkUser?.id,
+      email: clerkUser?.emailAddresses?.[0]?.emailAddress
+    });
+
+    if (clerkUser) {
+      console.log('✅ Setting current user ID:', clerkUser.id);
+      setCurrentUserId(clerkUser.id);
+
+      const user = {
+        id: clerkUser.id,
+        name: clerkUser.fullName || clerkUser.firstName || 'User',
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
+        avatarUrl: clerkUser.imageUrl || `https://i.pravatar.cc/150?u=${clerkUser.id}`,
+        subscription: {
+          plan: 'Free' as const,
+          status: 'active' as const,
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        },
+      };
+
+      setUser(user);
+      setAuthenticated(true);
+
+      // Auto-create user in Neon database
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const name = clerkUser.fullName || clerkUser.firstName || 'User';
+      ensureUserExists(clerkUser.id, email, name);
+
+      // Navigate to main page after successful sign-in
+      if (page === 'signin' || page === 'signup') {
+        navigateTo('main');
+      }
+    } else {
+      console.log('❌ No Clerk user, clearing user ID');
+      setCurrentUserId(null);
+      setUser(null);
+      setAuthenticated(false);
+    }
+  }, [clerkUser, isLoaded, isSignedIn, setUser, setAuthenticated, navigateTo, page]);
+
+  return null;
+};
 
 const PageContent: React.FC = () => {
-  const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated } = useApp();
-  const { history, pinItem, deleteItem, viewFromHistory } = useHistory();
+  const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
+  const { history, pinItem, deleteItem, viewFromHistory, refreshHistory, setHistory } = useHistoryStore();
+
+  // Hash change effect
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1) as Page;
+      const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
+      const newPage = validPages.includes(hash) ? hash : 'main';
+      useAppStore.getState().navigateTo(newPage);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // History refresh effects
+  useEffect(() => {
+    setOnUserIdChangeCallback(() => {
+      console.log('🔄 User ID changed, refreshing history');
+      refreshHistory();
+    });
+
+    return () => {
+      setOnUserIdChangeCallback(null);
+    };
+  }, [refreshHistory]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Small delay to ensure user ID is properly set
+      const timer = setTimeout(() => {
+        console.log('🔄 Auto-refreshing history after authentication change');
+        refreshHistory();
+      }, 100);
+      return () => clearTimeout(timer);
+    } else if (!isAuthenticated) {
+      // Clear history when user logs out
+      setHistory([]);
+    }
+  }, [isAuthenticated, user, refreshHistory, setHistory]);
 
   useEffect(() => {
     const baseTitle = 'AI Landscape Designer';
@@ -40,7 +132,7 @@ const PageContent: React.FC = () => {
       navigateTo('signin');
     }
   }, [isAuthenticated, page, navigateTo]);
-  
+
   const pages: { [key: string]: React.ReactNode } = {
     main: <DesignerPage />,
     history: isAuthenticated ? <HistoryPage historyItems={history} onView={viewFromHistory} onPin={pinItem} onDelete={deleteItem} /> : null,
@@ -74,13 +166,8 @@ const PageContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <AppProvider>
-          <HistoryProvider>
-            <PageContent />
-          </HistoryProvider>
-        </AppProvider>
-      </ToastProvider>
+      <AuthInitializer />
+      <PageContent />
     </ErrorBoundary>
   );
 };

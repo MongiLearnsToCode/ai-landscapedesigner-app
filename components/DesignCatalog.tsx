@@ -4,7 +4,7 @@
 import React, { useState, useCallback } from 'react';
 import type { DesignCatalog as DesignCatalogType, Plant, Feature } from '../types';
 import { Sprout, Sofa, Clipboard, ChevronDown, Loader2 } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { useToastStore } from '../stores/toastStore';
 import { getElementImage, getElementInfo } from '../services/geminiService';
 import { sanitizeError } from '../services/errorUtils';
 
@@ -52,7 +52,7 @@ const ExpandedDetailView: React.FC<{ detail: ElementDetail }> = ({ detail }) => 
 
 
 export const DesignCatalog: React.FC<DesignCatalogProps> = ({ catalog }) => {
-  const { addToast } = useToast();
+  const { addToast } = useToastStore();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [elementDetails, setElementDetails] = useState<Record<string, ElementDetail>>({});
 

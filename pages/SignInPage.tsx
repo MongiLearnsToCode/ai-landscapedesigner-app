@@ -1,9 +1,9 @@
 import React from 'react';
 import { SignIn } from '@clerk/clerk-react';
-import { useApp } from '../contexts/AppContext';
+import { useAppStore } from '../stores/appStore';
 
 export const SignInPage: React.FC = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo } = useAppStore();
 
   return (
     <div className="flex flex-col justify-center items-center min-h-[60vh] px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
