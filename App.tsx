@@ -59,15 +59,12 @@ const AuthInitializer: React.FC = () => {
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
       ensureUserExists(clerkUser.id, email, name);
 
-      // Refresh history immediately after sign-in
-      useHistoryStore.getState().refreshHistory();
-
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigateTo('main');
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, page, navigateTo]);
+  }, [isLoaded, isSignedIn, clerkUser, navigateTo]);
 
   return null;
 };
