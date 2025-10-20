@@ -71,6 +71,11 @@ export const DesignerPage: React.FC = () => {
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
   const hasRequestedInitialHistory = useRef(false);
 
+  // Reset history request flag when authentication state changes
+  useEffect(() => {
+    hasRequestedInitialHistory.current = false;
+  }, [isAuthenticated]);
+
   // Check redesign limit on component mount and when user changes
   useEffect(() => {
     const checkLimit = async () => {
