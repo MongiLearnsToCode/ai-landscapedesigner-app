@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
-import type { Page } from '../contexts/AppContext';
+import type { Page } from '../stores/appStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PricingPageProps {
