@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { X, Trash2, Replace, Plus, RotateCw, Loader2, Wand } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { useToastStore } from '../stores/toastStore';
 import { getReplacementSuggestions } from '../services/geminiService';
 import type { DesignCatalog, LandscapingStyle, RefinementModifications, Plant, Feature } from '../types';
 
@@ -91,7 +91,7 @@ interface Addition {
 // Main component
 export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose, imageUrl, onSave, designCatalog, styles, climateZone }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { addToast } = useToast();
+  const { addToast } = useToastStore();
 
   const [deletions, setDeletions] = useState<string[]>([]);
   const [replacements, setReplacements] = useState<{ from: string; to: string }[]>([]);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { RotateCcw, Undo, Redo, X } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { useToastStore } from '../stores/toastStore';
 import { sanitizeError } from '../services/errorUtils';
 
 interface EditingModalProps {
@@ -62,7 +62,7 @@ const INITIAL_STATE: EditState = { rotation: 0, brightness: 100, contrast: 100 }
 
 export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, imageUrl, onSave }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { addToast } = useToast();
+  const { addToast } = useToastStore();
   
   const [history, setHistory] = useState<EditState[]>([INITIAL_STATE]);
   const [historyIndex, setHistoryIndex] = useState(0);

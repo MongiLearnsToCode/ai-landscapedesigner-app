@@ -1,10 +1,10 @@
 import React from 'react';
-import { useApp } from '../contexts/AppContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useToastStore } from '../stores/toastStore';
 
 export const ResetPasswordPage: React.FC = () => {
-  const { navigateTo } = useApp();
-  const { addToast } = useToast();
+  const { navigateTo } = useAppStore();
+  const { addToast } = useToastStore();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

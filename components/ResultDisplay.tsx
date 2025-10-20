@@ -2,8 +2,8 @@ import React from 'react';
 import { DesignCatalog } from './DesignCatalog';
 import type { DesignCatalog as DesignCatalogType, ImageFile, HydratedHistoryItem } from '../types';
 import { Download, Share2, Expand, Wand, Image as ImageIcon } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useToastStore } from '../stores/toastStore';
 import { EngagingLoader } from './EngagingLoader';
 import { HistoryGallery } from './HistoryGallery';
 
@@ -18,8 +18,8 @@ interface ResultDisplayProps {
 }
 
 const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCatalogType | null; }> = ({ title, imageUrl, catalog }) => {
-    const { openModal } = useApp();
-    const { addToast } = useToast();
+    const { openModal } = useAppStore();
+    const { addToast } = useToastStore();
 
     const handleDownload = () => {
         const link = document.createElement('a');

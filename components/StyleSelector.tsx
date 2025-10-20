@@ -1,7 +1,7 @@
 import React from 'react';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle } from '../types';
-import { useToast } from '../contexts/ToastContext';
+import { useToastStore } from '../stores/toastStore';
 import { Tooltip } from './Tooltip';
 
 interface StyleSelectorProps {
@@ -21,7 +21,7 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({
   lockAspectRatio,
   onLockAspectRatioChange,
 }) => {
-  const { addToast } = useToast();
+  const { addToast } = useToastStore();
   const MAX_STYLES = 2;
 
   const handleStyleToggle = (styleId: LandscapingStyle) => {

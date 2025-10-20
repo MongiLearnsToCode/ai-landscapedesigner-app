@@ -4,7 +4,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { HydratedHistoryItem, LandscapingStyle } from '../types';
 import { SlidersHorizontal, Search, Trash2, List, LayoutGrid, ChevronsUpDown, Filter, X } from 'lucide-react';
 import { LANDSCAPING_STYLES } from '../constants';
-import { useHistory } from '../contexts/HistoryContext';
+
 
 interface HistoryPageProps {
   historyItems: HydratedHistoryItem[];
