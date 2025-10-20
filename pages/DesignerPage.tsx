@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ImageUploader } from '../components/ImageUploader';
 import { StyleSelector } from '../components/StyleSelector';
 import { ClimateSelector } from '../components/ClimateSelector';
@@ -56,7 +56,7 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo } = useApp();
+  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useApp();
   const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistory();
   const { addToast } = useToast();
 
@@ -69,6 +69,7 @@ export const DesignerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
+  const hasRequestedInitialHistory = useRef(false);
 
   // Check redesign limit on component mount and when user changes
   useEffect(() => {
@@ -92,7 +93,14 @@ export const DesignerPage: React.FC = () => {
 
   // Ensure history is loaded when user is authenticated and on main page
   useEffect(() => {
-    if (isAuthenticated && !historyLoading && history.length === 0) {
+    if (
+      page === 'main' &&
+      isAuthenticated &&
+      !historyLoading &&
+      history.length === 0 &&
+      !hasRequestedInitialHistory.current
+    ) {
+      hasRequestedInitialHistory.current = true;
       // Small delay to ensure user ID is properly set
       const timer = setTimeout(() => {
         console.log('🔄 Triggering history refresh from DesignerPage');
@@ -100,7 +108,7 @@ export const DesignerPage: React.FC = () => {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, historyLoading, history.length, refreshHistory]);
+  }, [page, isAuthenticated, historyLoading, history.length, refreshHistory]);
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
