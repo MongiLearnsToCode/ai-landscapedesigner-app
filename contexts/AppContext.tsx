@@ -90,7 +90,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('❌ No Clerk user, clearing user ID');
       setCurrentUserId(null);
     }
-  }, [clerkUser, isLoaded, isSignedIn]);
+  }, [clerkUser, isLoaded, isSignedIn, page]);
   
   const navigateTo = (page: Page) => {
     setPage(page);

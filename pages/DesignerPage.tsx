@@ -57,7 +57,7 @@ const getInitialState = (): DesignerState => {
 
 export const DesignerPage: React.FC = () => {
   const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo } = useApp();
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading } = useHistory();
+  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistory();
   const { addToast } = useToast();
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
@@ -89,6 +89,18 @@ export const DesignerPage: React.FC = () => {
       setRemainingRedesigns(0);
     }
   }, [isAuthenticated]); // Add isAuthenticated as dependency
+
+  // Ensure history is loaded when user is authenticated and on main page
+  useEffect(() => {
+    if (isAuthenticated && !historyLoading && history.length === 0) {
+      // Small delay to ensure user ID is properly set
+      const timer = setTimeout(() => {
+        console.log('🔄 Triggering history refresh from DesignerPage');
+        refreshHistory();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, historyLoading, history.length, refreshHistory]);
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
