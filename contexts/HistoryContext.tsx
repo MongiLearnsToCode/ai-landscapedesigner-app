@@ -43,7 +43,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const historyItems = await historyService.getHistory();
@@ -58,12 +58,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     refreshHistory();
-  }, [refreshHistory]);
-
-  // Refresh history when authentication state changes
-  useEffect(() => {
-    refreshHistory();
-  }, [isAuthenticated, refreshHistory]);
+  }, [isAuthenticated, user]);
 
   const saveNewRedesign = useCallback(async (data: NewRedesignData) => {
     try {

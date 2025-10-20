@@ -3,7 +3,7 @@ import { ImageUploader } from '../components/ImageUploader';
 import { StyleSelector } from '../components/StyleSelector';
 import { ClimateSelector } from '../components/ClimateSelector';
 import { ResultDisplay } from '../components/ResultDisplay';
-import { redesignOutdoorSpace } from '../services/geminiService';
+import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
 import { useApp } from '../contexts/AppContext';
@@ -159,7 +159,24 @@ export const DesignerPage: React.FC = () => {
         lockAspectRatio,
         redesignDensity
       );
-      
+
+      // Validate the redesign
+      const validation = await validateRedesign(
+        originalImage.base64,
+        originalImage.type,
+        result.base64ImageBytes,
+        result.mimeType,
+        selectedStyles,
+        allowStructuralChanges,
+        climateZone,
+        redesignDensity
+      );
+
+      if (!validation.overallPass) {
+        const reasons = validation.reasons.join('; ');
+        throw new Error(`Redesign validation failed: ${reasons}. Please try again.`);
+      }
+
       await saveNewRedesign({
         originalImage: originalImage,
         redesignedImage: { base64: result.base64ImageBytes, type: result.mimeType },
@@ -174,7 +191,7 @@ export const DesignerPage: React.FC = () => {
 
       setRedesignedImage(`data:${result.mimeType};base64,${result.base64ImageBytes}`);
       setDesignCatalog(result.catalog);
-      
+
       // Clear session so a refresh doesn't show the old inputs
       localStorage.removeItem('designerSession');
 
