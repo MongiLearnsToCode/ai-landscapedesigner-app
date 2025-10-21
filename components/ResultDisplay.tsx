@@ -21,15 +21,24 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
     const { openModal } = useApp();
     const { addToast } = useToast();
 
-    const handleDownload = () => {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        const fileExtension = imageUrl.split(';')[0].split('/')[1] || 'png';
-        link.download = `redesigned-landscape.${fileExtension}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        addToast("Image download started!", "success");
+    const handleDownload = async () => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const fileExtension = blob.type.split('/')[1] || 'png';
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `redesigned-landscape.${fileExtension}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            addToast("Image download started!", "success");
+        } catch (error) {
+            console.error('Download failed:', error);
+            addToast("Download failed. Please try again.", "error");
+        }
     };
     
     const handleShare = async () => {
