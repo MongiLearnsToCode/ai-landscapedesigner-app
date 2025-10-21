@@ -136,7 +136,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
            <>
              <div className="relative w-full rounded-xl overflow-hidden">
                <img src={preview} alt="Preview" className="w-full h-auto block" />
-               <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl gap-2 hidden lg:flex">
+               <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity rounded-xl gap-2 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto hidden lg:flex">
                   <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
                     <Eye className="h-4 w-4 mr-1.5" />
                     View
