@@ -8,7 +8,7 @@ interface ClimateSelectorProps {
 
 const PREDEFINED_CLIMATES = ['Temperate', 'Arid', 'Tropical', 'Mediterranean', 'Continental'];
 
-export const ClimateSelector: React.FC<ClimateSelectorProps> = ({ value, onChange }) => {
+export const ClimateSelector: React.FC<ClimateSelectorProps> = React.memo(({ value, onChange }) => {
   return (
     <div className="space-y-3">
       <div>
@@ -46,4 +46,4 @@ export const ClimateSelector: React.FC<ClimateSelectorProps> = ({ value, onChang
       </div>
     </div>
   );
-};
+});
