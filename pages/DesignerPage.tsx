@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ImageUploader } from '../components/ImageUploader';
 import { StyleSelector } from '../components/StyleSelector';
-import { ClimateSelector } from '../components/ClimateSelector';
+import { ClimateZoneSection } from '../components/ClimateZoneSection';
 import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
 import { LANDSCAPING_STYLES } from '../constants';
@@ -278,9 +278,7 @@ export const DesignerPage: React.FC = () => {
             />
         </Section>
 
-        <Section title="Specify Details">
-            <ClimateSelector value={climateZone} onChange={handleClimateChange} />
-        </Section>
+        <ClimateZoneSection value={climateZone} onChange={handleClimateChange} />
 
         <Section title="Set Redesign Density">
             <DensitySelector value={redesignDensity} onChange={(val) => updateState({ redesignDensity: val })} />
