@@ -41,7 +41,7 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
                     <div className="w-full h-full bg-slate-200 animate-pulse" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-3">
-                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block">
+                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden lg:flex">
                         <Eye className="h-8 w-8 text-white" />
                     </div>
                     <h4 className="text-white font-bold text-sm truncate drop-shadow-md">{styleNames}</h4>

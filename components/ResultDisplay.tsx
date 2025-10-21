@@ -97,7 +97,7 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             </div>
             <div className="relative group w-full rounded-xl overflow-hidden bg-slate-100">
                 <img src={imageUrl} alt={title} className="w-full h-auto block" />
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 sm:gap-4 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex-wrap rounded-xl hidden lg:block">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 sm:gap-4 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex-wrap rounded-xl hidden lg:flex">
                     <ActionButton onClick={() => openModal(imageUrl)} label="Larger" icon={<Expand className="h-4 w-4 mr-2" />} aria-label="View larger" />
                     <ActionButton onClick={handleDownload} label="Download" icon={<Download className="h-4 w-4 mr-2" />} aria-label="Download image" />
                     <ActionButton onClick={handleShare} label="Share" icon={<Share2 className="h-4 w-4 mr-2" />} aria-label="Share image" />
