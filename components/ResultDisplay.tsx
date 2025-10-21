@@ -38,7 +38,7 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            addToast("Image downloaded!", "success");
+            addToast("Download complete!", "success");
         } catch (error) {
             console.error('Download failed:', error);
             addToast("Download failed. Please try again.", "error");
@@ -50,8 +50,12 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             // Step 1: Fetch the image data URL and convert it into a Blob, then a File object.
             // This is necessary for both the Web Share API and the Clipboard API.
             const response = await fetch(imageUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+            }
             const blob = await response.blob();
-            const fileExtension = blob.type.split('/')[1] || 'png';
+            const mimeType = blob.type;
+            const fileExtension = mimeType ? mimeType.split(';')[0].split('/')[1] || 'png' : 'png';
             const file = new File([blob], `redesigned-landscape.${fileExtension}`, { type: blob.type });
 
             // Step 2: Attempt to use the Web Share API (Primary Method).
