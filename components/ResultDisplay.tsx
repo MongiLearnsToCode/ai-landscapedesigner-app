@@ -24,8 +24,12 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
     const handleDownload = async () => {
         try {
             const response = await fetch(imageUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+            }
             const blob = await response.blob();
-            const fileExtension = blob.type.split('/')[1] || 'png';
+            const mimeType = blob.type;
+            const fileExtension = mimeType ? mimeType.split(';')[0].split('/')[1] || 'png' : 'png';
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -34,7 +38,7 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            addToast("Image download started!", "success");
+            addToast("Image downloaded!", "success");
         } catch (error) {
             console.error('Download failed:', error);
             addToast("Download failed. Please try again.", "error");
