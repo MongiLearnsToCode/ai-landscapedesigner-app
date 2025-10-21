@@ -125,6 +125,10 @@ export const DesignerPage: React.FC = () => {
     setError(null);
   };
 
+  const handleClimateChange = useCallback((val: string) => {
+    updateState({ climateZone: val });
+  }, []);
+
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
       setError("Please upload an image first.");
@@ -231,7 +235,7 @@ export const DesignerPage: React.FC = () => {
         </Section>
 
         <Section title="Specify Details">
-            <ClimateSelector value={climateZone} onChange={(val) => updateState({ climateZone: val })} />
+            <ClimateSelector value={climateZone} onChange={handleClimateChange} />
         </Section>
 
         <Section title="Set Redesign Density">
