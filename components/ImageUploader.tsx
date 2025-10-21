@@ -148,11 +148,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
                </div>
              </div>
              <div className="lg:hidden p-2 flex justify-center gap-2">
-               <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+               <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="View image">
                  <Eye className="h-4 w-4 md:mr-1.5" />
                  <span className="hidden md:inline">View</span>
                </button>
-               <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+               <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="Remove image">
                  <X className="h-4 w-4 md:mr-1.5" />
                  <span className="hidden md:inline">Remove</span>
                </button>

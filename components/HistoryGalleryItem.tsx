@@ -31,8 +31,10 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
         <>
             <div
                 onClick={() => onClick(item)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(item); } }}
                 className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer transition-transform duration-300 hover:scale-105 shadow-sm hover:shadow-xl"
                 role="button"
+                tabIndex={0}
                 aria-label={`View design: ${styleNames}`}
             >
                 {imageUrl ? (
@@ -49,7 +51,7 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
                 </div>
             </div>
             <div className="lg:hidden p-2 flex justify-center">
-                <button onClick={() => onClick(item)} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center">
+                <button onClick={() => onClick(item)} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center" aria-label={`View ${styleNames}`}>
                     <Eye className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">View</span>
                 </button>
