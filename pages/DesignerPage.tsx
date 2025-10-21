@@ -158,9 +158,9 @@ export const DesignerPage: React.FC = () => {
     }
   }, [itemToLoad, onItemLoaded]);
 
-  const updateState = (updates: Partial<DesignerState>) => {
+  const updateState = useCallback((updates: Partial<DesignerState>) => {
     setDesignerState(prevState => ({ ...prevState, ...updates }));
-  };
+  }, []);
 
   const handleImageUpload = (file: ImageFile | null) => {
     updateState({ originalImage: file });
@@ -168,6 +168,10 @@ export const DesignerPage: React.FC = () => {
     setDesignCatalog(null);
     setError(null);
   };
+
+  const handleClimateChange = useCallback((val: string) => {
+    updateState({ climateZone: val });
+  }, [updateState]);
 
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
@@ -275,7 +279,7 @@ export const DesignerPage: React.FC = () => {
         </Section>
 
         <Section title="Specify Details">
-            <ClimateSelector value={climateZone} onChange={(val) => updateState({ climateZone: val })} />
+            <ClimateSelector value={climateZone} onChange={handleClimateChange} />
         </Section>
 
         <Section title="Set Redesign Density">
