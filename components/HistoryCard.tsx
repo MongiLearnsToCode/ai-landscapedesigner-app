@@ -73,15 +73,31 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
           {item.isPinned && !isSelectionMode && (
             <div className="absolute top-2 right-2 z-10 p-1.5 bg-orange-500/90 rounded-full shadow-md backdrop-blur-sm" title="Pinned"><Pin className="h-4 w-4 text-white fill-white"/></div>
           )}
-          {!isSelectionMode && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity p-2">
-              <button onClick={handleViewClick} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center"><Eye className="h-4 w-4 mr-1.5"/>View</button>
-              <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center ${item.isPinned ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-white/90 hover:bg-white text-slate-800'}`}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
-              <button onClick={handleDeleteClick} className="bg-white/90 hover:bg-white text-red-600 font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" title="Delete"><Trash2 className="h-4 w-4"/></button>
-            </div>
-          )}
-        </div>
-        <div className="p-4 flex-grow flex flex-col justify-between">
+           {!isSelectionMode && (
+             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity p-2 hidden lg:block">
+               <button onClick={handleViewClick} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center"><Eye className="h-4 w-4 mr-1.5"/>View</button>
+               <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center ${item.isPinned ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-white/90 hover:bg-white text-slate-800'}`}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
+               <button onClick={handleDeleteClick} className="bg-white/90 hover:bg-white text-red-600 font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" title="Delete"><Trash2 className="h-4 w-4"/></button>
+             </div>
+           )}
+         </div>
+         {!isSelectionMode && (
+           <div className="lg:hidden p-2 flex justify-center gap-2">
+             <button onClick={handleViewClick} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+               <Eye className="h-4 w-4 md:mr-1.5" />
+               <span className="hidden md:inline">View</span>
+             </button>
+             <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold p-1 md:p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center ${item.isPinned ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-white/90 hover:bg-white text-slate-800'}`}>
+               <Pin className={`h-4 w-4 md:mr-1.5 ${item.isPinned ? 'fill-current' : ''}`} />
+               <span className="hidden md:inline">{item.isPinned ? 'Unpin' : 'Pin'}</span>
+             </button>
+             <button onClick={handleDeleteClick} className="bg-white/90 hover:bg-white text-red-600 font-semibold p-1 md:p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" title="Delete">
+               <Trash2 className="h-4 w-4 md:mr-1.5" />
+               <span className="hidden md:inline">Delete</span>
+             </button>
+           </div>
+         )}
+         <div className="p-4 flex-grow flex flex-col justify-between">
           <div>
             <h4 className="font-bold text-slate-800 text-base capitalize truncate">{styleNames}</h4>
             <p className="text-sm text-slate-500 truncate">{item.climateZone || 'General Climate'}</p>
@@ -98,20 +114,27 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
       {isSelectionMode && <div className="flex-shrink-0"><input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-slate-400 text-orange-600 focus:ring-orange-500 pointer-events-none"/></div>}
       <div className="relative w-32 h-20 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
         {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames} lazy={true}/> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}
-        {item.isPinned && <div className="absolute top-1 right-1 z-10 p-1 bg-orange-500/90 rounded-full shadow-sm" title="Pinned"><Pin className="h-3 w-3 text-white fill-white"/></div>}
-      </div>
+         {item.isPinned && <div className="absolute top-1 right-1 z-10 p-1 bg-orange-500/90 rounded-full shadow-sm" title="Pinned"><Pin className="h-3 w-3 text-white fill-white"/></div>}
+         {!isSelectionMode && (
+           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity p-2 hidden lg:block">
+             <button onClick={handleViewClick} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center"><Eye className="h-4 w-4 mr-1.5"/>View</button>
+             <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center ${item.isPinned ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-white/90 hover:bg-white text-slate-800'}`}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
+             <button onClick={handleDeleteClick} className="bg-white/90 hover:bg-white text-red-600 font-semibold p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" title="Delete"><Trash2 className="h-4 w-4"/></button>
+           </div>
+         )}
+       </div>
       <div className="flex-grow min-w-0">
         <h4 className="font-bold text-slate-800 text-sm capitalize truncate">{styleNames}</h4>
         <p className="text-sm text-slate-500 truncate">{item.climateZone || 'General Climate'}</p>
         <p className="text-xs text-slate-400 mt-1">{new Date(item.timestamp).toLocaleString()}</p>
       </div>
-      {!isSelectionMode && (
-        <div className="flex-shrink-0 flex items-center space-x-1">
-          <button onClick={handleViewClick} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" title="View"><Eye className="h-4 w-4"/></button>
-          <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`p-2 rounded-lg transition-colors ${item.isPinned ? 'text-orange-500 hover:bg-orange-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
-          <button onClick={handleDeleteClick} title="Delete" className="p-2 rounded-lg text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4"/></button>
-        </div>
-      )}
+       {!isSelectionMode && (
+         <div className="flex-shrink-0 flex items-center space-x-1 lg:hidden">
+           <button onClick={handleViewClick} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" title="View"><Eye className="h-4 w-4"/></button>
+           <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`p-2 rounded-lg transition-colors ${item.isPinned ? 'text-orange-500 hover:bg-orange-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
+           <button onClick={handleDeleteClick} title="Delete" className="p-2 rounded-lg text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4"/></button>
+         </div>
+       )}
     </div>
   );
 };
