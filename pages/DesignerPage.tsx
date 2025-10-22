@@ -19,6 +19,20 @@ interface RedesignError {
   suggestion?: 'style';
 }
 
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section = React.memo<SectionProps>(function Section({ title, children }) {
+  return (
+    <div>
+      <h2 className="text-base font-semibold text-slate-800 mb-4">{title}</h2>
+      {children}
+    </div>
+  );
+});
+
 // Define the shape of the state we want to persist
 interface DesignerState {
   originalImage: ImageFile | null;
@@ -165,20 +179,18 @@ export const DesignerPage: React.FC = () => {
     }
   }, [itemToLoad, onItemLoaded]);
 
-  const updateState = useCallback((updates: Partial<DesignerState>) => {
-    setDesignerState(prevState => ({ ...prevState, ...updates }));
-  }, []);
+
 
   const handleImageUpload = (file: ImageFile | null) => {
-    updateState({ originalImage: file });
+    setDesignerState(prev => ({ ...prev, originalImage: file }));
     setRedesignedImage(null);
     setDesignCatalog(null);
     setError(null);
   };
 
   const handleClimateChange = useCallback((val: string) => {
-    updateState({ climateZone: val });
-  }, [updateState]);
+    setDesignerState(prev => ({ ...prev, climateZone: val }));
+  }, []);
 
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
@@ -284,12 +296,7 @@ export const DesignerPage: React.FC = () => {
     }
   }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast, isAuthenticated, navigateTo]);
 
-  const Section: React.FC<{title: string, children: React.ReactNode}> = ({title, children}) => (
-    <div>
-        <h2 className="text-base font-semibold text-slate-800 mb-4">{title}</h2>
-        {children}
-    </div>
-  );
+
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 xl:items-start gap-4 sm:gap-6 lg:gap-8">
@@ -302,11 +309,11 @@ export const DesignerPage: React.FC = () => {
             <div ref={styleSelectorRef}>
                 <StyleSelector
                     selectedStyles={selectedStyles}
-                    onStylesChange={(styles) => updateState({ selectedStyles: styles })}
+                    onStylesChange={(styles) => setDesignerState(prev => ({ ...prev, selectedStyles: styles }))}
                     allowStructuralChanges={allowStructuralChanges}
-                    onAllowStructuralChanges={(allow) => updateState({ allowStructuralChanges: allow })}
+                    onAllowStructuralChanges={(allow) => setDesignerState(prev => ({ ...prev, allowStructuralChanges: allow }))}
                     lockAspectRatio={lockAspectRatio}
-                    onLockAspectRatioChange={(lock) => updateState({ lockAspectRatio: lock })}
+                    onLockAspectRatioChange={(lock) => setDesignerState(prev => ({ ...prev, lockAspectRatio: lock }))}
                 />
             </div>
         </Section>
@@ -314,7 +321,7 @@ export const DesignerPage: React.FC = () => {
         <ClimateZoneSection value={climateZone} onChange={handleClimateChange} />
 
         <Section title="Set Redesign Density">
-            <DensitySelector value={redesignDensity} onChange={(val) => updateState({ redesignDensity: val })} />
+            <DensitySelector value={redesignDensity} onChange={(val) => setDesignerState(prev => ({ ...prev, redesignDensity: val }))} />
         </Section>
         
         <div>
@@ -358,7 +365,7 @@ export const DesignerPage: React.FC = () => {
                 <button
                   onClick={() => {
                     const styleId = selectedStyles.length > 0 ? selectedStyles[0] : LANDSCAPING_STYLES[0].id;
-                    updateState({ selectedStyles: [styleId] });
+                    setDesignerState(prev => ({ ...prev, selectedStyles: [styleId] }));
                   }}
                   className="text-slate-600 hover:text-slate-800 font-semibold"
                 >
