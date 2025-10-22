@@ -67,7 +67,11 @@ export const DesignerPage: React.FC = () => {
   const [designCatalog, setDesignCatalog] = useState<DesignCatalog | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  interface RedesignError {
+    message: string;
+    suggestion?: 'style';
+  }
+  const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
 
   // Check redesign limit on component mount and when user changes
@@ -153,7 +157,7 @@ export const DesignerPage: React.FC = () => {
     setRedesignedImage(null);
     setDesignCatalog(null);
 
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 2;
     let lastValidationError: Error | null = null;
 
     try {
@@ -206,7 +210,7 @@ export const DesignerPage: React.FC = () => {
             break;
           } else {
             const reasons = validation.reasons.join('; ');
-            lastValidationError = new Error(`Redesign validation failed: ${reasons}. Please try again.`);
+            lastValidationError = new Error(`Redesign validation failed: ${reasons}.`);
           }
         } catch (err) {
           lastValidationError = err as Error;
@@ -214,12 +218,19 @@ export const DesignerPage: React.FC = () => {
       }
 
       if (lastValidationError) {
-        throw lastValidationError;
+        if (lastValidationError.message.includes('validation failed')) {
+          setError({
+            message: "It seems the AI is struggling to produce a valid redesign with your current style settings. Try selecting a different style — or just one style — to help the AI focus and improve results.",
+            suggestion: 'style'
+          });
+        } else {
+          throw lastValidationError;
+        }
       }
     } catch (err) {
       const sanitizedMessage = sanitizeError(err);
       console.error("Redesign failed:", err);
-      setError(`Failed to generate redesign. ${sanitizedMessage}`);
+      setError({ message: `Failed to generate redesign. ${sanitizedMessage}` });
       addToast(`Redesign failed: ${sanitizedMessage}`, 'error');
     } finally {
       setIsLoading(false);
@@ -282,7 +293,33 @@ export const DesignerPage: React.FC = () => {
               </p>
             )}
         </div>
-         {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
+         {error && (
+          <div className="text-red-600 text-sm mt-2 text-center">
+            <p>{error.message}</p>
+            {error.suggestion === 'style' && (
+              <div className="mt-2 flex justify-center gap-2">
+                <button
+                  onClick={() => {
+                    // This is a placeholder for opening the style selector.
+                    // A more robust implementation would scroll to the style selector.
+                    console.log("Open style selector");
+                  }}
+                  className="text-slate-600 hover:text-slate-800 font-semibold"
+                >
+                  Try a different style
+                </button>
+                <button
+                  onClick={() => {
+                    updateState({ selectedStyles: [selectedStyles[0]] });
+                  }}
+                  className="text-slate-600 hover:text-slate-800 font-semibold"
+                >
+                  Use a single style
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="xl:col-span-2 flex flex-col">
