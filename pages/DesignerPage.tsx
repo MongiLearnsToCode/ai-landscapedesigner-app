@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ImageUploader } from '../components/ImageUploader';
 import { StyleSelector } from '../components/StyleSelector';
 import { ClimateZoneSection } from '../components/ClimateZoneSection';
@@ -12,6 +12,11 @@ import { useToast } from '../contexts/ToastContext';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
+
+interface RedesignError {
+  message: string;
+  suggestion?: 'style';
+}
 
 // Define the shape of the state we want to persist
 interface DesignerState {
@@ -60,6 +65,8 @@ export const DesignerPage: React.FC = () => {
   const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading } = useHistory();
   const { addToast } = useToast();
 
+  const styleSelectorRef = useRef<HTMLDivElement>(null);
+
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;
 
@@ -67,10 +74,6 @@ export const DesignerPage: React.FC = () => {
   const [designCatalog, setDesignCatalog] = useState<DesignCatalog | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  interface RedesignError {
-    message: string;
-    suggestion?: 'style';
-  }
   const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
 
@@ -252,14 +255,16 @@ export const DesignerPage: React.FC = () => {
         </Section>
         
         <Section title="Choose Your Style">
-            <StyleSelector
-                selectedStyles={selectedStyles}
-                onStylesChange={(styles) => updateState({ selectedStyles: styles })}
-                allowStructuralChanges={allowStructuralChanges}
-                onAllowStructuralChanges={(allow) => updateState({ allowStructuralChanges: allow })}
-                lockAspectRatio={lockAspectRatio}
-                onLockAspectRatioChange={(lock) => updateState({ lockAspectRatio: lock })}
-            />
+            <div ref={styleSelectorRef}>
+                <StyleSelector
+                    selectedStyles={selectedStyles}
+                    onStylesChange={(styles) => updateState({ selectedStyles: styles })}
+                    allowStructuralChanges={allowStructuralChanges}
+                    onAllowStructuralChanges={(allow) => updateState({ allowStructuralChanges: allow })}
+                    lockAspectRatio={lockAspectRatio}
+                    onLockAspectRatioChange={(lock) => updateState({ lockAspectRatio: lock })}
+                />
+            </div>
         </Section>
 
         <ClimateZoneSection value={climateZone} onChange={handleClimateChange} />
@@ -300,9 +305,7 @@ export const DesignerPage: React.FC = () => {
               <div className="mt-2 flex justify-center gap-2">
                 <button
                   onClick={() => {
-                    // This is a placeholder for opening the style selector.
-                    // A more robust implementation would scroll to the style selector.
-                    console.log("Open style selector");
+                    styleSelectorRef.current?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   className="text-slate-600 hover:text-slate-800 font-semibold"
                 >
@@ -310,7 +313,8 @@ export const DesignerPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    updateState({ selectedStyles: [selectedStyles[0]] });
+                    const styleId = selectedStyles.length > 0 ? selectedStyles[0] : LANDSCAPING_STYLES[0].id;
+                    updateState({ selectedStyles: [styleId] });
                   }}
                   className="text-slate-600 hover:text-slate-800 font-semibold"
                 >
