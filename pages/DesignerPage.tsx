@@ -138,7 +138,7 @@ export const DesignerPage: React.FC = () => {
 
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
-      setError({ message: "Please upload an image first." });
+      setError("Please upload an image first.");
       return;
     }
 
@@ -151,7 +151,7 @@ export const DesignerPage: React.FC = () => {
     // Check limit before proceeding
     const { canRedesign, remaining } = await checkRedesignLimit();
     if (!canRedesign) {
-      setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
+      setError("You have reached the maximum limit of 3 redesigns per device.");
       return;
     }
 
