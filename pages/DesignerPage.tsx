@@ -153,52 +153,69 @@ export const DesignerPage: React.FC = () => {
     setRedesignedImage(null);
     setDesignCatalog(null);
 
+    const MAX_RETRIES = 3;
+    let lastValidationError: Error | null = null;
+
     try {
-      const result = await redesignOutdoorSpace(
-        originalImage.base64,
-        originalImage.type,
-        selectedStyles,
-        allowStructuralChanges,
-        climateZone,
-        lockAspectRatio,
-        redesignDensity
-      );
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+          if (i > 0) {
+            addToast(
+              `The AI is retrying to produce a valid redesign (${i}/${MAX_RETRIES -1}) — please hold on while we ensure your redesign matches your property and preferences.`,
+              'info'
+            );
+          }
 
-      // Validate the redesign
-      const validation = await validateRedesign(
-        originalImage.base64,
-        originalImage.type,
-        result.base64ImageBytes,
-        result.mimeType,
-        selectedStyles,
-        allowStructuralChanges,
-        climateZone,
-        redesignDensity
-      );
+          const result = await redesignOutdoorSpace(
+            originalImage.base64,
+            originalImage.type,
+            selectedStyles,
+            allowStructuralChanges,
+            climateZone,
+            lockAspectRatio,
+            redesignDensity
+          );
 
-      if (!validation.overallPass) {
-        const reasons = validation.reasons.join('; ');
-        throw new Error(`Redesign validation failed: ${reasons}. Please try again.`);
+          const validation = await validateRedesign(
+            originalImage.base64,
+            originalImage.type,
+            result.base64ImageBytes,
+            result.mimeType,
+            selectedStyles,
+            allowStructuralChanges,
+            climateZone,
+            redesignDensity
+          );
+
+          if (validation.overallPass) {
+            await saveNewRedesign({
+              originalImage: originalImage,
+              redesignedImage: { base64: result.base64ImageBytes, type: result.mimeType },
+              catalog: result.catalog,
+              styles: selectedStyles,
+              climateZone: climateZone,
+            });
+            
+            const { remaining: newRemaining } = await checkRedesignLimit();
+            setRemainingRedesigns(newRemaining);
+
+            setRedesignedImage(`data:${result.mimeType};base64,${result.base64ImageBytes}`);
+            setDesignCatalog(result.catalog);
+            localStorage.removeItem('designerSession');
+            lastValidationError = null; 
+            break;
+          } else {
+            const reasons = validation.reasons.join('; ');
+            lastValidationError = new Error(`Redesign validation failed: ${reasons}. Please try again.`);
+          }
+        } catch (err) {
+          lastValidationError = err as Error;
+        }
       }
 
-      await saveNewRedesign({
-        originalImage: originalImage,
-        redesignedImage: { base64: result.base64ImageBytes, type: result.mimeType },
-        catalog: result.catalog,
-        styles: selectedStyles,
-        climateZone: climateZone,
-      });
-
-      // Update remaining count
-      const { remaining } = await checkRedesignLimit();
-      setRemainingRedesigns(remaining);
-
-      setRedesignedImage(`data:${result.mimeType};base64,${result.base64ImageBytes}`);
-      setDesignCatalog(result.catalog);
-
-      // Clear session so a refresh doesn't show the old inputs
-      localStorage.removeItem('designerSession');
-
+      if (lastValidationError) {
+        throw lastValidationError;
+      }
     } catch (err) {
       const sanitizedMessage = sanitizeError(err);
       console.error("Redesign failed:", err);
