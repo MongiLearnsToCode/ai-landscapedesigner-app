@@ -6,7 +6,7 @@ interface ClimateZoneSectionProps {
   onChange: (value: string) => void;
 }
 
-export const ClimateZoneSection: React.FC<ClimateZoneSectionProps> = React.memo(({ value, onChange }) => {
+export const ClimateZoneSection: React.FC<ClimateZoneSectionProps> = ({ value, onChange }) => {
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -33,7 +33,7 @@ export const ClimateZoneSection: React.FC<ClimateZoneSectionProps> = React.memo(
       timeoutRef.current = setTimeout(() => {
         onChange(val);
         timeoutRef.current = null;
-      }, 300);
+      }, 800);
     }
   }, [onChange]);
 
@@ -51,4 +51,4 @@ export const ClimateZoneSection: React.FC<ClimateZoneSectionProps> = React.memo(
       <ClimateSelector value={localValue} onChange={handleChange} />
     </div>
   );
-});
+};
