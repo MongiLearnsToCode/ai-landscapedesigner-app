@@ -33,6 +33,7 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(item); } }}
             className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer transition-transform duration-300 hover:scale-105 shadow-sm hover:shadow-xl flex flex-col"
             tabIndex={0}
+            role="button"
             aria-label={`View design: ${styleNames}`}
         >
             {/* Image section */}
