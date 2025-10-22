@@ -74,8 +74,8 @@ export const Header: React.FC = () => {
               aria-label="Go to homepage"
             >
               <Leaf className="h-6 w-6 sm:h-7 sm:w-7 text-orange-500" />
-              <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-wide hidden xs:block">AI Landscape Designer</h1>
-              <h1 className="text-base font-bold text-slate-800 tracking-wide block xs:hidden">AI Designer</h1>
+              <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-wide portrait:sm:hidden">AI Landscape Designer</h1>
+              <h1 className="text-base font-bold text-slate-800 tracking-wide hidden portrait:sm:block">AI Landscape</h1>
             </div>
             <nav className="hidden md:flex items-center space-x-2">
               <NavLink targetPage="main">Home</NavLink>
