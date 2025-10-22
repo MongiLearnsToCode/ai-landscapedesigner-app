@@ -3,7 +3,7 @@ import { Tooltip } from './Tooltip';
 
 interface ClimateSelectorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, immediate?: boolean) => void;
 }
 
 const PREDEFINED_CLIMATES = ['Temperate', 'Arid', 'Tropical', 'Mediterranean', 'Continental'];
@@ -29,10 +29,10 @@ export const ClimateSelector: React.FC<ClimateSelectorProps> = React.memo(({ val
         <p className="text-xs text-slate-500 mb-2">Or select a general climate type:</p>
         <div className="flex flex-wrap gap-2">
           {PREDEFINED_CLIMATES.map((climate) => (
-            <button
-              key={climate}
-              type="button"
-              onClick={() => onChange(climate)}
+             <button
+               key={climate}
+               type="button"
+               onClick={() => onChange(climate, true)}
               className={`px-3 py-1 text-xs font-medium rounded-full transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-400 ${
                 value === climate
                   ? 'bg-slate-800 text-white border-transparent'
