@@ -134,10 +134,10 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
                  <span className="hidden md:inline">Share</span>
                </button>
              </div>
-             {catalog && <DesignCatalog catalog={catalog} />}
-        </div>
-    );
-};
+              {catalog && <DesignCatalog catalog={catalog} />}
+         </div>
+   );
+ };
 
 const Placeholder: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex items-center justify-center min-h-[400px] w-full xl:min-h-0 xl:h-full">
@@ -198,5 +198,5 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
       <Placeholder>
         {PlaceholderContent}
       </Placeholder>
-  );
+   );
 };
