@@ -11,18 +11,39 @@ export const ClimateZoneSection: React.FC<ClimateZoneSectionProps> = React.memo(
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setLocalValue(value);
   }, [value]);
 
-  const handleChange = useCallback((val: string) => {
+  const handleChange = useCallback((val: string, immediate?: boolean) => {
     setLocalValue(val);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
+    if (immediate) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       onChange(val);
-    }, 300);
+    } else {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        onChange(val);
+        timeoutRef.current = null;
+      }, 300);
+    }
   }, [onChange]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div>
