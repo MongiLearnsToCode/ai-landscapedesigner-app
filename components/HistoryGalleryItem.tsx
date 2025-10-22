@@ -30,7 +30,10 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
     return (
         <div
             onClick={() => onClick(item)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(item); } }}
             className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer transition-transform duration-300 hover:scale-105 shadow-sm hover:shadow-xl flex flex-col"
+            tabIndex={0}
+            aria-label={`View design: ${styleNames}`}
         >
             {/* Image section */}
             <div className="flex-grow relative">
