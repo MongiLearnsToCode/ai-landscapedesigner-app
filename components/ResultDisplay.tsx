@@ -120,20 +120,33 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
                     <ActionButton onClick={handleShare} label="Share" icon={<Share2 className="h-4 w-4 mr-2" />} aria-label="Share image" />
                 </div>
              </div>
-             <div className="lg:hidden p-2 flex justify-center gap-2">
-               <button onClick={() => openModal(imageUrl)} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center" aria-label="View larger">
-                 <Expand className="h-4 w-4 md:mr-2" />
-                 <span className="hidden md:inline">Larger</span>
-               </button>
-               <button onClick={handleDownload} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center" aria-label="Download image">
-                 <Download className="h-4 w-4 md:mr-2" />
-                 <span className="hidden md:inline">Download</span>
-               </button>
-               <button onClick={handleShare} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center" aria-label="Share image">
-                 <Share2 className="h-4 w-4 md:mr-2" />
-                 <span className="hidden md:inline">Share</span>
-               </button>
-             </div>
+              {/* Tablet controls with labels */}
+              <div className="hidden md:flex lg:hidden justify-center gap-3 p-3 bg-slate-50 border-t border-slate-200 rounded-b-xl">
+                <button onClick={() => openModal(imageUrl)} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="View larger">
+                  <Expand className="h-4 w-4 mr-2" />
+                  View
+                </button>
+                <button onClick={handleDownload} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="Download image">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </button>
+                <button onClick={handleShare} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="Share image">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </button>
+              </div>
+              {/* Mobile controls with icons only */}
+              <div className="flex md:hidden justify-center gap-3 p-3 bg-slate-50 border-t border-slate-200 rounded-b-xl">
+                <button onClick={() => openModal(imageUrl)} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="View larger">
+                  <Expand className="h-5 w-5" />
+                </button>
+                <button onClick={handleDownload} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="Download image">
+                  <Download className="h-5 w-5" />
+                </button>
+                <button onClick={handleShare} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="Share image">
+                  <Share2 className="h-5 w-5" />
+                </button>
+              </div>
               {catalog && <DesignCatalog catalog={catalog} />}
          </div>
    );
