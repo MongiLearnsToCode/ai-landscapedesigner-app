@@ -14,6 +14,11 @@ import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
 
+interface RedesignError {
+  message: string;
+  suggestion?: 'style';
+}
+
 // Define the shape of the state we want to persist
 interface DesignerState {
   originalImage: ImageFile | null;
@@ -79,6 +84,8 @@ export const DesignerPage: React.FC = () => {
     useShallow((state) => ({ addToast: state.addToast }))
   );
 
+  const styleSelectorRef = useRef<HTMLDivElement>(null);
+
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;
 
@@ -86,7 +93,7 @@ export const DesignerPage: React.FC = () => {
   const [designCatalog, setDesignCatalog] = useState<DesignCatalog | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
   const hasRequestedInitialHistory = useRef(false);
 
@@ -175,7 +182,7 @@ export const DesignerPage: React.FC = () => {
 
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
-      setError("Please upload an image first.");
+      setError({ message: "Please upload an image first." });
       return;
     }
 
@@ -188,7 +195,7 @@ export const DesignerPage: React.FC = () => {
     // Check limit before proceeding
     const { canRedesign, remaining } = await checkRedesignLimit();
     if (!canRedesign) {
-      setError("You have reached the maximum limit of 3 redesigns per device.");
+      setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
       return;
     }
 
@@ -197,7 +204,7 @@ export const DesignerPage: React.FC = () => {
     setRedesignedImage(null);
     setDesignCatalog(null);
 
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 2;
     let lastValidationError: Error | null = null;
 
     try {
@@ -250,7 +257,7 @@ export const DesignerPage: React.FC = () => {
             break;
           } else {
             const reasons = validation.reasons.join('; ');
-            lastValidationError = new Error(`Redesign validation failed: ${reasons}. Please try again.`);
+            lastValidationError = new Error(`Redesign validation failed: ${reasons}.`);
           }
         } catch (err) {
           lastValidationError = err as Error;
@@ -258,12 +265,19 @@ export const DesignerPage: React.FC = () => {
       }
 
       if (lastValidationError) {
-        throw lastValidationError;
+        if (lastValidationError?.message?.toLowerCase().includes('validation failed')) {
+          setError({
+            message: "It seems the AI is struggling to produce a valid redesign with your current style settings. Try selecting a different style — or just one style — to help the AI focus and improve results.",
+            suggestion: 'style'
+          });
+        } else {
+          throw lastValidationError;
+        }
       }
     } catch (err) {
       const sanitizedMessage = sanitizeError(err);
       console.error("Redesign failed:", err);
-      setError(`Failed to generate redesign. ${sanitizedMessage}`);
+      setError({ message: `Failed to generate redesign. ${sanitizedMessage}` });
       addToast(`Redesign failed: ${sanitizedMessage}`, 'error');
     } finally {
       setIsLoading(false);
@@ -285,14 +299,16 @@ export const DesignerPage: React.FC = () => {
         </Section>
         
         <Section title="Choose Your Style">
-            <StyleSelector
-                selectedStyles={selectedStyles}
-                onStylesChange={(styles) => updateState({ selectedStyles: styles })}
-                allowStructuralChanges={allowStructuralChanges}
-                onAllowStructuralChanges={(allow) => updateState({ allowStructuralChanges: allow })}
-                lockAspectRatio={lockAspectRatio}
-                onLockAspectRatioChange={(lock) => updateState({ lockAspectRatio: lock })}
-            />
+            <div ref={styleSelectorRef}>
+                <StyleSelector
+                    selectedStyles={selectedStyles}
+                    onStylesChange={(styles) => updateState({ selectedStyles: styles })}
+                    allowStructuralChanges={allowStructuralChanges}
+                    onAllowStructuralChanges={(allow) => updateState({ allowStructuralChanges: allow })}
+                    lockAspectRatio={lockAspectRatio}
+                    onLockAspectRatioChange={(lock) => updateState({ lockAspectRatio: lock })}
+                />
+            </div>
         </Section>
 
         <ClimateZoneSection value={climateZone} onChange={handleClimateChange} />
@@ -326,7 +342,32 @@ export const DesignerPage: React.FC = () => {
               </p>
             )}
         </div>
-         {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
+         {error && (
+          <div className="text-red-600 text-sm mt-2 text-center">
+            <p>{error.message}</p>
+            {error.suggestion === 'style' && (
+              <div className="mt-2 flex justify-center gap-2">
+                <button
+                  onClick={() => {
+                    styleSelectorRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="text-slate-600 hover:text-slate-800 font-semibold"
+                >
+                  Try a different style
+                </button>
+                <button
+                  onClick={() => {
+                    const styleId = selectedStyles.length > 0 ? selectedStyles[0] : LANDSCAPING_STYLES[0].id;
+                    updateState({ selectedStyles: [styleId] });
+                  }}
+                  className="text-slate-600 hover:text-slate-800 font-semibold"
+                >
+                  Use a single style
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="xl:col-span-2 flex flex-col">
