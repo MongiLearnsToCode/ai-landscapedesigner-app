@@ -84,7 +84,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
           {!isSelectionMode && (
             <>
               {/* Tablet controls with labels */}
-              <div className="hidden md:flex lg:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-2xl">
+              <div className="hidden md:flex lg:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200">
                 <button onClick={handleViewClick} className="bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="View item">
                   <Eye className="h-4 w-4 mr-1.5" />
                   View
@@ -99,7 +99,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
                 </button>
               </div>
               {/* Mobile controls with icons only */}
-              <div className="flex md:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-2xl">
+              <div className="flex md:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200">
                 <button onClick={handleViewClick} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="View item">
                   <Eye className="h-5 w-5" />
                 </button>
