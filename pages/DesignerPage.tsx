@@ -18,6 +18,20 @@ interface RedesignError {
   suggestion?: 'style';
 }
 
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section = React.memo<SectionProps>(function Section({ title, children }) {
+  return (
+    <div>
+      <h2 className="text-base font-semibold text-slate-800 mb-4">{title}</h2>
+      {children}
+    </div>
+  );
+});
+
 // Define the shape of the state we want to persist
 interface DesignerState {
   originalImage: ImageFile | null;
@@ -136,7 +150,7 @@ export const DesignerPage: React.FC = () => {
 
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
-      setError("Please upload an image first.");
+      setError({ message: "Please upload an image first." });
       return;
     }
 
@@ -149,7 +163,7 @@ export const DesignerPage: React.FC = () => {
     // Check limit before proceeding
     const { canRedesign, remaining } = await checkRedesignLimit();
     if (!canRedesign) {
-      setError("You have reached the maximum limit of 3 redesigns per device.");
+      setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
       return;
     }
 
@@ -238,12 +252,7 @@ export const DesignerPage: React.FC = () => {
     }
   }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast, isAuthenticated, navigateTo]);
 
-  const Section: React.FC<{title: string, children: React.ReactNode}> = React.memo(({title, children}) => (
-    <div>
-        <h2 className="text-base font-semibold text-slate-800 mb-4">{title}</h2>
-        {children}
-    </div>
-  ));
+
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 xl:items-start gap-4 sm:gap-6 lg:gap-8">
