@@ -221,7 +221,7 @@ export const DesignerPage: React.FC = () => {
       }
 
       if (lastValidationError) {
-        if (lastValidationError.message.includes('validation failed')) {
+        if (lastValidationError?.message?.toLowerCase().includes('validation failed')) {
           setError({
             message: "It seems the AI is struggling to produce a valid redesign with your current style settings. Try selecting a different style — or just one style — to help the AI focus and improve results.",
             suggestion: 'style'
