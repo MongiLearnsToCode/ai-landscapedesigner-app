@@ -81,22 +81,37 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
              </div>
            )}
          </div>
-         {!isSelectionMode && (
-            <div className="lg:hidden p-2 flex justify-center gap-2">
-              <button onClick={handleViewClick} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="View item">
-                <Eye className="h-4 w-4 md:mr-1.5" />
-                <span className="hidden md:inline">View</span>
-              </button>
-              <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold p-1 md:p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center ${item.isPinned ? 'bg-orange-100 hover:bg-orange-200 text-orange-600' : 'bg-white/90 hover:bg-white text-slate-800'}`} aria-label={item.isPinned ? 'Unpin item' : 'Pin item'} aria-pressed={item.isPinned}>
-                <Pin className={`h-4 w-4 md:mr-1.5 ${item.isPinned ? 'fill-current' : ''}`} />
-                <span className="hidden md:inline">{item.isPinned ? 'Unpin' : 'Pin'}</span>
-              </button>
-              <button onClick={handleDeleteClick} className="bg-white/90 hover:bg-white text-red-600 font-semibold p-1 md:p-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" title="Delete" aria-label="Delete item">
-                <Trash2 className="h-4 w-4 md:mr-1.5" />
-                <span className="hidden md:inline">Delete</span>
-              </button>
-            </div>
-         )}
+          {!isSelectionMode && (
+            <>
+              {/* Tablet controls with labels */}
+              <div className="hidden md:flex lg:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-2xl">
+                <button onClick={handleViewClick} className="bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="View item">
+                  <Eye className="h-4 w-4 mr-1.5" />
+                  View
+                </button>
+                <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`font-semibold px-3 py-2 rounded-lg text-sm shadow-sm flex items-center ${item.isPinned ? 'bg-orange-100 text-orange-600' : 'bg-white text-slate-800'}`} aria-label={item.isPinned ? 'Unpin item' : 'Pin item'} aria-pressed={item.isPinned}>
+                  <Pin className={`h-4 w-4 mr-1.5 ${item.isPinned ? 'fill-current' : ''}`} />
+                  {item.isPinned ? 'Unpin' : 'Pin'}
+                </button>
+                <button onClick={handleDeleteClick} className="bg-white text-red-600 font-semibold px-3 py-2 rounded-lg text-sm shadow-sm flex items-center" title="Delete" aria-label="Delete item">
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete
+                </button>
+              </div>
+              {/* Mobile controls with icons only */}
+              <div className="flex md:hidden justify-center gap-2 p-3 bg-slate-50 border-t border-slate-200 rounded-b-2xl">
+                <button onClick={handleViewClick} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="View item">
+                  <Eye className="h-5 w-5" />
+                </button>
+                <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12 ${item.isPinned ? 'bg-orange-100 text-orange-600' : 'bg-white text-slate-800'}`} aria-label={item.isPinned ? 'Unpin item' : 'Pin item'} aria-pressed={item.isPinned}>
+                  <Pin className={`h-5 w-5 ${item.isPinned ? 'fill-current' : ''}`} />
+                </button>
+                <button onClick={handleDeleteClick} className="bg-white text-red-600 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" title="Delete" aria-label="Delete item">
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </div>
+            </>
+          )}
          <div className="p-4 flex-grow flex flex-col justify-between">
           <div>
             <h4 className="font-bold text-slate-800 text-base capitalize truncate">{styleNames}</h4>
@@ -128,13 +143,13 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
         <p className="text-sm text-slate-500 truncate">{item.climateZone || 'General Climate'}</p>
         <p className="text-xs text-slate-400 mt-1">{new Date(item.timestamp).toLocaleString()}</p>
       </div>
-       {!isSelectionMode && (
-          <div className="flex-shrink-0 flex items-center space-x-1 lg:hidden">
-            <button onClick={handleViewClick} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" title="View" aria-label="View item"><Eye className="h-4 w-4"/></button>
-            <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`p-2 rounded-lg transition-colors ${item.isPinned ? 'text-orange-500 hover:bg-orange-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`} aria-label={item.isPinned ? 'Unpin item' : 'Pin item'} aria-pressed={item.isPinned}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
-            <button onClick={handleDeleteClick} title="Delete" className="p-2 rounded-lg text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors" aria-label="Delete item"><Trash2 className="h-4 w-4"/></button>
+        {!isSelectionMode && (
+          <div className="flex-shrink-0 flex items-center gap-2 lg:hidden">
+            <button onClick={handleViewClick} className="bg-white text-slate-800 p-2 rounded-lg shadow-sm" title="View" aria-label="View item"><Eye className="h-4 w-4"/></button>
+            <button onClick={handlePinClick} title={item.isPinned ? 'Unpin' : 'Pin'} className={`p-2 rounded-lg shadow-sm ${item.isPinned ? 'bg-orange-100 text-orange-600' : 'bg-white text-slate-800'}`} aria-label={item.isPinned ? 'Unpin item' : 'Pin item'} aria-pressed={item.isPinned}><Pin className={`h-4 w-4 ${item.isPinned ? 'fill-current' : ''}`}/></button>
+            <button onClick={handleDeleteClick} title="Delete" className="bg-white text-red-600 p-2 rounded-lg shadow-sm" aria-label="Delete item"><Trash2 className="h-4 w-4"/></button>
           </div>
-       )}
+        )}
     </div>
   );
 };
