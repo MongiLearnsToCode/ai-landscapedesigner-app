@@ -112,40 +112,31 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-slate-800">{title}</h3>
             </div>
-            <div className="relative group w-full rounded-xl overflow-hidden bg-slate-100">
-                <img src={imageUrl} alt={title} className="w-full h-auto block" />
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 sm:gap-4 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex-wrap rounded-xl hidden lg:flex">
-                    <ActionButton onClick={() => openModal(imageUrl)} label="Larger" icon={<Expand className="h-4 w-4 mr-2" />} aria-label="View larger" />
-                    <ActionButton onClick={handleDownload} label="Download" icon={<Download className="h-4 w-4 mr-2" />} aria-label="Download image" />
-                    <ActionButton onClick={handleShare} label="Share" icon={<Share2 className="h-4 w-4 mr-2" />} aria-label="Share image" />
-                </div>
-             </div>
-              {/* Tablet controls with labels */}
-              <div className="hidden md:flex lg:hidden justify-center gap-3 p-3 bg-slate-50 border-t border-slate-200 rounded-b-xl">
-                <button onClick={() => openModal(imageUrl)} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="View larger">
-                  <Expand className="h-4 w-4 mr-2" />
-                  View
-                </button>
-                <button onClick={handleDownload} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="Download image">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </button>
-                <button onClick={handleShare} className="bg-white text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm shadow-sm flex items-center" aria-label="Share image">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </button>
-              </div>
-              {/* Mobile controls with icons only */}
-              <div className="flex md:hidden justify-center gap-3 p-3 bg-slate-50 border-t border-slate-200 rounded-b-xl">
-                <button onClick={() => openModal(imageUrl)} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="View larger">
-                  <Expand className="h-5 w-5" />
-                </button>
-                <button onClick={handleDownload} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="Download image">
-                  <Download className="h-5 w-5" />
-                </button>
-                <button onClick={handleShare} className="bg-white text-slate-800 p-3 rounded-lg shadow-sm flex items-center justify-center w-12 h-12" aria-label="Share image">
-                  <Share2 className="h-5 w-5" />
-                </button>
+             <div className="relative group w-full rounded-xl overflow-hidden bg-slate-100">
+                 <img src={imageUrl} alt={title} className="w-full h-auto block" />
+
+                 {/* Desktop hover overlay */}
+                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 sm:gap-4 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex-wrap rounded-xl hidden lg:flex">
+                     <ActionButton onClick={() => openModal(imageUrl)} label="Larger" icon={<Expand className="h-4 w-4 mr-2" />} aria-label="View larger" />
+                     <ActionButton onClick={handleDownload} label="Download" icon={<Download className="h-4 w-4 mr-2" />} aria-label="Download image" />
+                     <ActionButton onClick={handleShare} label="Share" icon={<Share2 className="h-4 w-4 mr-2" />} aria-label="Share image" />
+                 </div>
+
+                 {/* Mobile/Tablet: Solid bottom bar - always visible */}
+                 <div className="lg:hidden absolute inset-x-0 bottom-0 bg-white border-t border-slate-200 p-3 flex justify-center gap-3">
+                     <button onClick={(e) => { e.stopPropagation(); openModal(imageUrl); }} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm border border-slate-300 shadow-sm" aria-label="View larger">
+                         <Expand className="h-4 w-4" />
+                         <span className="sm:inline">View</span>
+                     </button>
+                     <button onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm border border-slate-300 shadow-sm" aria-label="Download image">
+                         <Download className="h-4 w-4" />
+                         <span className="sm:inline">Download</span>
+                     </button>
+                     <button onClick={(e) => { e.stopPropagation(); handleShare(); }} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm border border-slate-300 shadow-sm" aria-label="Share image">
+                         <Share2 className="h-4 w-4" />
+                         <span className="sm:inline">Share</span>
+                     </button>
+                 </div>
               </div>
               {catalog && <DesignCatalog catalog={catalog} />}
          </div>

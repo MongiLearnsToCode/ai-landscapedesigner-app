@@ -134,29 +134,33 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
           </div>
          ) : (
            <>
-             <div className="relative w-full rounded-xl overflow-hidden">
-               <img src={preview} alt="Preview" className="w-full h-auto block" />
-               <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity rounded-xl gap-2 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto hidden lg:flex">
-                  <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
-                    <Eye className="h-4 w-4 mr-1.5" />
-                    View
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
-                    <X className="h-4 w-4 mr-1.5" />
-                    Remove
-                  </button>
-               </div>
-             </div>
-             <div className="lg:hidden p-2 flex justify-center gap-2">
-               <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="View image">
-                 <Eye className="h-4 w-4 md:mr-1.5" />
-                 <span className="hidden md:inline">View</span>
-               </button>
-               <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-2 py-1 md:px-3 md:py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="Remove image">
-                 <X className="h-4 w-4 md:mr-1.5" />
-                 <span className="hidden md:inline">Remove</span>
-               </button>
-             </div>
+              <div className="relative w-full rounded-xl overflow-hidden">
+                <img src={preview} alt="Preview" className="w-full h-auto block" />
+
+                {/* Desktop hover overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity rounded-xl gap-2 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto hidden lg:flex">
+                   <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+                     <Eye className="h-4 w-4 mr-1.5" />
+                     View
+                   </button>
+                   <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+                     <X className="h-4 w-4 mr-1.5" />
+                     Remove
+                   </button>
+                </div>
+
+                {/* Mobile/Tablet: Solid bottom bar - always visible */}
+                <div className="lg:hidden absolute inset-x-0 bottom-0 bg-white border-t border-slate-200 p-3 flex justify-center gap-3">
+                    <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-2 rounded-lg text-sm border border-slate-300 shadow-sm" aria-label="View image">
+                        <Eye className="h-4 w-4" />
+                        <span className="sm:inline">View</span>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-lg text-sm border border-red-200 shadow-sm" aria-label="Remove image">
+                        <X className="h-4 w-4" />
+                        <span className="sm:inline">Remove</span>
+                    </button>
+                </div>
+              </div>
            </>
          )}
          </div>
