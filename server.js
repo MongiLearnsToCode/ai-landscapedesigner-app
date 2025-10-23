@@ -326,6 +326,10 @@ app.post('/api/checkout', requireAuth(), async (req, res) => {
     // Get or create Polar customer
     const polarCustomer = await getOrCreatePolarCustomer(clerkUser);
 
+    if (!polar) {
+      throw new Error('Polar not initialized');
+    }
+
     // Create checkout session
     const checkout = await polar.checkouts.create({
       products: [productId],

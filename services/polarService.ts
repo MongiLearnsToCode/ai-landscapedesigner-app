@@ -12,6 +12,10 @@ export interface ClerkUser {
 
 // Get or create Polar customer for Clerk user
 export async function getOrCreatePolarCustomer(clerkUser: ClerkUser) {
+  if (!polar) {
+    throw new Error('Polar not initialized');
+  }
+
   try {
     return await db.transaction(async (tx) => {
       const existing = await tx.select().from(polarUsers)
