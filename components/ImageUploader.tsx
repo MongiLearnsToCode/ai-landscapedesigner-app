@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ImageFile } from '../types';
-import { useApp } from '../contexts/AppContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useToastStore } from '../stores/toastStore';
 import { UploadCloud, X, Eye } from 'lucide-react';
 
 interface ImageUploaderProps {
@@ -19,8 +19,8 @@ const MAX_ASPECT_RATIO = 3;   // Allows for landscapes up to 3:1
 export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, initialImage }) => {
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { openModal } = useApp();
-  const { addToast } = useToast();
+  const { openModal } = useAppStore();
+  const { addToast } = useToastStore();
   
   useEffect(() => {
     if (initialImage) {

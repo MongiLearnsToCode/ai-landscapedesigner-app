@@ -6,9 +6,10 @@ import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
-import { useApp } from '../contexts/AppContext';
-import { useHistory } from '../contexts/HistoryContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useHistoryStore } from '../stores/historyStore';
+import { useToastStore } from '../stores/toastStore';
+import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 import { checkRedesignLimit } from '../services/historyService';
@@ -75,9 +76,27 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo } = useApp();
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading } = useHistory();
-  const { addToast } = useToast();
+  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useAppStore(
+    useShallow((state) => ({
+      itemToLoad: state.itemToLoad,
+      onItemLoaded: state.onItemLoaded,
+      isAuthenticated: state.isAuthenticated,
+      navigateTo: state.navigateTo,
+      page: state.page,
+    }))
+  );
+  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore(
+    useShallow((state) => ({
+      saveNewRedesign: state.saveNewRedesign,
+      history: state.history,
+      viewFromHistory: state.viewFromHistory,
+      isLoading: state.isLoading,
+      refreshHistory: state.refreshHistory,
+    }))
+  );
+  const { addToast } = useToastStore(
+    useShallow((state) => ({ addToast: state.addToast }))
+  );
 
   const styleSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +109,12 @@ export const DesignerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
+  const hasRequestedInitialHistory = useRef(false);
+
+  // Reset history request flag when authentication state changes
+  useEffect(() => {
+    hasRequestedInitialHistory.current = false;
+  }, [isAuthenticated]);
 
   // Check redesign limit on component mount and when user changes
   useEffect(() => {
@@ -110,6 +135,25 @@ export const DesignerPage: React.FC = () => {
       setRemainingRedesigns(0);
     }
   }, [isAuthenticated]); // Add isAuthenticated as dependency
+
+  // Ensure history is loaded when user is authenticated and on main page
+  useEffect(() => {
+    if (
+      page === 'main' &&
+      isAuthenticated &&
+      !historyLoading &&
+      history.length === 0 &&
+      !hasRequestedInitialHistory.current
+    ) {
+      hasRequestedInitialHistory.current = true;
+      // Small delay to ensure user ID is properly set
+      const timer = setTimeout(() => {
+        console.log('🔄 Triggering history refresh from DesignerPage');
+        refreshHistory();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [page, isAuthenticated, historyLoading, history.length, refreshHistory]);
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {

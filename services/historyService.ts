@@ -5,10 +5,26 @@ import * as dbService from './databaseService';
 // When a user signs in, setCurrentUserId is called, and the HistoryContext
 // automatically fetches the user's history from the Neon database
 let currentUserId: string | null = null;
+let onUserIdChangeCallback: (() => void) | null = null;
 
 export const setCurrentUserId = (userId: string | null) => {
+    console.log('🆔 setCurrentUserId called:', { 
+        oldUserId: currentUserId, 
+        newUserId: userId 
+    });
+    const wasChanged = currentUserId !== userId;
     currentUserId = userId;
-    // Note: The HistoryContext will automatically fetch user history when this changes
+    
+    // Trigger callback if user ID changed and we have a callback
+    if (wasChanged && onUserIdChangeCallback && userId) {
+        console.log('🔄 Triggering user ID change callback');
+        setTimeout(onUserIdChangeCallback, 100); // Small delay to ensure everything is set up
+    }
+};
+
+export const setOnUserIdChangeCallback = (callback: (() => void) | null) => {
+    console.log('📞 Setting user ID change callback:', !!callback);
+    onUserIdChangeCallback = callback;
 };
 
 export const getCurrentUserId = (): string | null => {
@@ -27,15 +43,20 @@ export const checkRedesignLimit = async () => {
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
+    console.log('📋 getHistory called - currentUserId:', currentUserId);
+    
     if (!currentUserId) {
+        console.log('❌ No currentUserId, returning empty array');
         return [];
     }
 
     try {
+        console.log('📥 Fetching redesigns from database for user:', currentUserId);
         const redesigns = await dbService.getRedesigns(currentUserId);
+        console.log('✅ Database returned', redesigns.length, 'redesigns');
         
         // Sanitize responses to minimize data exposure
-        return redesigns.map(redesign => ({
+        const result = redesigns.map(redesign => ({
             id: redesign.id,
             designCatalog: redesign.designCatalog,
             styles: redesign.styles,
@@ -46,8 +67,11 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
             originalImageUrl: redesign.originalImageUrl,
             redesignedImageUrl: redesign.redesignedImageUrl
         }));
+        
+        console.log('✅ Returning', result.length, 'processed history items');
+        return result;
     } catch (error) {
-        console.error("Failed to fetch history", error);
+        console.error("❌ Failed to fetch history", error);
         return [];
     }
 };

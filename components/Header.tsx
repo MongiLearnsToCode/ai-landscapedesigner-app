@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Leaf, Menu, X } from 'lucide-react';
 import { UserButton } from '@clerk/clerk-react';
-import { useApp } from '../contexts/AppContext';
-import type { Page } from '../contexts/AppContext';
+import { useAppStore, type Page } from '../stores/appStore';
 
 export const Header: React.FC = () => {
-  const { navigateTo, page, isAuthenticated } = useApp();
+  const { navigateTo, page, isAuthenticated } = useAppStore();
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);

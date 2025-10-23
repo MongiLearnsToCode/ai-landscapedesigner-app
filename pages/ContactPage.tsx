@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useToast } from '../contexts/ToastContext';
+import { useToastStore } from '../stores/toastStore';
 import { Mail, MapPin } from 'lucide-react';
 import type { ContactFormData } from '../services/contactService';
 
 export const ContactPage: React.FC = () => {
-  const { addToast } = useToast();
+  const { addToast } = useToastStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

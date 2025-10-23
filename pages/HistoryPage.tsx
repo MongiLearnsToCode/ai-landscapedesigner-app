@@ -4,7 +4,8 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { HydratedHistoryItem, LandscapingStyle } from '../types';
 import { SlidersHorizontal, Search, Trash2, List, LayoutGrid, ChevronsUpDown, Filter, X } from 'lucide-react';
 import { LANDSCAPING_STYLES } from '../constants';
-import { useHistory } from '../contexts/HistoryContext';
+import { useHistoryStore } from '../stores/historyStore';
+
 
 interface HistoryPageProps {
   historyItems: HydratedHistoryItem[];
@@ -17,7 +18,7 @@ type SortOption = 'default' | 'date-desc' | 'date-asc' | 'name-asc';
 type DateFilterOption = 'all' | '7d' | '30d';
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, onPin, onDelete }) => {
-  const { deleteMultipleItems, isLoading } = useHistory();
+  const { deleteMultipleItems, isLoading } = useHistoryStore();
 
   const [unpinModalState, setUnpinModalState] = useState({ isOpen: false, itemId: null as string | null });
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false });

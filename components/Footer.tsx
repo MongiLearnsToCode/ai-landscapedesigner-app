@@ -1,8 +1,8 @@
 import React from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useAppStore } from '../stores/appStore';
 
 export const Footer: React.FC = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo } = useAppStore();
   const currentYear = new Date().getFullYear();
 
   return (

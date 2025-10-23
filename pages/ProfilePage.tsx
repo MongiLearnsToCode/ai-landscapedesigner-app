@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAppStore } from '../stores/appStore';
+import { useToastStore } from '../stores/toastStore';
 import { User, DollarSign, LogOut, AlertTriangle } from 'lucide-react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
@@ -25,7 +25,7 @@ const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) =
 // --- Page-specific sections ---
 
 const ClerkProfilePlaceholder: React.FC = () => {
-  const { user } = useApp();
+  const { user } = useAppStore();
   if (!user) return null;
 
   return (
@@ -48,8 +48,8 @@ const ClerkProfilePlaceholder: React.FC = () => {
 };
 
 const SubscriptionContent: React.FC = () => {
-  const { user, navigateTo } = useApp();
-  const { addToast } = useToast();
+  const { user, navigateTo } = useAppStore();
+  const { addToast } = useToastStore();
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   if (!user) return null;
@@ -114,8 +114,8 @@ const AccountContent: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
 // --- Main Profile Page Component ---
 
 export const ProfilePage: React.FC = () => {
-  const { user, logout } = useApp();
-  const { addToast } = useToast();
+  const { user, logout } = useAppStore();
+  const { addToast } = useToastStore();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   if (!user) {
