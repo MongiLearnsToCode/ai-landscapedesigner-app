@@ -1,4 +1,4 @@
-import { polar } from '../src/lib/polar';
+import { getPolar } from '../src/lib/polar';
 import { db } from '../db/client';
 import { polarUsers, subscriptions } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,11 +12,8 @@ export interface ClerkUser {
 
 // Get or create Polar customer for Clerk user
 export async function getOrCreatePolarCustomer(clerkUser: ClerkUser) {
-  if (!polar) {
-    throw new Error('Polar not initialized');
-  }
-
   try {
+    const polar = getPolar();
     return await db.transaction(async (tx) => {
       const existing = await tx.select().from(polarUsers)
         .where(eq(polarUsers.clerkUserId, clerkUser.id)).limit(1);
@@ -53,6 +50,7 @@ export async function getOrCreatePolarCustomer(clerkUser: ClerkUser) {
 // Get Polar customer by Clerk user ID
 export async function getPolarCustomer(clerkUserId: string) {
   try {
+    const polar = getPolar();
     const user = await db
       .select()
       .from(polarUsers)

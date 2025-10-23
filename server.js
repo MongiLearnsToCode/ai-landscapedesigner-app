@@ -4,7 +4,7 @@ require('dotenv').config();
 import express from 'express';
 import cors from 'cors';
 import { Resend } from 'resend';
-import { polar } from './src/lib/polar';
+import { getPolar } from './src/lib/polar';
 import { getPolarProducts, getOrCreatePolarCustomer, getPolarCustomer } from './api/polar';
 import { requireAuth, getAuth, clerkClient } from '@clerk/express';
 
@@ -326,11 +326,8 @@ app.post('/api/checkout', requireAuth(), async (req, res) => {
     // Get or create Polar customer
     const polarCustomer = await getOrCreatePolarCustomer(clerkUser);
 
-    if (!polar) {
-      throw new Error('Polar not initialized');
-    }
-
     // Create checkout session
+    const polar = getPolar();
     const checkout = await polar.checkouts.create({
       products: [productId],
       customerId: polarCustomer.id,
