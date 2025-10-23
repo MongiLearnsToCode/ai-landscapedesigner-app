@@ -169,7 +169,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   };
 
   // Handle checkout
-  const handleCheckout = async (productId: string) => {
+  const handleCheckout = async (priceId: string) => {
+    if (!isLoaded) {
+      return;
+    }
+
     if (!user) {
       // Redirect to sign in
       onNavigate('signin');
@@ -177,13 +181,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     }
 
     try {
-      setCheckoutLoading(productId);
+      setCheckoutLoading(priceId);
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ priceId }),
       });
 
       if (!response.ok) {
@@ -355,8 +359,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                      cta={`Get ${product.name}`}
                      isPopular={isPopular}
                      ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
-                     onClick={() => handleCheckout(product.id)}
-                     loading={checkoutLoading === product.id}
+                      onClick={() => handleCheckout(price.id)}
+                      loading={checkoutLoading === price.id}
                    />
                  );
                })

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, json, integer, uuid, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, json, integer, uuid, varchar, index } from 'drizzle-orm/pg-core';
 
 // Better Auth tables
 export const user = pgTable("user", {
@@ -76,18 +76,18 @@ export const landscapeRedesigns = pgTable('landscape_redesigns', {
 });
 
 // Polar.sh integration tables
-export const polarUsers = pgTable('users', {
+export const polarUsers = pgTable('polar_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   clerkUserId: varchar('clerk_user_id', { length: 255 }).unique().notNull(),
   email: varchar('email', { length: 255 }).notNull(),
   polarCustomerId: varchar('polar_customer_id', { length: 255 }).unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => polarUsers.id, { onDelete: "cascade" }),
+  userId: uuid('user_id').notNull().references(() => polarUsers.id, { onDelete: "cascade" }),
   polarSubscriptionId: varchar('polar_subscription_id', { length: 255 }).unique().notNull(),
   polarCustomerId: varchar('polar_customer_id', { length: 255 }).notNull(),
   polarProductId: varchar('polar_product_id', { length: 255 }).notNull(),
@@ -104,8 +104,12 @@ export const subscriptions = pgTable('subscriptions', {
   endedAt: timestamp('ended_at'),
   metadata: json('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
 });
+
+// Indexes for subscriptions table
+export const subscriptionsUserIdx = index("subscriptions_user_idx").on(subscriptions.userId);
+export const subscriptionsCustomerIdx = index("subscriptions_customer_idx").on(subscriptions.polarCustomerId);
 
 export const webhookEvents = pgTable('webhook_events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -117,4 +121,9 @@ export const webhookEvents = pgTable('webhook_events', {
   errorMessage: text('error_message'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Indexes for webhook_events table
+export const webhookEventsProcessedIdx = index("webhook_events_processed_idx").on(webhookEvents.processed);
+export const webhookEventsProcessedAtIdx = index("webhook_events_processed_at_idx").on(webhookEvents.processedAt);
+
 

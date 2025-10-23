@@ -74,6 +74,13 @@ export type ToastMessage = {
   type: 'success' | 'error' | 'info';
 };
 
+export interface ClerkUser {
+  id: string;
+  emailAddresses: Array<{ emailAddress: string }>;
+  fullName?: string;
+  firstName?: string;
+}
+
 // Defines the structure for a user account
 export interface User {
   id: string;

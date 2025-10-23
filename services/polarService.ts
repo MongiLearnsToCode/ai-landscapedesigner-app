@@ -13,50 +13,33 @@ export interface ClerkUser {
 // Get or create Polar customer for Clerk user
 export async function getOrCreatePolarCustomer(clerkUser: ClerkUser) {
   try {
-    // Check if user already exists in our database
-    const existingUser = await db
-      .select()
-      .from(polarUsers)
-      .where(eq(polarUsers.clerkUserId, clerkUser.id))
-      .limit(1);
+    return await db.transaction(async (tx) => {
+      const existing = await tx.select().from(polarUsers)
+        .where(eq(polarUsers.clerkUserId, clerkUser.id)).limit(1);
 
-    if (existingUser.length > 0 && existingUser[0].polarCustomerId) {
-      // User exists and has Polar customer ID, fetch from Polar
-      try {
-        const customer = await polar.customers.get({ id: existingUser[0].polarCustomerId });
-        return customer;
-      } catch (error) {
-        console.error('Failed to fetch existing Polar customer:', error);
-        // Customer might not exist in Polar, create new one
+      if (existing.length > 0 && existing[0].polarCustomerId) {
+        return await polar.customers.get({ id: existing[0].polarCustomerId });
       }
-    }
 
-    // Create new Polar customer
-    const customer = await polar.customers.create({
-      email: clerkUser.emailAddresses[0].emailAddress,
-      name: clerkUser.fullName || clerkUser.firstName || 'User',
-      metadata: {
-        clerk_user_id: clerkUser.id,
-      },
-    });
-
-    // Store in our database
-    if (existingUser.length > 0) {
-      // Update existing user
-      await db
-        .update(polarUsers)
-        .set({ polarCustomerId: customer.id })
-        .where(eq(polarUsers.clerkUserId, clerkUser.id));
-    } else {
-      // Create new user record
-      await db.insert(polarUsers).values({
-        clerkUserId: clerkUser.id,
-        email: clerkUser.emailAddresses[0].emailAddress,
-        polarCustomerId: customer.id,
+      const primaryEmail = clerkUser.emailAddresses?.[0]?.emailAddress;
+      if (!primaryEmail) throw new Error('No email found for Clerk user');
+      const customer = await polar.customers.create({
+        email: primaryEmail,
+        name: clerkUser.fullName || clerkUser.firstName || 'User',
+        metadata: { clerk_user_id: clerkUser.id },
       });
-    }
 
-    return customer;
+      await tx.insert(polarUsers).values({
+        clerkUserId: clerkUser.id,
+        email: primaryEmail,
+        polarCustomerId: customer.id,
+      }).onConflictDoUpdate({
+        target: polarUsers.clerkUserId,
+        set: { polarCustomerId: customer.id },
+      });
+
+      return customer;
+    });
   } catch (error) {
     console.error('Error in getOrCreatePolarCustomer:', error);
     throw error;
@@ -96,26 +79,30 @@ export async function requireActiveSubscription(clerkUserId: string) {
       throw new Error('User not found');
     }
 
-    const subscription = await db
+    const [subscription] = await db
       .select()
       .from(subscriptions)
       .where(eq(subscriptions.userId, user[0].id))
-      .limit(1);
+      .limit(10);
 
-    if (subscription.length === 0 || subscription[0].status !== 'active') {
+    // If multiple, choose one with status 'active' and latest currentPeriodEnd
+    const sub = (Array.isArray(subscription) ? subscription : [subscription])
+      .filter(s => s?.status === 'active')
+      .sort((a, b) => new Date(b.currentPeriodEnd ?? 0).getTime() - new Date(a.currentPeriodEnd ?? 0).getTime())[0];
+
+    if (!sub) {
       throw new Error('Active subscription required');
     }
 
-    // Additional check: verify not past period end if canceled
-    if (subscription[0].cancelAtPeriodEnd && subscription[0].currentPeriodEnd) {
+    if (sub.cancelAtPeriodEnd && sub.currentPeriodEnd) {
       const now = new Date();
-      const periodEnd = new Date(subscription[0].currentPeriodEnd);
+      const periodEnd = new Date(sub.currentPeriodEnd);
       if (now > periodEnd) {
         throw new Error('Subscription expired');
       }
     }
 
-    return subscription[0];
+    return sub;
   } catch (error) {
     console.error('Error checking subscription:', error);
     throw error;
