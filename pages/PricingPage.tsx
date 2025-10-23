@@ -128,8 +128,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
-      const data = await response.json();
-      setProducts(data.products);
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error('Invalid JSON response from server');
+      }
+      setProducts(data.products || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
       // Fallback to mock data if API fails
