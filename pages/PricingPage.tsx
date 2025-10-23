@@ -169,7 +169,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   };
 
   // Handle checkout
-  const handleCheckout = async (priceId: string) => {
+  const handleCheckout = async (productId: string, priceId: string) => {
     if (!isLoaded) {
       return;
     }
@@ -187,7 +187,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ productId, priceId }),
       });
 
       if (!response.ok) {
@@ -359,7 +359,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                      cta={`Get ${product.name}`}
                      isPopular={isPopular}
                      ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
-                      onClick={() => handleCheckout(price.id)}
+                      onClick={() => handleCheckout(product.id, price.id)}
                       loading={checkoutLoading === price.id}
                    />
                  );

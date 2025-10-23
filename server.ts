@@ -1,13 +1,12 @@
+// Load environment variables
+require('dotenv').config();
+
 import express from 'express';
 import cors from 'cors';
 import { Resend } from 'resend';
-import dotenv from 'dotenv';
 import { polar } from './src/lib/polar';
 import { getPolarProducts, getOrCreatePolarCustomer, getPolarCustomer } from './api/polar';
 import { requireAuth, getAuth, clerkClient } from '@clerk/express';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -297,7 +296,11 @@ app.get('/api/products', async (req, res) => {
 // Polar.sh Checkout API
 app.post('/api/checkout', requireAuth(), async (req, res) => {
   try {
-    const { priceId } = req.body;
+    const { productId, priceId } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
     const auth = getAuth(req);
 
     if (!auth.userId) {
@@ -325,11 +328,12 @@ app.post('/api/checkout', requireAuth(), async (req, res) => {
 
     // Create checkout session
     const checkout = await polar.checkouts.create({
-      products: [priceId],
+      products: [productId],
       customerId: polarCustomer.id,
       successUrl: process.env.POLAR_SUCCESS_URL || 'https://ai-landscapedesigner.com/subscription/success',
       metadata: {
         clerk_user_id: clerkUser.id,
+        price_id: priceId,
       },
     });
 
