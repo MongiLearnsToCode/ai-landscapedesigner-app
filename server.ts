@@ -2,6 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
+import { getPolarProducts, getOrCreatePolarCustomer, getPolarCustomer } from './api/polar';
+import { requireAuth, getAuth } from '@clerk/express';
+
+// Initialize Polar SDK
+let polar = null;
+try {
+  // Dynamic import for Polar SDK
+  const { Polar } = await import('@polar-sh/sdk');
+  polar = new Polar({
+    accessToken: process.env.POLAR_ACCESS_TOKEN,
+    server: "sandbox", // Use for testing - omit or use 'production' for live
+  });
+} catch (error) {
+  console.error('Failed to initialize Polar SDK:', error);
+}
 
 // Load environment variables
 dotenv.config();
@@ -11,6 +26,12 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
+
+// Clerk authentication middleware
+app.use(requireAuth({
+  // Clerk will automatically use environment variables
+}));
+
 app.use(express.json());
 
 // Rate limiting for contact form submissions (max 3 per hour per IP)
@@ -276,6 +297,84 @@ app.post('/api/contact', async (req, res) => {
     res.status(500).json({
       error: 'Failed to send message. Please try again or contact us directly.'
     });
+  }
+});
+
+// Polar.sh Products API
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await getPolarProducts();
+    res.json({ products });
+  } catch (error) {
+    console.error('Products API error:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// Polar.sh Checkout API
+app.post('/api/checkout', async (req, res) => {
+  try {
+    const { productId } = req.body;
+    const auth = getAuth(req);
+
+    if (!auth.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get user from Clerk - for now, we'll need to fetch user details separately
+    // TODO: Fetch full user details from Clerk API
+    const clerkUser = {
+      id: auth.userId,
+      emailAddresses: [{ emailAddress: 'user@example.com' }], // Placeholder - need to fetch from Clerk
+      fullName: 'User',
+      firstName: 'User',
+    };
+
+    // Get or create Polar customer
+    const polarCustomer = await getOrCreatePolarCustomer(clerkUser);
+
+    // Create checkout session
+    const checkout = await polar.checkouts.create({
+      productId: productId,
+      customerId: polarCustomer.id,
+      successUrl: process.env.POLAR_SUCCESS_URL || 'https://ai-landscapedesigner.com/subscription/success',
+      cancelUrl: process.env.POLAR_CANCEL_URL || 'https://ai-landscapedesigner.com/pricing',
+      metadata: {
+        clerk_user_id: clerkUser.id,
+      },
+    });
+
+    res.json({ checkoutUrl: checkout.url });
+  } catch (error) {
+    console.error('Checkout error:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+// Polar.sh Customer Portal API
+app.get('/api/portal', async (req, res) => {
+  try {
+    const auth = getAuth(req);
+
+    if (!auth.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get Polar customer
+    const polarCustomer = await getPolarCustomer(auth.userId);
+
+    if (!polarCustomer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const session = await polar.customerSessions.create({
+      customerId: polarCustomer.id,
+    });
+
+    res.redirect(session.customerPortalUrl);
+  } catch (error) {
+    console.error('Portal error:', error);
+    res.status(500).json({ error: 'Failed to create portal session' });
   }
 });
 

@@ -1,6 +1,7 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
 import type { Page } from '../stores/appStore';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
 
 interface PricingPageProps {
   onNavigate: (page: Page) => void;
@@ -19,9 +20,11 @@ interface PlanCardProps {
   cta: string;
   isPopular?: boolean;
   ribbonText?: string;
+  onClick?: () => void;
+  loading?: boolean;
 }
 
-const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText }, ref) => {
+const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onClick, loading }, ref) => {
   const cardClasses = isPopular
     ? 'border-orange-500 border-2 transform md:scale-105 shadow-lg'
     : 'border-slate-200/80 border';
@@ -60,20 +63,47 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         ))}
       </ul>
       
-      <a href="#" className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg ${buttonClasses}`}>
-        {cta}
-      </a>
+       <button
+         onClick={onClick}
+         disabled={loading}
+         className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
+       >
+         {loading ? (
+           <>
+             <Loader2 className="h-4 w-4 animate-spin mr-2" />
+             Processing...
+           </>
+         ) : (
+           cta
+         )}
+       </button>
     </div>
   );
 });
 
 
+interface PolarProduct {
+  id: string;
+  name: string;
+  description: string;
+  prices: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    interval: string;
+  }>;
+}
+
 export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const containerRef = useRef<HTMLDivElement>(null);
   const popularCardRef = useRef<HTMLDivElement>(null);
-
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
+
+  const { user, isLoaded } = useUser();
+  const [products, setProducts] = useState<PolarProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -89,6 +119,90 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
+
+  // Fetch Polar products
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      setProducts(data.products);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      // Fallback to mock data if API fails
+      const mockProducts: PolarProduct[] = [
+        {
+          id: 'prod_1',
+          name: 'Personal',
+          description: 'For casual users or hobbyists.',
+          prices: [
+            { id: 'price_monthly_1', amount: 1200, currency: 'USD', interval: 'month' },
+            { id: 'price_yearly_1', amount: 12000, currency: 'USD', interval: 'year' }
+          ]
+        },
+        {
+          id: 'prod_2',
+          name: 'Creator',
+          description: 'For regular creators & freelancers.',
+          prices: [
+            { id: 'price_monthly_2', amount: 2900, currency: 'USD', interval: 'month' },
+            { id: 'price_yearly_2', amount: 24000, currency: 'USD', interval: 'year' }
+          ]
+        },
+        {
+          id: 'prod_3',
+          name: 'Business',
+          description: 'For teams, agencies & power users.',
+          prices: [
+            { id: 'price_monthly_3', amount: 6000, currency: 'USD', interval: 'month' },
+            { id: 'price_yearly_3', amount: 48000, currency: 'USD', interval: 'year' }
+          ]
+        }
+      ];
+      setProducts(mockProducts);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle checkout
+  const handleCheckout = async (productId: string) => {
+    if (!user) {
+      // Redirect to sign in
+      onNavigate('signin');
+      return;
+    }
+
+    try {
+      setCheckoutLoading(productId);
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { checkoutUrl } = await response.json();
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      // TODO: Show error toast
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 768px) and (max-width: 1023px) and (orientation: portrait)");
@@ -207,41 +321,47 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         <div className="relative">
           <ScrollIndicator direction="left" visible={scrollState.canScrollLeft} />
           <ScrollIndicator direction="right" visible={scrollState.canScrollRight} />
-          <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
-            <PlanCard 
-                plan="Personal"
-                price={billingCycle === 'monthly' ? "$12" : "$120"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
-                description="For casual users or hobbyists."
-                features={["50 redesigns per month", ...commonFeatures]}
-                cta="Get Personal"
-            />
-            <PlanCard 
-                ref={popularCardRef}
-                plan="Creator"
-                price={billingCycle === 'monthly' ? "$29" : "$240"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
-                description="For regular creators & freelancers."
-                features={["200 redesigns per month", ...commonFeatures]}
-                cta="Choose Creator"
-                isPopular={true}
-                ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
-            />
-            <PlanCard 
-                plan="Business"
-                price={billingCycle === 'monthly' ? "$60" : "$480"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
-                description="For teams, agencies & power users."
-                features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
-                cta="Go Business"
-            />
-          </div>
+           <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
+             {loading ? (
+               <div className="col-span-full flex justify-center items-center py-12">
+                 <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                 <span className="ml-2 text-slate-600">Loading plans...</span>
+               </div>
+             ) : (
+               products.map((product, index) => {
+                 const price = product.prices.find(p => p.interval === (billingCycle === 'monthly' ? 'month' : 'year'));
+                 if (!price) return null;
+
+                 const priceInDollars = price.amount / 100;
+                 const isPopular = index === 1; // Creator plan is popular
+
+                 return (
+                   <PlanCard
+                     key={product.id}
+                     ref={isPopular ? popularCardRef : undefined}
+                     plan={product.name}
+                     price={`$${priceInDollars}`}
+                     pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+                     monthlyBreakdown={billingCycle === 'annual' ? `($${(priceInDollars / 12).toFixed(0)}/month)` : undefined}
+                     savings={billingCycle === 'annual' ? 'Save up to 33%' : undefined}
+                     description={product.description}
+                     features={[
+                       product.name === 'Personal' ? "50 redesigns per month" :
+                       product.name === 'Creator' ? "200 redesigns per month" :
+                       "Unlimited redesigns*",
+                       ...commonFeatures,
+                       ...(product.name === 'Business' ? ["Priority support"] : [])
+                     ]}
+                     cta={`Get ${product.name}`}
+                     isPopular={isPopular}
+                     ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
+                     onClick={() => handleCheckout(product.id)}
+                     loading={checkoutLoading === product.id}
+                   />
+                 );
+               })
+             )}
+           </div>
         </div>
       </div>
 
