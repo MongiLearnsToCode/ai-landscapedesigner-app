@@ -1,5 +1,4 @@
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
-import * as dbService from './databaseService';
 
 // We'll get the user ID from the auth context in the components
 // When a user signs in, setCurrentUserId is called, and the HistoryContext
@@ -37,7 +36,8 @@ export const checkRedesignLimit = async () => {
         console.log('❌ No current user ID, returning 0 remaining');
         return { canRedesign: false, remaining: 0 };
     }
-    const result = await dbService.checkRedesignLimit(currentUserId);
+    const { checkRedesignLimit: checkLimit } = await import('./databaseService');
+    const result = await checkLimit(currentUserId);
     console.log('✅ Limit check result:', result);
     return result;
 };
@@ -52,7 +52,8 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
 
     try {
         console.log('📥 Fetching redesigns from database for user:', currentUserId);
-        const redesigns = await dbService.getRedesigns(currentUserId);
+        const { getRedesigns } = await import('./databaseService');
+        const redesigns = await getRedesigns(currentUserId);
         console.log('✅ Database returned', redesigns.length, 'redesigns');
         
         // Sanitize responses to minimize data exposure
@@ -88,7 +89,8 @@ export const saveHistoryItemMetadata = async (
     }
 
     try {
-        const result = await dbService.saveRedesign({
+        const { saveRedesign } = await import('./databaseService');
+        const result = await saveRedesign({
             originalImage,
             redesignedImage,
             catalog,
@@ -117,7 +119,8 @@ export const saveHistoryItemMetadata = async (
 
 export const deleteHistoryItem = async (id: string): Promise<void> => {
     try {
-        await dbService.deleteRedesign(id);
+        const { deleteRedesign } = await import('./databaseService');
+        await deleteRedesign(id);
     } catch (error) {
         console.error("Failed to delete history item", error);
         throw error;
@@ -126,7 +129,8 @@ export const deleteHistoryItem = async (id: string): Promise<void> => {
 
 export const togglePin = async (id: string): Promise<HydratedHistoryItem[]> => {
     try {
-        await dbService.togglePin(id);
+        const { togglePin: toggle } = await import('./databaseService');
+        await toggle(id);
         return await getHistory();
     } catch (error) {
         console.error("Failed to toggle pin status", error);
