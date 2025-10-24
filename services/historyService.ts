@@ -1,5 +1,5 @@
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
-import * as dbService from './databaseService';
+import { uploadImageToCloudinary } from './cloudinaryService';
 
 // We'll get the user ID from the auth context in the components
 // When a user signs in, setCurrentUserId is called, and the HistoryContext
@@ -37,9 +37,24 @@ export const checkRedesignLimit = async () => {
         console.log('❌ No current user ID, returning 0 remaining');
         return { canRedesign: false, remaining: 0 };
     }
-    const result = await dbService.checkRedesignLimit(currentUserId);
-    console.log('✅ Limit check result:', result);
-    return result;
+    try {
+        const response = await fetch(`/api/users/redesign-limit?userId=${currentUserId}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Limit check result:', data);
+
+        return {
+            canRedesign: data.canRedesign,
+            remaining: data.remaining,
+        };
+    } catch (error) {
+        console.error('❌ Error checking redesign limit:', error);
+        return { canRedesign: false, remaining: 0 };
+    }
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
@@ -51,27 +66,32 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
     }
 
     try {
-        console.log('📥 Fetching redesigns from database for user:', currentUserId);
-        const redesigns = await dbService.getRedesigns(currentUserId);
-        console.log('✅ Database returned', redesigns.length, 'redesigns');
-        
-        // Sanitize responses to minimize data exposure
-        const result = redesigns.map(redesign => ({
-            id: redesign.id,
-            designCatalog: redesign.designCatalog,
-            styles: redesign.styles,
-            climateZone: redesign.climateZone || '',
-            timestamp: redesign.createdAt.getTime(),
-            isPinned: redesign.isPinned,
-            // Remove unnecessary nested objects and empty fields
-            originalImageUrl: redesign.originalImageUrl,
-            redesignedImageUrl: redesign.redesignedImageUrl
+        console.log('📥 Fetching redesigns from API for user:', currentUserId);
+        const response = await fetch(`/api/history?userId=${currentUserId}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ API returned', data.redesigns?.length || 0, 'redesigns');
+
+        // Transform to HydratedHistoryItem format
+        const result = (data.redesigns || []).map((item: any) => ({
+            id: item.id,
+            designCatalog: item.designCatalog,
+            styles: typeof item.styles === 'string' ? JSON.parse(item.styles) : item.styles,
+            climateZone: item.climateZone,
+            timestamp: item.createdAt,
+            isPinned: item.isPinned,
+            originalImageUrl: item.originalImageUrl,
+            redesignedImageUrl: item.redesignedImageUrl
         }));
-        
+
         console.log('✅ Returning', result.length, 'processed history items');
         return result;
     } catch (error) {
-        console.error("❌ Failed to fetch history", error);
+        console.error("❌ Failed to fetch history from API", error);
         return [];
     }
 };
@@ -88,48 +108,87 @@ export const saveHistoryItemMetadata = async (
     }
 
     try {
-        const result = await dbService.saveRedesign({
-            originalImage,
-            redesignedImage,
-            catalog,
-            styles,
-            climateZone,
-            userId: currentUserId
+        // Step 1: Upload images to Cloudinary
+        console.log('📤 Uploading images to Cloudinary...');
+        const originalUrl = await uploadImageToCloudinary(originalImage);
+        const redesignedUrl = await uploadImageToCloudinary({ base64: redesignedImage.base64, type: redesignedImage.type, name: 'redesigned' });
+
+        console.log('✅ Images uploaded successfully');
+
+        // Step 2: Save metadata to database via API
+        console.log('💾 Saving to database via API...');
+        const response = await fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                originalImageUrl: originalUrl,
+                redesignedImageUrl: redesignedUrl,
+                catalog,
+                styles,
+                climateZone,
+            }),
         });
 
-        // Sanitize response to minimize data exposure
-        return {
-            id: result.id,
-            designCatalog: result.designCatalog,
-            styles: result.styles,
-            climateZone: result.climateZone || '',
-            timestamp: result.createdAt.getTime(),
-            isPinned: result.isPinned,
-            // Only include essential URLs, remove full image objects
-            originalImageUrl: result.originalImageUrl,
-            redesignedImageUrl: result.redesignedImageUrl
-        };
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ History item saved via API');
+
+        return result.redesign;
     } catch (error) {
-        console.error("Failed to save redesign", error);
+        console.error('❌ Error saving history item:', error);
         throw error;
     }
 };
 
 export const deleteHistoryItem = async (id: string): Promise<void> => {
+    if (!currentUserId) {
+        throw new Error('No user logged in');
+    }
+
+    console.log('🗑️ Deleting history item:', id);
+
     try {
-        await dbService.deleteRedesign(id);
+        const response = await fetch(`/api/history/${id}?userId=${currentUserId}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        console.log('✅ History item deleted via API');
     } catch (error) {
-        console.error("Failed to delete history item", error);
+        console.error('❌ Error deleting history item:', error);
         throw error;
     }
 };
 
 export const togglePin = async (id: string): Promise<HydratedHistoryItem[]> => {
+    if (!currentUserId) {
+        throw new Error('No user logged in');
+    }
+
+    console.log('📌 Toggling pin for item:', id);
+
     try {
-        await dbService.togglePin(id);
+        const response = await fetch(`/api/history/${id}/pin?userId=${currentUserId}`, {
+            method: 'PATCH',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        console.log('✅ Pin toggled via API');
+
+        // Refresh and return updated history
         return await getHistory();
     } catch (error) {
-        console.error("Failed to toggle pin status", error);
+        console.error('❌ Error toggling pin:', error);
         throw error;
     }
 };

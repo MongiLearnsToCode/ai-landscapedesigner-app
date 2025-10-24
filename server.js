@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from './backend/db/index.js';
+import { user, landscapeRedesigns } from './backend/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
 // Load environment variables
 dotenv.config();
@@ -276,6 +280,246 @@ app.post('/api/contact', async (req, res) => {
     res.status(500).json({
       error: 'Failed to send message. Please try again or contact us directly.'
     });
+  }
+});
+
+// ============================================
+// HISTORY API ROUTES
+// ============================================
+
+// GET /api/history - Fetch user's redesign history
+app.get('/api/history', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    console.log('📋 Fetching history for user:', userId);
+
+    const redesigns = await db
+      .select()
+      .from(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.userId, userId))
+      .orderBy(desc(landscapeRedesigns.createdAt));
+
+    console.log('✅ Found', redesigns.length, 'redesigns');
+
+    res.json({ redesigns });
+  } catch (error) {
+    console.error('❌ Error fetching history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// POST /api/history - Save new redesign
+app.post('/api/history', async (req, res) => {
+  try {
+    const {
+      userId,
+      originalImageUrl,
+      redesignedImageUrl,
+      catalog,
+      styles,
+      climateZone
+    } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!originalImageUrl || !redesignedImageUrl) {
+      return res.status(400).json({ error: 'Image URLs required' });
+    }
+
+    console.log('💾 Saving redesign for user:', userId);
+
+    const newRedesign = await db
+      .insert(landscapeRedesigns)
+      .values({
+        id: uuidv4(),
+        userId,
+        originalImageUrl,
+        redesignedImageUrl,
+        designCatalog: catalog,
+        styles: JSON.stringify(styles),
+        climateZone,
+        isPinned: false,
+      })
+      .returning();
+
+    console.log('✅ Redesign saved:', newRedesign[0].id);
+
+    res.json({ redesign: newRedesign[0] });
+  } catch (error) {
+    console.error('❌ Error saving redesign:', error);
+    res.status(500).json({ error: 'Failed to save redesign' });
+  }
+});
+
+// DELETE /api/history/:id - Delete a redesign
+app.delete('/api/history/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log('🗑️ Deleting redesign:', id);
+
+    // Verify ownership before deleting
+    const existing = await db
+      .select()
+      .from(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Redesign not found' });
+    }
+
+    if (existing[0].userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    await db
+      .delete(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.id, id));
+
+    console.log('✅ Redesign deleted');
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error deleting redesign:', error);
+    res.status(500).json({ error: 'Failed to delete redesign' });
+  }
+});
+
+// PATCH /api/history/:id/pin - Toggle pin status
+app.patch('/api/history/:id/pin', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log('📌 Toggling pin for redesign:', id);
+
+    // Get current state
+    const existing = await db
+      .select()
+      .from(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Redesign not found' });
+    }
+
+    if (existing[0].userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Toggle pin status
+    const updated = await db
+      .update(landscapeRedesigns)
+      .set({
+        isPinned: !existing[0].isPinned,
+        updatedAt: new Date(),
+      })
+      .where(eq(landscapeRedesigns.id, id))
+      .returning();
+
+    console.log('✅ Pin status updated');
+
+    res.json({ redesign: updated[0] });
+  } catch (error) {
+    console.error('❌ Error toggling pin:', error);
+    res.status(500).json({ error: 'Failed to toggle pin' });
+  }
+});
+
+// ============================================
+// USER API ROUTES
+// ============================================
+
+// POST /api/users/ensure - Create or update user
+app.post('/api/users/ensure', async (req, res) => {
+  try {
+    const { userId, email, name } = req.body;
+
+    if (!userId || !email) {
+      return res.status(400).json({ error: 'User ID and email required' });
+    }
+
+    console.log('👤 Ensuring user exists:', userId);
+
+    const existing = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(user).values({
+        id: userId,
+        email,
+        name: name || 'User',
+        emailVerified: true,
+      });
+      console.log('✅ New user created');
+    } else {
+      await db
+        .update(user)
+        .set({ name, email, updatedAt: new Date() })
+        .where(eq(user.id, userId));
+      console.log('✅ User updated');
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error ensuring user:', error);
+    res.status(500).json({ error: 'Failed to ensure user' });
+  }
+});
+
+// GET /api/users/redesign-limit - Check redesign usage limit
+app.get('/api/users/redesign-limit', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    console.log('🔍 Checking redesign limit for user:', userId);
+
+    // Count redesigns for this user
+    const redesigns = await db
+      .select()
+      .from(landscapeRedesigns)
+      .where(eq(landscapeRedesigns.userId, userId));
+
+    const used = redesigns.length;
+    const limit = 3; // Free tier limit
+    const remaining = Math.max(0, limit - used);
+
+    console.log('✅ Limit check:', { used, remaining });
+
+    res.json({
+      canRedesign: remaining > 0,
+      remaining,
+      used,
+      limit,
+    });
+  } catch (error) {
+    console.error('❌ Error checking limit:', error);
+    res.status(500).json({ error: 'Failed to check limit' });
   }
 });
 
