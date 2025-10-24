@@ -2,6 +2,7 @@ import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'rea
 import type { Page } from '../stores/appStore';
 import { useAppStore } from '../stores/appStore';
 import { polarService } from '../services/polarService';
+import { useToastStore } from '../stores/toastStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PricingPageProps {
@@ -76,6 +77,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const popularCardRef = useRef<HTMLDivElement>(null);
   const { user } = useAppStore();
+  const { addToast } = useToastStore();
 
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
 
@@ -102,8 +104,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
     try {
       const planKey = plan.toLowerCase() as 'personal' | 'creator' | 'business';
-      const priceIdKey = `VITE_POLAR_PRICE_${planKey.toUpperCase()}_${billingCycle.toUpperCase()}`;
-      const priceId = (import.meta as any).env[priceIdKey];
+      const priceIdKey = `VITE_POLAR_PRICE_${planKey.toUpperCase()}_${billingCycle.toUpperCase()}` as const;
+      const priceId = import.meta.env[priceIdKey];
 
       if (!priceId) {
         console.error(`Price ID not found for ${priceIdKey}`);
@@ -114,7 +116,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       window.location.href = checkoutSession.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      // TODO: Show error toast
+      addToast('Failed to start subscription process. Please try again.', 'error');
     }
   };
 

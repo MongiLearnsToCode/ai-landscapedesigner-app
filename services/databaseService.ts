@@ -103,19 +103,8 @@ export const syncUserSubscription = async (userId: string, email: string): Promi
   }
 };
 
-// Map Polar price ID to plan name (helper function)
-function mapPolarPriceToPlan(priceId: string): string {
-  const priceMap: Record<string, string> = {
-    [process.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY || '']: 'Personal',
-    [process.env.VITE_POLAR_PRICE_CREATOR_MONTHLY || '']: 'Creator',
-    [process.env.VITE_POLAR_PRICE_BUSINESS_MONTHLY || '']: 'Business',
-    [process.env.VITE_POLAR_PRICE_PERSONAL_ANNUAL || '']: 'Personal',
-    [process.env.VITE_POLAR_PRICE_CREATOR_ANNUAL || '']: 'Creator',
-    [process.env.VITE_POLAR_PRICE_BUSINESS_ANNUAL || '']: 'Business',
-  };
-
-  return priceMap[priceId] || 'Free';
-}
+// Import shared pricing utility
+import { mapPolarPriceToPlan } from '../src/utils/polarPricing.js';
 
 export const checkRedesignLimit = async (userId: string): Promise<{ canRedesign: boolean; remaining: number }> => {
   if (!userId) {
