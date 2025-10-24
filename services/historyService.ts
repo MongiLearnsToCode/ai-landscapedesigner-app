@@ -1,5 +1,7 @@
 import type { HydratedHistoryItem, ImageFile, DesignCatalog, LandscapingStyle } from '../types';
 
+const API_BASE = '/api/history';
+
 // We'll get the user ID from the auth context in the components
 // When a user signs in, setCurrentUserId is called, and the HistoryContext
 // automatically fetches the user's history from the Neon database
@@ -37,8 +39,15 @@ export const checkRedesignLimit = async () => {
         return { canRedesign: false, remaining: 0 };
     }
     try {
-        const { checkRedesignLimit: checkLimit } = await import('./databaseService');
-        const result = await checkLimit(currentUserId);
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'checkRedesignLimit', userId: currentUserId }),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to check limit: ${response.status}`);
+        }
+        const result = await response.json();
         console.log('✅ Limit check result:', result);
         return result;
     } catch (error) {
@@ -58,23 +67,15 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
 
     try {
         console.log('📥 Fetching redesigns from database for user:', currentUserId);
-        const { getRedesigns } = await import('./databaseService');
-        const redesigns = await getRedesigns(currentUserId);
-        console.log('✅ Database returned', redesigns.length, 'redesigns');
-        
-        // Sanitize responses to minimize data exposure
-        const result = redesigns.map(redesign => ({
-            id: redesign.id,
-            designCatalog: redesign.designCatalog,
-            styles: redesign.styles,
-            climateZone: redesign.climateZone || '',
-            timestamp: redesign.createdAt.getTime(),
-            isPinned: redesign.isPinned,
-            // Remove unnecessary nested objects and empty fields
-            originalImageUrl: redesign.originalImageUrl,
-            redesignedImageUrl: redesign.redesignedImageUrl
-        }));
-        
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getHistory', userId: currentUserId }),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch history: ${response.status}`);
+        }
+        const result = await response.json();
         console.log('✅ Returning', result.length, 'processed history items');
         return result;
     } catch (error) {
@@ -95,28 +96,24 @@ export const saveHistoryItemMetadata = async (
     }
 
     try {
-        const { saveRedesign } = await import('./databaseService');
-        const result = await saveRedesign({
-            originalImage,
-            redesignedImage,
-            catalog,
-            styles,
-            climateZone,
-            userId: currentUserId
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'saveHistoryItem',
+                userId: currentUserId,
+                originalImage,
+                redesignedImage,
+                catalog,
+                styles,
+                climateZone
+            }),
         });
-
-        // Sanitize response to minimize data exposure
-        return {
-            id: result.id,
-            designCatalog: result.designCatalog,
-            styles: result.styles,
-            climateZone: result.climateZone || '',
-            timestamp: result.createdAt.getTime(),
-            isPinned: result.isPinned,
-            // Only include essential URLs, remove full image objects
-            originalImageUrl: result.originalImageUrl,
-            redesignedImageUrl: result.redesignedImageUrl
-        };
+        if (!response.ok) {
+            throw new Error(`Failed to save history item: ${response.status}`);
+        }
+        const result = await response.json();
+        return result;
     } catch (error) {
         console.error("Failed to save redesign", error);
         throw error;
@@ -125,8 +122,14 @@ export const saveHistoryItemMetadata = async (
 
 export const deleteHistoryItem = async (id: string): Promise<void> => {
     try {
-        const { deleteRedesign } = await import('./databaseService');
-        await deleteRedesign(id);
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'deleteHistoryItem', userId: currentUserId, id }),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to delete history item: ${response.status}`);
+        }
     } catch (error) {
         console.error("Failed to delete history item", error);
         throw error;
@@ -135,9 +138,16 @@ export const deleteHistoryItem = async (id: string): Promise<void> => {
 
 export const togglePin = async (id: string): Promise<HydratedHistoryItem[]> => {
     try {
-        const { togglePin: toggle } = await import('./databaseService');
-        await toggle(id);
-        return await getHistory();
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'togglePin', userId: currentUserId, id }),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to toggle pin: ${response.status}`);
+        }
+        const result = await response.json();
+        return result;
     } catch (error) {
         console.error("Failed to toggle pin status", error);
         throw error;
