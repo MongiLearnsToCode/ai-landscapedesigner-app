@@ -42,10 +42,10 @@ export const polarService = {
   getClient: () => polar,
 
   // Create a checkout session for subscription
-  createCheckoutSession: async (priceId: string, userEmail: string, successUrl?: string, cancelUrl?: string): Promise<CheckoutSession> => {
+  createCheckoutSession: async (productId: string, userEmail: string, successUrl?: string): Promise<CheckoutSession> => {
     try {
       const session = await polar.checkouts.create({
-        products: [priceId],
+        products: [productId],
         successUrl: successUrl || process.env['POLAR_SUCCESS_URL'],
         customerEmail: userEmail,
       });
@@ -85,15 +85,50 @@ export const polarService = {
   // List subscriptions for a customer
   listCustomerSubscriptions: async (customerId: string): Promise<Subscription[]> => {
     try {
-      // For now, return empty array until we can clarify the correct API usage
-      // The sync functionality will work with webhooks instead
-      console.log(`Listing subscriptions for customer ${customerId} - implementation pending API clarification`);
-      return [];
+      const result = await polar.subscriptions.list({ customerId });
+      const subscriptions: Subscription[] = [];
+
+      // Try to iterate over the result
+      try {
+        for await (const page of result) {
+          if (page && Array.isArray(page)) {
+            for (const sub of page) {
+              subscriptions.push({
+                id: sub.id,
+                status: sub.status,
+                currentPeriodStart: sub.currentPeriodStart.toISOString(),
+                currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
+                cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+                productId: sub.productId,
+                priceId: sub.prices?.[0]?.id || '',
+              });
+            }
+          }
+        }
+      } catch (iterError) {
+        // If iteration fails, try accessing as direct array
+        console.warn('Iterator approach failed, trying direct access:', iterError.message);
+        if (Array.isArray(result)) {
+          for (const sub of result) {
+            subscriptions.push({
+              id: sub.id,
+              status: sub.status,
+              currentPeriodStart: sub.currentPeriodStart.toISOString(),
+              currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
+              cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+              productId: sub.productId,
+              priceId: sub.prices?.[0]?.id || '',
+            });
+          }
+        }
+      }
+
+      return subscriptions;
     } catch (error) {
       console.error('Error listing customer subscriptions:', error);
       throw error;
     }
-   },
+  },
 
   // Reactivate subscription
   reactivateSubscription: async (subscriptionId: string): Promise<void> => {
