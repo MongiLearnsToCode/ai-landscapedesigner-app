@@ -63,11 +63,11 @@ export const polarService = {
   getClient: () => polar,
 
   // Create a checkout session for subscription
-  createCheckoutSession: async (priceId: string, userEmail: string, successUrl?: string): Promise<CheckoutSession> => {
+  createCheckoutSession: async (productId: string, userEmail: string, successUrl?: string): Promise<CheckoutSession> => {
     try {
-      // Assuming priceId contains both product and price info, or priceId is product ID
+      // Assuming productId is the product ID
       const session = await polar.checkouts.create({
-        products: [priceId],
+        products: [productId],
         successUrl: successUrl || process.env['POLAR_SUCCESS_URL'],
         customerEmail: userEmail,
       });

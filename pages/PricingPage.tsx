@@ -108,16 +108,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
     try {
       const planKey = plan.toLowerCase() as 'personal' | 'creator' | 'business';
-      const priceIdKey = `VITE_POLAR_PRICE_${planKey.toUpperCase()}_${billingCycle.toUpperCase()}` as const;
-      const priceId = import.meta.env[priceIdKey];
+      const productIdKey = `VITE_POLAR_PRODUCT_${planKey.toUpperCase()}` as const;
+      const productId = import.meta.env[productIdKey];
 
-      if (!priceId) {
-        console.error(`Price ID not found for ${priceIdKey}`);
+      if (!productId) {
+        console.error(`Product ID not found for ${productIdKey}`);
         addToast('Configuration error. Please contact support.', 'error');
         return;
       }
 
-      const checkoutSession = await polarService.createCheckoutSession(priceId, user.email);
+      const checkoutSession = await polarService.createCheckoutSession(productId, user.email);
       window.location.href = checkoutSession.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
