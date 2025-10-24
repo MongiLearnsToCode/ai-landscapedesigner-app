@@ -19,10 +19,12 @@ import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAppStore, type Page } from './stores/appStore';
 import { useHistoryStore } from './stores/historyStore';
+import { useToastStore } from './stores/toastStore';
 import { setCurrentUserId, setOnUserIdChangeCallback } from './services/historyService';
 const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
+  const { addToast } = useToastStore();
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -56,17 +58,28 @@ const AuthInitializer: React.FC = () => {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
       
-      fetch('/api/ensureUser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: clerkUser.id,
-          email,
-          name,
-        }),
-      });
+      const ensureUser = async () => {
+        try {
+          const response = await fetch('/api/ensureUser', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: clerkUser.id,
+              email,
+              name,
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to ensure user: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('Error ensuring user:', error);
+          addToast('Failed to sync user data. Please try refreshing the page.', 'error');
+        }
+      };
+      ensureUser();
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {

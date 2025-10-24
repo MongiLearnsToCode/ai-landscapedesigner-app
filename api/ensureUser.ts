@@ -34,10 +34,10 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
 
     // Sync subscription status with Polar
     // await syncUserSubscription(userId, email); // This is commented out for now to avoid complexity
-  } catch (error) {
-    console.error('Error ensuring user exists:', error);
-    // We don't rethrow the error to avoid blocking the user's login/signup flow
-  }
+   } catch (error) {
+     console.error('Error ensuring user exists:', error);
+     throw error;
+   }
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
