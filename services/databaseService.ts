@@ -28,40 +28,7 @@ export interface RedesignRecord {
   updatedAt: Date;
 }
 
-export const ensureUserExists = async (userId: string, email: string, name: string): Promise<void> => {
-  try {
-    // Check if user already exists
-    const existingUser = await db.select().from(user).where(eq(user.id, userId)).limit(1);
 
-    if (existingUser.length === 0) {
-      // Create new user
-      await db.insert(user).values({
-        id: userId,
-        name: name || 'User',
-        email: email,
-        emailVerified: true, // Clerk handles verification
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      console.log('✅ Created new user in database:', userId);
-    } else {
-      // Update existing user with latest info from Clerk
-      await db.update(user)
-        .set({
-          name: name || 'User',
-          email: email,
-          updatedAt: new Date()
-        })
-        .where(eq(user.id, userId));
-      console.log('✅ Updated existing user in database:', userId);
-    }
-
-    // Sync subscription status with Polar
-    await syncUserSubscription(userId, email);
-  } catch (error) {
-    console.error('Error ensuring user exists:', error);
-  }
-};
 
 // Sync user subscription status with Polar
 export const syncUserSubscription = async (userId: string, email: string): Promise<void> => {
