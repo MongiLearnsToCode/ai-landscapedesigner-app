@@ -36,10 +36,16 @@ export const checkRedesignLimit = async () => {
         console.log('❌ No current user ID, returning 0 remaining');
         return { canRedesign: false, remaining: 0 };
     }
-    const { checkRedesignLimit: checkLimit } = await import('./databaseService');
-    const result = await checkLimit(currentUserId);
-    console.log('✅ Limit check result:', result);
-    return result;
+    try {
+        const { checkRedesignLimit: checkLimit } = await import('./databaseService');
+        const result = await checkLimit(currentUserId);
+        console.log('✅ Limit check result:', result);
+        return result;
+    } catch (error) {
+        console.error(`❌ Failed to check redesign limit for user ${currentUserId}:`, error);
+        // Return safe default on failure
+        return { canRedesign: false, remaining: 0 };
+    }
 };
 
 export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
