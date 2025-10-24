@@ -20,6 +20,27 @@ const polar = new Polar({
 
 console.log(`Polar service initialized with server: ${server}`);
 
+// Helper function to select the active price from a subscription
+function selectActivePrice(prices: any[]): string {
+  if (!prices || prices.length === 0) return '';
+
+  // Filter out archived prices
+  const activePrices = prices.filter(price => !price.is_archived);
+
+  if (activePrices.length === 0) return '';
+
+  // If multiple active prices, prefer monthly billing cycle
+  if (activePrices.length > 1) {
+    const monthlyPrice = activePrices.find(price =>
+      price.recurring_interval === 'month' && price.currency === 'usd'
+    );
+    if (monthlyPrice) return monthlyPrice.id;
+  }
+
+  // Return the first active price
+  return activePrices[0].id;
+}
+
 export interface CheckoutSession {
   id: string
   url: string
@@ -74,7 +95,7 @@ export const polarService = {
         currentPeriodEnd: subscription.currentPeriodEnd.toISOString(),
         cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
         productId: subscription.productId,
-        priceId: subscription.prices?.[0]?.id || '',
+        priceId: selectActivePrice(subscription.prices),
       };
     } catch (error) {
       console.error('Error getting Polar subscription:', error);
@@ -93,15 +114,15 @@ export const polarService = {
         for await (const page of result) {
           if (page && Array.isArray(page)) {
             for (const sub of page) {
-              subscriptions.push({
-                id: sub.id,
-                status: sub.status,
-                currentPeriodStart: sub.currentPeriodStart.toISOString(),
-                currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
-                cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-                productId: sub.productId,
-                priceId: sub.prices?.[0]?.id || '',
-              });
+            subscriptions.push({
+              id: sub.id,
+              status: sub.status,
+              currentPeriodStart: sub.currentPeriodStart.toISOString(),
+              currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
+              cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+              productId: sub.productId,
+              priceId: selectActivePrice(sub.prices),
+            });
             }
           }
         }
@@ -117,7 +138,7 @@ export const polarService = {
               currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
               cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
               productId: sub.productId,
-              priceId: sub.prices?.[0]?.id || '',
+              priceId: selectActivePrice(sub.prices),
             });
           }
         }
@@ -133,15 +154,29 @@ export const polarService = {
   // Reactivate subscription
   reactivateSubscription: async (subscriptionId: string): Promise<void> => {
     try {
-      await polar.subscriptions.update({
-        id: subscriptionId,
-        subscriptionUpdate: { cancelAtPeriodEnd: false }
-      });
+      // First, get the current subscription status
+      const subscription = await polar.subscriptions.get({ id: subscriptionId });
+
+      if (subscription.status === 'canceled') {
+        // For already canceled subscriptions, we need to create a new subscription
+        // This typically requires the original product/price information
+        // For now, we'll throw an error indicating this needs manual handling
+        throw new Error('Cannot reactivate a fully canceled subscription. Please create a new subscription.');
+      } else if (subscription.cancelAtPeriodEnd) {
+        // If scheduled for cancellation, prevent the cancellation
+        await polar.subscriptions.update({
+          id: subscriptionId,
+          subscriptionUpdate: { cancelAtPeriodEnd: false }
+        });
+      } else {
+        // Subscription is already active
+        console.log(`Subscription ${subscriptionId} is already active`);
+      }
     } catch (error) {
       console.error('Error reactivating subscription:', error);
       throw error;
     }
-   },
+  },
  }
 
  export default polarService
