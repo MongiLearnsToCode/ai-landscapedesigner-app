@@ -38,7 +38,9 @@ export const checkRedesignLimit = async () => {
         return { canRedesign: false, remaining: 0 };
     }
     try {
-        const response = await fetch(`/api/users/redesign-limit?userId=${currentUserId}`);
+        const response = await fetch('/api/users/redesign-limit', {
+            credentials: 'include',
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -67,7 +69,9 @@ export const getHistory = async (): Promise<HydratedHistoryItem[]> => {
 
     try {
         console.log('📥 Fetching redesigns from API for user:', currentUserId);
-        const response = await fetch(`/api/history?userId=${currentUserId}`);
+        const response = await fetch('/api/history', {
+            credentials: 'include',
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -110,8 +114,11 @@ export const saveHistoryItemMetadata = async (
     try {
         // Step 1: Upload images to Cloudinary
         console.log('📤 Uploading images to Cloudinary...');
-        const originalUrl = await uploadImageToCloudinary(originalImage);
-        const redesignedUrl = await uploadImageToCloudinary({ base64: redesignedImage.base64, type: redesignedImage.type, name: 'redesigned' });
+        const originalResult = await uploadImageToCloudinary(originalImage);
+        const redesignedResult = await uploadImageToCloudinary({ base64: redesignedImage.base64, type: redesignedImage.type, name: 'redesigned' });
+
+        const originalUrl = originalResult.secure_url || originalResult.url;
+        const redesignedUrl = redesignedResult.secure_url || redesignedResult.url;
 
         console.log('✅ Images uploaded successfully');
 
@@ -119,9 +126,9 @@ export const saveHistoryItemMetadata = async (
         console.log('💾 Saving to database via API...');
         const response = await fetch('/api/history', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: currentUserId,
                 originalImageUrl: originalUrl,
                 redesignedImageUrl: redesignedUrl,
                 catalog,
@@ -152,8 +159,9 @@ export const deleteHistoryItem = async (id: string): Promise<void> => {
     console.log('🗑️ Deleting history item:', id);
 
     try {
-        const response = await fetch(`/api/history/${id}?userId=${currentUserId}`, {
+        const response = await fetch(`/api/history/${id}`, {
             method: 'DELETE',
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -175,8 +183,9 @@ export const togglePin = async (id: string): Promise<HydratedHistoryItem[]> => {
     console.log('📌 Toggling pin for item:', id);
 
     try {
-        const response = await fetch(`/api/history/${id}/pin?userId=${currentUserId}`, {
+        const response = await fetch(`/api/history/${id}/pin`, {
             method: 'PATCH',
+            credentials: 'include',
         });
 
         if (!response.ok) {

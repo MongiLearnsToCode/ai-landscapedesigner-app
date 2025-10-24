@@ -6,8 +6,9 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
   try {
     const response = await fetch('/api/users/ensure', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, email, name }),
+      body: JSON.stringify({ email, name }),
     });
 
     if (!response.ok) {
