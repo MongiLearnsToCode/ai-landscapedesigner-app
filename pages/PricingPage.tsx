@@ -117,8 +117,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         return;
       }
 
-      const { polarService } = await import('../services/polarService');
-      const checkoutSession = await polarService.createCheckoutSession(productId, user.email);
+      const response = await fetch('/api/polar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'createCheckoutSession',
+          productId,
+          userEmail: user.email,
+          successUrl: process.env.VITE_APP_URL + '/subscription/success',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create checkout session: ${response.status}`);
+      }
+
+      const checkoutSession = await response.json();
       window.location.href = checkoutSession.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);

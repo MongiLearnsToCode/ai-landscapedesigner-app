@@ -6,6 +6,11 @@ let polar: Polar | null = null;
 
 function getPolar(): Polar {
   if (!polar) {
+    // Guard: ensure this is running on server-side
+    if (typeof window !== 'undefined') {
+      throw new Error('Polar service can only be used server-side');
+    }
+
     const accessToken = process.env['POLAR_ACCESS_TOKEN'];
     const server = process.env['POLAR_SERVER'] || 'sandbox';
 
