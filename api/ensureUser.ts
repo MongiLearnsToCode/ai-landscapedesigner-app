@@ -41,6 +41,7 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('DB URL exists:', !!process.env.DATABASE_URL);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
