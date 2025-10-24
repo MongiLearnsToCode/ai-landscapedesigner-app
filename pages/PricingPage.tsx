@@ -1,7 +1,7 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
 import type { Page } from '../stores/appStore';
 import { useAppStore } from '../stores/appStore';
-import { polarService } from '../services/polarService';
+
 import { useToastStore } from '../stores/toastStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -117,6 +117,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         return;
       }
 
+      const { polarService } = await import('../services/polarService');
       const checkoutSession = await polarService.createCheckoutSession(productId, user.email);
       window.location.href = checkoutSession.url;
     } catch (error) {

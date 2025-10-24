@@ -1,24 +1,31 @@
 // Polar.sh service for subscription management
 import { Polar } from '@polar-sh/sdk'
 
-// Environment validation
-const accessToken = process.env['POLAR_ACCESS_TOKEN'];
-const server = process.env['POLAR_SERVER'] || 'sandbox';
+// Lazy initialization
+let polar: Polar | null = null;
 
-if (!accessToken) {
-  throw new Error('POLAR_ACCESS_TOKEN environment variable is required');
+function getPolar(): Polar {
+  if (!polar) {
+    const accessToken = process.env['POLAR_ACCESS_TOKEN'];
+    const server = process.env['POLAR_SERVER'] || 'sandbox';
+
+    if (!accessToken) {
+      throw new Error('POLAR_ACCESS_TOKEN environment variable is required');
+    }
+
+    if (!['sandbox', 'production'].includes(server)) {
+      throw new Error('POLAR_SERVER must be either "sandbox" or "production"');
+    }
+
+    polar = new Polar({
+      server: server as 'sandbox' | 'production',
+      accessToken,
+    });
+
+    console.log(`Polar service initialized with server: ${server}`);
+  }
+  return polar;
 }
-
-if (!['sandbox', 'production'].includes(server)) {
-  throw new Error('POLAR_SERVER must be either "sandbox" or "production"');
-}
-
-const polar = new Polar({
-  server: server as 'sandbox' | 'production',
-  accessToken,
-})
-
-console.log(`Polar service initialized with server: ${server}`);
 
 // Helper function to select the active price from a subscription
 function selectActivePrice(prices: any[]): string {
@@ -60,13 +67,13 @@ export interface Subscription {
 
 export const polarService = {
   // Get Polar client instance
-  getClient: () => polar,
+  getClient: () => getPolar(),
 
   // Create a checkout session for subscription
   createCheckoutSession: async (productId: string, userEmail: string, successUrl?: string): Promise<CheckoutSession> => {
     try {
       // Assuming productId is the product ID
-      const session = await polar.checkouts.create({
+      const session = await getPolar().checkouts.create({
         products: [productId],
         successUrl: successUrl || process.env['POLAR_SUCCESS_URL'],
         customerEmail: userEmail,
@@ -87,7 +94,7 @@ export const polarService = {
   // Get subscription details
   getSubscription: async (subscriptionId: string): Promise<Subscription> => {
     try {
-      const subscription = await polar.subscriptions.get({ id: subscriptionId });
+      const subscription = await getPolar().subscriptions.get({ id: subscriptionId });
 
       return {
         id: subscription.id,
@@ -107,7 +114,7 @@ export const polarService = {
   // List subscriptions for a customer
   listCustomerSubscriptions: async (customerId: string): Promise<Subscription[]> => {
     try {
-      const result = await polar.subscriptions.list({ customerId });
+      const result = await getPolar().subscriptions.list({ customerId });
       const subscriptions: Subscription[] = [];
 
       // Try to iterate over the result
@@ -156,7 +163,7 @@ export const polarService = {
   reactivateSubscription: async (subscriptionId: string): Promise<void> => {
     try {
       // First, get the current subscription status
-      const subscription = await polar.subscriptions.get({ id: subscriptionId });
+      const subscription = await getPolar().subscriptions.get({ id: subscriptionId });
 
       if (subscription.status === 'canceled') {
         // For already canceled subscriptions, we need to create a new subscription
@@ -165,7 +172,7 @@ export const polarService = {
         throw new Error('Cannot reactivate a fully canceled subscription. Please create a new subscription.');
       } else if (subscription.cancelAtPeriodEnd) {
         // If scheduled for cancellation, prevent the cancellation
-        await polar.subscriptions.update({
+        await getPolar().subscriptions.update({
           id: subscriptionId,
           subscriptionUpdate: { cancelAtPeriodEnd: false }
         });
