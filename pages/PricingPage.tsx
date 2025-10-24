@@ -23,9 +23,10 @@ interface PlanCardProps {
   isPopular?: boolean;
   ribbonText?: string;
   onSubscribe?: () => void;
+  isLoading?: boolean;
 }
 
-const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onSubscribe }, ref) => {
+const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onSubscribe, isLoading }, ref) => {
   const cardClasses = isPopular
     ? 'border-orange-500 border-2 transform md:scale-105 shadow-lg'
     : 'border-slate-200/80 border';
@@ -80,6 +81,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const { addToast } = useToastStore();
 
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -102,6 +104,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       return;
     }
 
+    setLoadingPlan(plan);
+
     try {
       const planKey = plan.toLowerCase() as 'personal' | 'creator' | 'business';
       const priceIdKey = `VITE_POLAR_PRICE_${planKey.toUpperCase()}_${billingCycle.toUpperCase()}` as const;
@@ -109,6 +113,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
       if (!priceId) {
         console.error(`Price ID not found for ${priceIdKey}`);
+        addToast('Configuration error. Please contact support.', 'error');
         return;
       }
 
@@ -117,6 +122,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     } catch (error) {
       console.error('Error creating checkout session:', error);
       addToast('Failed to start subscription process. Please try again.', 'error');
+    } finally {
+      setLoadingPlan(null);
     }
   };
 
