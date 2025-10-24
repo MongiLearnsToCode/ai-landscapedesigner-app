@@ -7,6 +7,14 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  // Subscription fields
+  subscriptionId: text("subscription_id"),
+  subscriptionPlan: text("subscription_plan").default("Free"),
+  subscriptionStatus: text("subscription_status").default("active"),
+  subscriptionCurrentPeriodStart: timestamp("subscription_current_period_start"),
+  subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end"),
+  subscriptionCancelAtPeriodEnd: boolean("subscription_cancel_at_period_end").default(false),
+  polarCustomerId: text("polar_customer_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

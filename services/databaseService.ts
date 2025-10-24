@@ -32,7 +32,7 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
   try {
     // Check if user already exists
     const existingUser = await db.select().from(user).where(eq(user.id, userId)).limit(1);
-    
+
     if (existingUser.length === 0) {
       // Create new user
       await db.insert(user).values({
@@ -55,10 +55,67 @@ export const ensureUserExists = async (userId: string, email: string, name: stri
         .where(eq(user.id, userId));
       console.log('✅ Updated existing user in database:', userId);
     }
+
+    // Sync subscription status with Polar
+    await syncUserSubscription(userId, email);
   } catch (error) {
     console.error('Error ensuring user exists:', error);
   }
 };
+
+// Sync user subscription status with Polar
+export const syncUserSubscription = async (userId: string, email: string): Promise<void> => {
+  try {
+    const { polarService } = await import('./polarService');
+
+    // Get user from database
+    const [existingUser] = await db.select().from(user).where(eq(user.id, userId)).limit(1);
+    if (!existingUser) return;
+
+    // If user has a Polar customer ID, fetch their subscriptions
+    if (existingUser.polarCustomerId) {
+      const subscriptions = await polarService.listCustomerSubscriptions(existingUser.polarCustomerId);
+
+      // Find the active subscription (assuming one active per customer)
+      const activeSubscription = subscriptions.find(sub =>
+        ['active', 'trialing'].includes(sub.status)
+      );
+
+      if (activeSubscription) {
+        await db.update(user)
+          .set({
+            subscriptionId: activeSubscription.id,
+            subscriptionPlan: mapPolarPriceToPlan(activeSubscription.priceId),
+            subscriptionStatus: activeSubscription.status,
+            subscriptionCurrentPeriodStart: new Date(activeSubscription.currentPeriodStart),
+            subscriptionCurrentPeriodEnd: new Date(activeSubscription.currentPeriodEnd),
+            subscriptionCancelAtPeriodEnd: activeSubscription.cancelAtPeriodEnd,
+            updatedAt: new Date()
+          })
+          .where(eq(user.id, userId));
+
+        console.log('✅ Synced subscription for user:', userId);
+      }
+    }
+  } catch (error) {
+    console.error('Error syncing user subscription:', error);
+    // Don't fail the login if subscription sync fails
+  }
+};
+
+// Map Polar price ID to plan name (helper function)
+function mapPolarPriceToPlan(priceId: string): string {
+  const priceMap: Record<string, string> = {
+    [process.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY || '']: 'Personal',
+    [process.env.VITE_POLAR_PRICE_CREATOR_MONTHLY || '']: 'Creator',
+    [process.env.VITE_POLAR_PRICE_BUSINESS_MONTHLY || '']: 'Business',
+    [process.env.VITE_POLAR_PRICE_PERSONAL_ANNUAL || '']: 'Personal',
+    [process.env.VITE_POLAR_PRICE_CREATOR_ANNUAL || '']: 'Creator',
+    [process.env.VITE_POLAR_PRICE_BUSINESS_ANNUAL || '']: 'Business',
+  };
+
+  return priceMap[priceId] || 'Free';
+}
 
 export const checkRedesignLimit = async (userId: string): Promise<{ canRedesign: boolean; remaining: number }> => {
   if (!userId) {

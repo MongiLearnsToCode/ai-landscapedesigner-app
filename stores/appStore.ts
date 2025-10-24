@@ -20,7 +20,7 @@ interface AppActions {
   onItemLoaded: () => void;
   login: (user: User) => void;
   logout: () => void;
-  upgradeSubscription: (plan: User['subscription']['plan']) => void;
+  upgradeSubscription: (subscription: Partial<User['subscription']>) => void;
   setAuthenticated: (isAuthenticated: boolean) => void;
   setUser: (user: User | null) => void;
 }
@@ -76,12 +76,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
     get().navigateTo('main');
   },
 
-  upgradeSubscription: (plan: User['subscription']['plan']) => {
+  upgradeSubscription: (subscriptionUpdate: Partial<User['subscription']>) => {
     // Update user subscription if user exists
     set((state) => ({
       user: state.user ? {
         ...state.user,
-        subscription: { ...state.user.subscription, plan }
+        subscription: { ...state.user.subscription, ...subscriptionUpdate }
       } : null
     }));
   },

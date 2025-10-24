@@ -81,8 +81,12 @@ export interface User {
   email: string;
   avatarUrl: string;
   subscription: {
+    id?: string; // Polar subscription ID
     plan: 'Personal' | 'Creator' | 'Business' | 'Free';
-    status: 'active' | 'canceled' | 'trialing';
-    nextBillingDate: string;
+    status: 'active' | 'canceled' | 'trialing' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid';
+    currentPeriodStart?: string;
+    currentPeriodEnd?: string;
+    cancelAtPeriodEnd?: boolean;
+    polarCustomerId?: string;
   };
 }

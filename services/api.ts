@@ -106,9 +106,15 @@ export interface User {
   name: string;
   email: string;
   avatarUrl?: string;
-  subscriptionPlan?: string;
-  subscriptionStatus?: string;
-  nextBillingDate?: string;
+  subscription: {
+    id?: string;
+    plan?: string;
+    status?: string;
+    currentPeriodStart?: string;
+    currentPeriodEnd?: string;
+    cancelAtPeriodEnd?: boolean;
+    polarCustomerId?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

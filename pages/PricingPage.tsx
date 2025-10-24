@@ -1,5 +1,7 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
 import type { Page } from '../stores/appStore';
+import { useAppStore } from '../stores/appStore';
+import { polarService } from '../services/polarService';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PricingPageProps {
@@ -19,9 +21,10 @@ interface PlanCardProps {
   cta: string;
   isPopular?: boolean;
   ribbonText?: string;
+  onSubscribe?: () => void;
 }
 
-const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText }, ref) => {
+const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onSubscribe }, ref) => {
   const cardClasses = isPopular
     ? 'border-orange-500 border-2 transform md:scale-105 shadow-lg'
     : 'border-slate-200/80 border';
@@ -60,9 +63,9 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         ))}
       </ul>
       
-      <a href="#" className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg ${buttonClasses}`}>
-        {cta}
-      </a>
+       <button onClick={onSubscribe} className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg ${buttonClasses}`}>
+         {cta}
+       </button>
     </div>
   );
 });
@@ -72,6 +75,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const containerRef = useRef<HTMLDivElement>(null);
   const popularCardRef = useRef<HTMLDivElement>(null);
+  const { user } = useAppStore();
 
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
 
@@ -87,6 +91,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const smoothScrollBy = (amount: number) => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubscribe = async (plan: string) => {
+    if (!user) {
+      onNavigate('signin');
+      return;
+    }
+
+    try {
+      const planKey = plan.toLowerCase() as 'personal' | 'creator' | 'business';
+      const priceIdKey = `VITE_POLAR_PRICE_${planKey.toUpperCase()}_${billingCycle.toUpperCase()}`;
+      const priceId = (import.meta as any).env[priceIdKey];
+
+      if (!priceId) {
+        console.error(`Price ID not found for ${priceIdKey}`);
+        return;
+      }
+
+      const checkoutSession = await polarService.createCheckoutSession(priceId, user.email);
+      window.location.href = checkoutSession.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      // TODO: Show error toast
     }
   };
 
@@ -208,7 +236,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <ScrollIndicator direction="left" visible={scrollState.canScrollLeft} />
           <ScrollIndicator direction="right" visible={scrollState.canScrollRight} />
           <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
-            <PlanCard 
+            <PlanCard
                 plan="Personal"
                 price={billingCycle === 'monthly' ? "$12" : "$120"}
                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
@@ -217,8 +245,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                 description="For casual users or hobbyists."
                 features={["50 redesigns per month", ...commonFeatures]}
                 cta="Get Personal"
+                onSubscribe={() => handleSubscribe('Personal')}
             />
-            <PlanCard 
+            <PlanCard
                 ref={popularCardRef}
                 plan="Creator"
                 price={billingCycle === 'monthly' ? "$29" : "$240"}
@@ -230,8 +259,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                 cta="Choose Creator"
                 isPopular={true}
                 ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
+                onSubscribe={() => handleSubscribe('Creator')}
             />
-            <PlanCard 
+            <PlanCard
                 plan="Business"
                 price={billingCycle === 'monthly' ? "$60" : "$480"}
                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
@@ -240,6 +270,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                 description="For teams, agencies & power users."
                 features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
                 cta="Go Business"
+                onSubscribe={() => handleSubscribe('Business')}
             />
           </div>
         </div>
