@@ -1,8 +1,11 @@
 import { convexAuth } from "@convex-dev/auth/server";
+import { clerk } from "@convex-dev/auth/providers/clerk";
 
 const customAuth = convexAuth({
   providers: [
-    // Clerk will be configured via JWT tokens
+    clerk({
+      issuer: process.env.CLERK_JWT_ISSUER_DOMAIN,
+    }),
   ],
 });
 
