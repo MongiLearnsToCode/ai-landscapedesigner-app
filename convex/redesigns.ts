@@ -6,7 +6,7 @@ export const getHistory = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    if (!identity) return []; // Return empty array if not authenticated
 
     return await ctx.db
       .query("redesigns")
@@ -65,7 +65,16 @@ export const checkLimit = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    if (!identity) {
+      // Return default limit if not authenticated
+      const limit = 3;
+      return {
+        used: 0,
+        limit,
+        remaining: limit,
+        hasReachedLimit: false,
+      };
+    }
 
     const all = await ctx.db
       .query("redesigns")
