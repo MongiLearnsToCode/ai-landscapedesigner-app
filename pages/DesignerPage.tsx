@@ -329,7 +329,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || !originalImage.base64 || isLoading || !checkLimitQuery || (!authenticated ? false : checkLimitQuery.hasReachedLimit)}
+              disabled={!originalImage || !originalImage.base64 || isLoading || (authenticated && checkLimitQuery?.hasReachedLimit)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
