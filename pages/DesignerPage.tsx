@@ -8,7 +8,6 @@ import { uploadImageToCloudinary } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
 import { useAppStore } from '../stores/appStore';
-import { useHistoryStore } from '../stores/historyStore';
 import { useToastStore } from '../stores/toastStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
@@ -89,15 +88,7 @@ export const DesignerPage: React.FC = () => {
       page: state.page,
     }))
   );
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore(
-    useShallow((state) => ({
-      saveNewRedesign: state.saveNewRedesign,
-      history: state.history,
-      viewFromHistory: state.viewFromHistory,
-      isLoading: state.isLoading,
-      refreshHistory: state.refreshHistory,
-    }))
-  );
+
   const { addToast } = useToastStore(
     useShallow((state) => ({ addToast: state.addToast }))
   );
@@ -134,24 +125,7 @@ export const DesignerPage: React.FC = () => {
 
 
 
-  // Ensure history is loaded when user is authenticated and on main page
-  useEffect(() => {
-    if (
-      page === 'main' &&
-      isAuthenticated &&
-      !historyLoading &&
-      history.length === 0 &&
-      !hasRequestedInitialHistory.current
-    ) {
-      hasRequestedInitialHistory.current = true;
-      // Small delay to ensure user ID is properly set
-      const timer = setTimeout(() => {
-        console.log('🔄 Triggering history refresh from DesignerPage');
-        refreshHistory();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [page, isAuthenticated, historyLoading, history.length, refreshHistory]);
+
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
@@ -309,7 +283,7 @@ export const DesignerPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast, isAuthenticated, navigateTo]);
+  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, addToast, isAuthenticated, navigateTo]);
 
 
 
@@ -398,9 +372,9 @@ export const DesignerPage: React.FC = () => {
           redesignedImage={redesignedImage}
           designCatalog={designCatalog}
           isLoading={isLoading}
-          historyItems={history}
-          onHistoryItemClick={viewFromHistory}
-          historyLoading={historyLoading}
+          historyItems={[]}
+          onHistoryItemClick={() => {}}
+          historyLoading={false}
         />
       </div>
     </div>

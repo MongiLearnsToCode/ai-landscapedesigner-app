@@ -18,9 +18,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAppStore, type Page } from './stores/appStore';
-import { useHistoryStore } from './stores/historyStore';
 import { useQuery, useMutation } from 'convex/react';
-import { setCurrentUserId, setOnUserIdChangeCallback } from './services/historyService';
 import { api } from './convex/_generated/api';
 
 const AuthInitializer: React.FC = () => {
@@ -32,7 +30,6 @@ const AuthInitializer: React.FC = () => {
     if (!isLoaded) return;
 
     if (isSignedIn && clerkUser) {
-      setCurrentUserId(clerkUser.id);
 
       const user = {
         id: clerkUser.id,
@@ -49,7 +46,6 @@ const AuthInitializer: React.FC = () => {
       setUser(user);
       setAuthenticated(true);
     } else {
-      setCurrentUserId(null);
       setUser(null);
       setAuthenticated(false);
     }
@@ -78,7 +74,6 @@ const AuthInitializer: React.FC = () => {
 const PageContent: React.FC = () => {
   const { user: clerkUser } = useUser();
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
-  const { history, pinItem, deleteItem, viewFromHistory, refreshHistory, setHistory } = useHistoryStore();
 
   // Convex hooks
   const convexHistory = useQuery(api.redesigns.getHistory, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
@@ -120,6 +115,30 @@ const PageContent: React.FC = () => {
     }
   };
 
+  const handleDeleteMultiple = async (ids: string[]) => {
+    try {
+      for (const id of ids) {
+        await deleteRedesignMutation({ redesignId: id });
+      }
+    } catch (error) {
+      console.error('Failed to delete multiple redesigns', error);
+    }
+  };
+
+  const viewFromHistory = (item: any) => {
+    const fullItem = {
+      ...item,
+      originalImage: {
+        name: 'Original Image',
+        type: 'image/jpeg',
+        base64: '',
+        url: item.originalImageUrl
+      },
+      redesignedImage: item.redesignedImageUrl
+    };
+    useAppStore.getState().loadItem(fullItem);
+  };
+
   // Hash change effect
   useEffect(() => {
     const handleHashChange = () => {
@@ -133,31 +152,9 @@ const PageContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // History refresh effects
-  useEffect(() => {
-    setOnUserIdChangeCallback(() => {
-      console.log('🔄 User ID changed, refreshing history');
-      refreshHistory();
-    });
 
-    return () => {
-      setOnUserIdChangeCallback(null);
-    };
-  }, [refreshHistory]);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      // Small delay to ensure user ID is properly set
-      const timer = setTimeout(() => {
-        console.log('🔄 Auto-refreshing history after authentication change');
-        refreshHistory();
-      }, 100);
-      return () => clearTimeout(timer);
-    } else if (!isAuthenticated) {
-      // Clear history when user logs out
-      setHistory([]);
-    }
-  }, [isAuthenticated, user, refreshHistory, setHistory]);
+
 
   useEffect(() => {
     const baseTitle = 'AI Landscape Designer';
@@ -178,7 +175,7 @@ const PageContent: React.FC = () => {
 
   const pages: { [key: string]: React.ReactNode } = {
     main: <DesignerPage />,
-    history: isAuthenticated ? <HistoryPage historyItems={processedHistory} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} /> : null,
+    history: isAuthenticated ? <HistoryPage historyItems={processedHistory} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={false} /> : null,
     pricing: <PricingPage onNavigate={navigateTo} />,
     contact: <ContactPage />,
     terms: <TermsPage />,
