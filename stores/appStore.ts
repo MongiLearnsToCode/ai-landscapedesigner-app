@@ -5,6 +5,7 @@ export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'priva
 
 interface AppState {
   page: Page;
+  navigate: ((path: string) => void) | null;
   isModalOpen: boolean;
   modalImage: string | null;
   itemToLoad: HydratedHistoryItem | null;
@@ -14,6 +15,7 @@ interface AppState {
 
 interface AppActions {
   navigateTo: (page: Page) => void;
+  setNavigate: (navigate: (path: string) => void) => void;
   openModal: (imageUrl: string) => void;
   closeModal: () => void;
   loadItem: (item: HydratedHistoryItem) => void;
@@ -28,14 +30,28 @@ interface AppActions {
 type AppStore = AppState & AppActions;
 
 const getInitialPage = (): Page => {
-  const hash = window.location.hash.slice(1) as Page;
-  const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fair-use-policy', 'success'];
-  return validPages.includes(hash) ? hash : 'main';
+  const path = window.location.pathname;
+  const pathToPage: Record<string, Page> = {
+    '/': 'main',
+    '/history': 'history',
+    '/pricing': 'pricing',
+    '/contact': 'contact',
+    '/terms': 'terms',
+    '/privacy': 'privacy',
+    '/signin': 'signin',
+    '/signup': 'signup',
+    '/profile': 'profile',
+    '/reset-password': 'reset-password',
+    '/fair-use-policy': 'fair-use-policy',
+    '/success': 'success',
+  };
+  return pathToPage[path] || 'main';
 };
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // Initial state
   page: getInitialPage(),
+  navigate: null,
   isModalOpen: false,
   modalImage: null,
   itemToLoad: null,
@@ -43,9 +59,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   user: null,
 
   // Actions
+  setNavigate: (navigate: (path: string) => void) => {
+    set({ navigate });
+  },
+
   navigateTo: (page: Page) => {
+    const path = page === 'main' ? '/' : `/${page}`;
     set({ page });
-    window.location.hash = page === 'main' ? '' : page;
+    get().navigate?.(path);
     window.scrollTo(0, 0);
   },
 

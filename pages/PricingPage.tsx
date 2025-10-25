@@ -261,7 +261,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <p className="text-xs text-slate-400">
             * 'Unlimited' is subject to a{' '}
              <button
-                onClick={() => onNavigate('fair-use-policy')}
+                onClick={() => onNavigate('/fair-use-policy')}
                 className="underline hover:text-slate-600"
               >
                 fair use policy

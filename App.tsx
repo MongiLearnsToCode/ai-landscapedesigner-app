@@ -19,6 +19,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAppStore, type Page } from './stores/appStore';
+import type { Page as PageType } from './stores/appStore';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from './convex/_generated/api';
 
@@ -191,6 +192,41 @@ const PageContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const pathToPage: Record<string, Page> = {
+    '/': 'main',
+    '/history': 'history',
+    '/pricing': 'pricing',
+    '/contact': 'contact',
+    '/terms': 'terms',
+    '/privacy': 'privacy',
+    '/signin': 'signin',
+    '/signup': 'signup',
+    '/profile': 'profile',
+    '/reset-password': 'reset-password',
+    '/fair-use-policy': 'fair-use-policy',
+    '/success': 'success',
+  };
+
+  useEffect(() => {
+    const page = pathToPage[location.pathname] || 'main';
+    useAppStore.setState({ page });
+  }, [location.pathname]);
+
+  const navigateTo = (page: string) => {
+    if (page.startsWith('/')) {
+      navigate(page);
+    } else {
+      const path = Object.keys(pathToPage).find(key => pathToPage[key] === page) || '/';
+      navigate(path);
+    }
+  };
+
+  useAppStore.setState({ navigateTo });
+  useAppStore.getState().setNavigate(navigate);
+
   return (
     <ErrorBoundary>
       <AuthInitializer />
