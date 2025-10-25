@@ -18,6 +18,7 @@ Add to your `.env.local` and Vercel environment:
 
 ```
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_actual_key_here
+CLERK_JWT_ISSUER_DOMAIN=https://your-domain.clerk.accounts.dev
 ```
 
 ### Get Your Clerk Keys
@@ -26,6 +27,13 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_actual_key_here
 2. Create a new application
 3. Copy the "Publishable Key" from the dashboard
 4. Replace `pk_test_your_key_here` in `.env.local`
+
+### Get Your Clerk JWT Issuer Domain
+
+1. In your Clerk dashboard, go to **JWT Templates**
+2. Create a new JWT template named "convex"
+3. Set the issuer to your Clerk application's domain (e.g., `https://your-app.clerk.accounts.dev`)
+4. Copy this issuer URL and set it as `CLERK_JWT_ISSUER_DOMAIN` in your backend environment variables
 
 ### Features Working
 
