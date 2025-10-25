@@ -188,7 +188,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         <span className={`px-4 py-2 font-medium transition ${billingCycle === 'monthly' ? 'text-slate-800' : 'text-slate-500'}`}>Monthly</span>
         <button
           onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
-          className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400"
+          className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 ${billingCycle === 'annual' ? 'bg-orange-500' : 'bg-slate-300'}`}
           aria-label={`Switch to ${billingCycle === 'monthly' ? 'annual' : 'monthly'} billing`}
         >
           <span
