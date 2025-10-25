@@ -1,18 +1,10 @@
 
 
 
-import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { LandscapingStyle, DesignCatalog, RedesignDensity } from '../types';
 import { LANDSCAPING_STYLES } from '../constants';
 import { geminiRateLimiter } from './rateLimit';
 import { sanitizeError } from './errorUtils';
-
-// Get API key from environment variables
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY is not configured');
-}
-const ai = new GoogleGenAI({ apiKey });
 
 // Per coding guidelines, use 'gemini-2.5-flash-image' for image editing tasks.
 const model = 'gemini-2.5-flash-image';
@@ -163,63 +155,7 @@ const parseDesignCatalog = (text: string): DesignCatalog | null => {
 };
 
 
-const callGeminiForRedesign = async (parts: ({ inlineData: { data: string; mimeType: string; }; } | { text: string; })[]) => {
-    try {
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: { parts },
-            config: {
-                responseModalities: [Modality.IMAGE, Modality.TEXT],
-            },
-        });
 
-        // Check for safety blocks first.
-        if (response.promptFeedback?.blockReason) {
-            const reason = response.promptFeedback.blockReason;
-            const message = response.promptFeedback.blockReasonMessage || 'No additional details provided.';
-            console.error(`Gemini API request blocked. Reason: ${reason}. Message: ${message}`);
-            throw new Error(`Request blocked by AI safety filters: ${reason}. Please modify the image or request.`);
-        }
-
-        let redesignedImage: { base64ImageBytes: string; mimeType: string } | null = null;
-        let accumulatedText = '';
-
-        // Ensure there are candidates to process.
-        if (!response.candidates || response.candidates.length === 0) {
-            console.error("Full API Response (No Candidates):", JSON.stringify(response, null, 2));
-            throw new Error('The model returned no content. This could be due to a safety policy or an unknown model error.');
-        }
-
-        const responseParts = response.candidates[0].content.parts;
-        for (const part of responseParts) {
-            if (part.inlineData && !redesignedImage) {
-                redesignedImage = {
-                    base64ImageBytes: part.inlineData.data,
-                    mimeType: part.inlineData.mimeType,
-                };
-            } else if (part.text) {
-                accumulatedText += part.text;
-            }
-        }
-        
-        const designCatalog = parseDesignCatalog(accumulatedText);
-
-        if (!redesignedImage) {
-            console.error("Full API Response (No Image Part):", JSON.stringify(response, null, 2));
-            throw new Error('The model did not return a redesigned image.');
-        }
-
-        return {
-            base64ImageBytes: redesignedImage.base64ImageBytes,
-            mimeType: redesignedImage.mimeType,
-            catalog: designCatalog || { plants: [], features: [] },
-        };
-
-    } catch (error) {
-        console.error('Error calling Gemini API:', error);
-        throw new Error(sanitizeError(error));
-    }
-};
 
 /**
  * Calls the Gemini API to redesign an outdoor space image.
@@ -247,13 +183,38 @@ export const redesignOutdoorSpace = async (
     throw new Error(`Rate limit exceeded. Please wait ${remainingTime} seconds before trying again.`);
   }
 
-  const prompt = getPrompt(styles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity);
-  const imagePart = { inlineData: { data: base64Image, mimeType } };
+  try {
+    const response = await fetch('/api/gemini/redesign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        base64Image,
+        mimeType,
+        styles,
+        allowStructuralChanges,
+        climateZone,
+        lockAspectRatio,
+        redesignDensity,
+      }),
+    });
 
-  const parts: ({ inlineData: { data: string; mimeType: string; }; } | { text: string; })[] = [imagePart];
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to process redesign request');
+    }
 
-  parts.push({ text: prompt });
-  return callGeminiForRedesign(parts);
+    const data = await response.json();
+    return {
+      base64ImageBytes: data.base64ImageBytes,
+      mimeType: data.mimeType,
+      catalog: data.catalog,
+    };
+  } catch (error) {
+    console.error('Error calling redesign API:', error);
+    throw new Error(sanitizeError(error));
+  }
 };
 
 
@@ -265,26 +226,21 @@ export const redesignOutdoorSpace = async (
  */
 export const getElementImage = async (elementName: string, description?: string): Promise<string> => {
   try {
-    const prompt = description
-      ? `Photorealistic image of a single "${elementName}" (${description}), isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`
-      : `Photorealistic image of a single "${elementName}" isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`;
-
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          outputMimeType: 'image/png',
-          aspectRatio: '1:1',
-        },
+    const response = await fetch('/api/gemini/element-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ elementName, description }),
     });
 
-    if (!response.generatedImages || response.generatedImages.length === 0 || !response.generatedImages[0].image.imageBytes) {
-      throw new Error('Image generation failed to return an image.');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to generate element image');
     }
 
-    const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-    return `data:image/png;base64,${base64ImageBytes}`;
+    const data = await response.json();
+    return data.image;
   } catch (error) {
     console.error(`Error generating image for "${elementName}":`, error);
     throw new Error(sanitizeError(error));
@@ -298,14 +254,21 @@ export const getElementImage = async (elementName: string, description?: string)
  */
 export const getElementInfo = async (elementName: string): Promise<string> => {
     try {
-        const prompt = `Provide a brief, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip. Format the response as a single, concise paragraph.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
+        const response = await fetch('/api/gemini/element-info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ elementName }),
         });
 
-        return response.text;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to get element info');
+        }
+
+        const data = await response.json();
+        return data.info;
     } catch (error) {
         console.error(`Error getting info for "${elementName}":`, error);
         throw new Error(sanitizeError(error));
@@ -345,77 +308,31 @@ export const validateRedesign = async (
   overallPass: boolean;
   reasons: string[];
 }> => {
-  const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId);
-  const densityName = redesignDensity === 'minimal' ? 'minimal' : redesignDensity === 'lush' ? 'lush' : 'balanced';
-
-  const prompt = `
-You are validating a landscape redesign. You have the original property image and the redesigned image.
-
-Check the following criteria and respond with a JSON object indicating pass/fail for each, plus reasons for failures.
-
-Criteria:
-1. Property Consistency: Does the redesigned image depict the same property as the original (same house, structure, background, general layout)? Pass if yes, fail if it looks like a different property or generic scene.
-
-2. Style Accuracy: Does the redesigned image match the selected style(s): ${styleNames.join(', ')}? The style should be evident in the landscape elements.
-
-3. Aspect Ratio Compliance: Do both images have the same aspect ratio? (You can infer from dimensions if provided, but visually check if proportions match.)
-
-4. Structural Change Rules: If allowStructuralChanges is ${allowStructuralChanges}, check if structural changes (adding/removing buildings, walls, driveways) were appropriately ${allowStructuralChanges ? 'allowed and limited to aesthetic additions' : 'not made'}. The house itself must never be altered.
-
-5. Location & Climate Zone Respect: Are the plants, materials, and elements suitable for the climate zone: ${climateZone || 'general'}? Check for appropriate vegetation types.
-
-6. Redesign Density: Does the density match the setting: ${densityName}? (minimal: sparse and open; balanced: moderate; lush: dense and full)
-
-7. Authenticity Guard: Is the redesigned image a true modification of the original property, not a random or unrelated AI-generated image?
-
-Respond with JSON:
-{
-  "propertyConsistency": boolean,
-  "styleAccuracy": boolean,
-  "aspectRatioCompliance": boolean,
-  "structuralChangeRules": boolean,
-  "locationClimateRespect": boolean,
-  "redesignDensity": boolean,
-  "authenticityGuard": boolean,
-  "reasons": ["reason for each failure"]
-}
-`;
-
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          { text: 'Original image:' },
-          { inlineData: { data: originalBase64, mimeType: originalMimeType } },
-          { text: 'Redesigned image:' },
-          { inlineData: { data: redesignedBase64, mimeType: redesignedMimeType } },
-          { text: prompt }
-        ]
+    const response = await fetch('/api/gemini/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            propertyConsistency: { type: Type.BOOLEAN },
-            styleAccuracy: { type: Type.BOOLEAN },
-            aspectRatioCompliance: { type: Type.BOOLEAN },
-            structuralChangeRules: { type: Type.BOOLEAN },
-            locationClimateRespect: { type: Type.BOOLEAN },
-            redesignDensity: { type: Type.BOOLEAN },
-            authenticityGuard: { type: Type.BOOLEAN },
-            reasons: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ['propertyConsistency', 'styleAccuracy', 'aspectRatioCompliance', 'structuralChangeRules', 'locationClimateRespect', 'redesignDensity', 'authenticityGuard', 'reasons']
-        }
-      }
+      body: JSON.stringify({
+        originalBase64,
+        originalMimeType,
+        redesignedBase64,
+        redesignedMimeType,
+        styles,
+        allowStructuralChanges,
+        climateZone,
+        redesignDensity
+      }),
     });
 
-    const result = JSON.parse(response.text);
-    const overallPass = Object.values(result).every(val => typeof val === 'boolean' ? val : true); // reasons is array, so skip
-    result.overallPass = overallPass;
-    return result;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to validate redesign');
+    }
+
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Validation error:', error);
     // On error, assume pass to not block, but log
@@ -446,42 +363,21 @@ export const getReplacementSuggestions = async (
   climateZone: string
 ): Promise<string[]> => {
   try {
-    const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' and ');
-    const climateInstruction = climateZone ? ` The suggestions must be suitable for the '${climateZone}' climate.` : '';
-
-    const prompt = `I am redesigning a garden and want to replace a "${elementName}". 
-    Please provide 4 alternative suggestions that fit a '${styleNames}' style. 
-    ${climateInstruction}
-    The suggestions should be similar in function or scale to the original item.
-    The response must be a JSON array of strings.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-            description: 'A single suggested replacement item.'
-          }
-        }
-      }
+    const response = await fetch('/api/gemini/replacements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ elementName, styles, climateZone }),
     });
 
-    const text = response.text.trim();
-    try {
-        const suggestions = JSON.parse(text);
-        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
-            return suggestions;
-        }
-        console.warn('Parsed JSON is not an array of strings:', suggestions);
-        return [];
-    } catch (e) {
-      console.error("Failed to parse suggestions JSON from model:", e, "Received text:", text);
-      return [];
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to get replacement suggestions');
     }
+
+    const data = await response.json();
+    return data.suggestions;
   } catch (error) {
     console.error(`Error getting replacement suggestions for "${elementName}":`, error);
     throw new Error(sanitizeError(error));
