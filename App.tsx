@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Modal } from './components/Modal';
 import { DesignerPage } from './pages/DesignerPage';
@@ -26,7 +26,6 @@ const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
   const navigate = useNavigate();
-  const location = useLocation();
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
@@ -65,7 +64,7 @@ const AuthInitializer: React.FC = () => {
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
-        navigateTo('main');
+        navigate('/');
       }
     }
   }, [isLoaded, isSignedIn, clerkUser, navigateTo, ensureUser]);
@@ -179,14 +178,14 @@ const PageContent: React.FC = () => {
         <main className="p-3 sm:p-4 lg:p-6 xl:p-8 flex-grow overflow-y-auto flex flex-col">
           <Routes>
             <Route path="/" element={<DesignerPage />} />
-            <Route path="/history" element={isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : null} />
+            <Route path="/history" element={isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : <Navigate to="/signin" replace />} />
             <Route path="/pricing" element={<PricingPage onNavigate={navigateTo} />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : null} />
+            <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/signin" replace />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/fair-use-policy" element={<FairUsePolicyPage />} />
             <Route path="/success" element={<SuccessPage />} />

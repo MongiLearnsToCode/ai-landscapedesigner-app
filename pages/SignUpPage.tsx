@@ -8,8 +8,9 @@ export const SignUpPage: React.FC = () => {
   return (
     <div className="flex flex-col justify-center items-center min-h-[60vh] px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="w-full max-w-md flex justify-center">
-        <SignUp 
-          routing="hash"
+        <SignUp
+          routing="path"
+          path="/signup"
           fallbackRedirectUrl="/"
           appearance={{
             elements: {
