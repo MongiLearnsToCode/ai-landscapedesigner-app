@@ -948,7 +948,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Development API server running on http://localhost:${PORT}`);
-  console.log(`📧 Contact form API available at http://localhost:${PORT}/api/contact`);
-});
+// For Vercel serverless
+export default app;
+
+// For local development
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Development API server running on http://localhost:${PORT}`);
+    console.log(`📧 Contact form API available at http://localhost:${PORT}/api/contact`);
+  });
+}
