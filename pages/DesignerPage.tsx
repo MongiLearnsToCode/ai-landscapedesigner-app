@@ -4,6 +4,7 @@ import { StyleSelector } from '../components/StyleSelector';
 import { ClimateZoneSection } from '../components/ClimateZoneSection';
 import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
+import { uploadImageToCloudinary } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
 import { useAppStore } from '../stores/appStore';
@@ -12,7 +13,10 @@ import { useToastStore } from '../stores/toastStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
-import { checkRedesignLimit } from '../services/historyService';
+
+import { useUser } from '@clerk/clerk-react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 interface RedesignError {
   message: string;
@@ -97,6 +101,18 @@ export const DesignerPage: React.FC = () => {
   const { addToast } = useToastStore(
     useShallow((state) => ({ addToast: state.addToast }))
   );
+  const { user: clerkUser } = useUser();
+
+  // Convex hooks
+  const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+
+  // Update remaining from Convex
+  useEffect(() => {
+    if (checkLimitQuery) {
+      setRemainingRedesigns(checkLimitQuery.remaining);
+    }
+  }, [checkLimitQuery]);
 
   const styleSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -116,25 +132,7 @@ export const DesignerPage: React.FC = () => {
     hasRequestedInitialHistory.current = false;
   }, [isAuthenticated]);
 
-  // Check redesign limit on component mount and when user changes
-  useEffect(() => {
-    const checkLimit = async () => {
-      // Small delay to ensure user ID is set
-      await new Promise(resolve => setTimeout(resolve, 100));
-      try {
-        const { remaining } = await checkRedesignLimit();
-        setRemainingRedesigns(remaining);
-      } catch (error) {
-        console.error('Failed to check redesign limit:', error);
-      }
-    };
-    
-    if (isAuthenticated) {
-      checkLimit();
-    } else {
-      setRemainingRedesigns(0);
-    }
-  }, [isAuthenticated]); // Add isAuthenticated as dependency
+
 
   // Ensure history is loaded when user is authenticated and on main page
   useEffect(() => {
@@ -205,8 +203,11 @@ export const DesignerPage: React.FC = () => {
     }
 
     // Check limit before proceeding
-    const { canRedesign, remaining } = await checkRedesignLimit();
-    if (!canRedesign) {
+    if (!checkLimitQuery) {
+      setError({ message: "Unable to check redesign limit." });
+      return;
+    }
+    if (checkLimitQuery.hasReachedLimit) {
       setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
       return;
     }
@@ -251,15 +252,29 @@ export const DesignerPage: React.FC = () => {
           );
 
           if (validation.overallPass) {
-            await saveNewRedesign({
-              originalImage: originalImage,
-              redesignedImage: { base64: result.base64ImageBytes, type: result.mimeType },
-              catalog: result.catalog,
+            // Upload images to Cloudinary
+            const [originalUpload, redesignedUpload] = await Promise.all([
+              uploadImageToCloudinary(originalImage),
+              uploadImageToCloudinary({
+                base64: result.base64ImageBytes,
+                type: result.mimeType,
+                name: `redesigned_${Date.now()}`
+              })
+            ]);
+
+            const redesignId = `redesign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            await saveRedesignMutation({
+              clerkUserId: clerkUser!.id,
+              redesignId,
+              originalImageUrl: originalUpload.secure_url,
+              redesignedImageUrl: redesignedUpload.secure_url,
+              designCatalog: result.catalog,
               styles: selectedStyles,
-              climateZone: climateZone,
+              climateZone,
             });
-            
-            const { remaining: newRemaining } = await checkRedesignLimit();
+
+            const newRemaining = checkLimitQuery ? checkLimitQuery.remaining : 0;
             setRemainingRedesigns(newRemaining);
 
             setRedesignedImage(`data:${result.mimeType};base64,${result.base64ImageBytes}`);

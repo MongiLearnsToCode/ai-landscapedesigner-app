@@ -19,12 +19,14 @@ import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAppStore, type Page } from './stores/appStore';
 import { useHistoryStore } from './stores/historyStore';
+import { useQuery, useMutation } from 'convex/react';
 import { setCurrentUserId, setOnUserIdChangeCallback } from './services/historyService';
-import { ensureUserExists } from './services/databaseService';
+import { api } from './convex/_generated/api';
 
 const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
+  const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -57,21 +59,66 @@ const AuthInitializer: React.FC = () => {
     if (isLoaded && isSignedIn && clerkUser) {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
-      ensureUserExists(clerkUser.id, email, name);
+      ensureUser({
+        clerkUserId: clerkUser.id,
+        email,
+        name,
+      });
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigateTo('main');
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, navigateTo]);
+  }, [isLoaded, isSignedIn, clerkUser, navigateTo, ensureUser]);
 
   return null;
 };
 
 const PageContent: React.FC = () => {
+  const { user: clerkUser } = useUser();
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
   const { history, pinItem, deleteItem, viewFromHistory, refreshHistory, setHistory } = useHistoryStore();
+
+  // Convex hooks
+  const convexHistory = useQuery(api.redesigns.getHistory, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+  const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
+  const togglePinMutation = useMutation(api.redesigns.togglePin);
+  const deleteRedesignMutation = useMutation(api.redesigns.deleteRedesign);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+
+  // Process Convex history to match HydratedHistoryItem
+  const processedHistory = convexHistory ? convexHistory.map(redesign => ({
+    id: redesign.redesignId,
+    designCatalog: redesign.designCatalog,
+    styles: redesign.styles,
+    climateZone: redesign.climateZone || '',
+    timestamp: redesign.createdAt || redesign._creationTime,
+    isPinned: redesign.isPinned || false,
+    originalImageUrl: redesign.originalImageUrl,
+    redesignedImageUrl: redesign.redesignedImageUrl
+  })).sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.timestamp - a.timestamp;
+  }) : [];
+
+  // Convex action handlers
+  const handlePin = async (id: string) => {
+    try {
+      await togglePinMutation({ redesignId: id });
+    } catch (error) {
+      console.error('Failed to toggle pin', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteRedesignMutation({ redesignId: id });
+    } catch (error) {
+      console.error('Failed to delete redesign', error);
+    }
+  };
 
   // Hash change effect
   useEffect(() => {
@@ -131,7 +178,7 @@ const PageContent: React.FC = () => {
 
   const pages: { [key: string]: React.ReactNode } = {
     main: <DesignerPage />,
-    history: isAuthenticated ? <HistoryPage historyItems={history} onView={viewFromHistory} onPin={pinItem} onDelete={deleteItem} /> : null,
+    history: isAuthenticated ? <HistoryPage historyItems={processedHistory} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} /> : null,
     pricing: <PricingPage onNavigate={navigateTo} />,
     contact: <ContactPage />,
     terms: <TermsPage />,
