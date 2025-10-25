@@ -189,6 +189,7 @@ export const redesignOutdoorSpace = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         base64Image,
         mimeType,
@@ -231,15 +232,29 @@ export const getElementImage = async (elementName: string, description?: string)
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({ elementName, description }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate element image');
+      let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage += `: ${errorData.error || 'Unknown error'}`;
+      } catch {
+        const errorText = await response.text();
+        errorMessage += `: ${errorText || 'No details'}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      const text = await response.text();
+      throw new Error(`Failed to parse response: ${text}`);
+    }
     return data.image;
   } catch (error) {
     console.error(`Error generating image for "${elementName}":`, error);
@@ -259,15 +274,29 @@ export const getElementInfo = async (elementName: string): Promise<string> => {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({ elementName }),
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to get element info');
+            let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage += `: ${errorData.error || 'Unknown error'}`;
+            } catch {
+                const errorText = await response.text();
+                errorMessage += `: ${errorText || 'No details'}`;
+            }
+            throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            const text = await response.text();
+            throw new Error(`Failed to parse response: ${text}`);
+        }
         return data.info;
     } catch (error) {
         console.error(`Error getting info for "${elementName}":`, error);
@@ -314,6 +343,7 @@ export const validateRedesign = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         originalBase64,
         originalMimeType,
@@ -327,26 +357,28 @@ export const validateRedesign = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to validate redesign');
+      let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage += `: ${errorData.error || 'Unknown error'}`;
+      } catch {
+        const errorText = await response.text();
+        errorMessage += `: ${errorText || 'No details'}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      const text = await response.text();
+      throw new Error(`Failed to parse response: ${text}`);
+    }
     return data;
   } catch (error) {
     console.error('Validation error:', error);
-    // On error, assume pass to not block, but log
-    return {
-      propertyConsistency: true,
-      styleAccuracy: true,
-      aspectRatioCompliance: true,
-      structuralChangeRules: true,
-      locationClimateRespect: true,
-      redesignDensity: true,
-      authenticityGuard: true,
-      overallPass: true,
-      reasons: []
-    };
+    throw error; // Propagate error instead of defaulting to success
   }
 };
 
@@ -368,15 +400,29 @@ export const getReplacementSuggestions = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({ elementName, styles, climateZone }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to get replacement suggestions');
+      let errorMessage = `HTTP ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage += `: ${errorData.error || 'Unknown error'}`;
+      } catch {
+        const errorText = await response.text();
+        errorMessage += `: ${errorText || 'No details'}`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      const text = await response.text();
+      throw new Error(`Failed to parse response: ${text}`);
+    }
     return data.suggestions;
   } catch (error) {
     console.error(`Error getting replacement suggestions for "${elementName}":`, error);

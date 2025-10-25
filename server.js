@@ -42,8 +42,24 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+// Parse CLIENT_ORIGIN as comma-separated allowlist
+const clientOrigin = process.env.CLIENT_ORIGIN;
+const allowedOrigins = clientOrigin ? clientOrigin.split(',').map(origin => origin.trim()) : null;
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow same-origin requests
+    if (!origin || (allowedOrigins && allowedOrigins.includes(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Enable credentials for Clerk auth cookies
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' })); // Increase limit for base64 images
 app.use(clerkMiddleware());
 
 // Rate limiting for contact form submissions (max 3 per hour per IP)
@@ -551,6 +567,23 @@ app.post('/api/gemini/redesign', requireAuth(), async (req, res) => {
 
     if (!base64Image || !mimeType) {
       return res.status(400).json({ error: 'Image data and MIME type required' });
+    }
+
+    // Validate MIME type
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+    if (!allowedMimeTypes.includes(mimeType)) {
+      return res.status(400).json({ error: 'Unsupported image MIME type' });
+    }
+
+    // Validate base64 and size
+    try {
+      const buffer = Buffer.from(base64Image, 'base64');
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (buffer.length > maxSize) {
+        return res.status(400).json({ error: 'Image too large' });
+      }
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid base64 image data' });
     }
 
     console.log('🤖 Processing Gemini redesign for user:', userId);
