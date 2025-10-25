@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
     "dev:client": "vite",
-    "dev:api": "node server.js",
+    "dev:api": "NODE_ENV=development node server.js",
     "build": "node scripts/generate-sitemap.js && vite build",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",

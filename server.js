@@ -954,7 +954,7 @@ app.get('/api/health', (req, res) => {
 export default app;
 
 // For local development
-if (require.main === module) {
+if (process.env.NODE_ENV === 'development') {
   app.listen(PORT, () => {
     console.log(`🚀 Development API server running on http://localhost:${PORT}`);
     console.log(`📧 Contact form API available at http://localhost:${PORT}/api/contact`);
