@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Modal } from './components/Modal';
 import { DesignerPage } from './pages/DesignerPage';
@@ -17,13 +18,14 @@ import { SuccessPage } from './pages/SuccessPage';
 import { ToastContainer } from './components/ToastContainer';
 import { Footer } from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
-import { useAppStore, type Page } from './stores/appStore';
+import { useAppStore, type Page, pathToPage } from './stores/appStore';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from './convex/_generated/api';
 
 const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
+  const navigate = useNavigate();
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
@@ -62,10 +64,10 @@ const AuthInitializer: React.FC = () => {
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
-        navigateTo('main');
+        navigate('/', { replace: true });
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, navigateTo, ensureUser]);
+  }, [isLoaded, isSignedIn, clerkUser, page, navigate, ensureUser]);
 
   return null;
 };
@@ -141,17 +143,7 @@ const PageContent: React.FC = () => {
   };
 
   // Hash change effect
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) as Page;
-      const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
-      const newPage = validPages.includes(hash) ? hash : 'main';
-      useAppStore.getState().navigateTo(newPage);
-    };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
 
 
@@ -162,39 +154,33 @@ const PageContent: React.FC = () => {
     let pageTitle = page.charAt(0).toUpperCase() + page.slice(1);
     if (page === 'main') pageTitle = 'Home';
     if (page === 'history') pageTitle = 'Projects';
-    if (page === 'fairuse') pageTitle = 'Fair Use Policy';
+    if (page === 'fair-use-policy') pageTitle = 'Fair Use Policy';
 
     document.title = `${baseTitle} | ${pageTitle}`;
   }, [page]);
 
-  // Protected Routes Logic
-  useEffect(() => {
-    if (!isAuthenticated && (page === 'history' || page === 'profile')) {
-      navigateTo('signin');
-    }
-  }, [isAuthenticated, page, navigateTo]);
 
-  const pages: { [key: string]: React.ReactNode } = {
-    main: <DesignerPage />,
-    history: isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : null,
-    pricing: <PricingPage onNavigate={navigateTo} />,
-    contact: <ContactPage />,
-    terms: <TermsPage />,
-    privacy: <PrivacyPage />,
-    signin: <SignInPage />,
-    signup: <SignUpPage />,
-    profile: isAuthenticated ? <ProfilePage /> : null,
-    'reset-password': <ResetPasswordPage />,
-    fairuse: <FairUsePolicyPage />,
-    success: <SuccessPage />,
-  };
 
   return (
     <div className="min-h-screen text-slate-800 font-sans p-2 sm:p-4 lg:p-6 xl:p-8 flex flex-col">
       <div className="w-full flex-grow mx-auto bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-lg ring-1 ring-black/5 flex flex-col">
         <Header />
         <main className="p-3 sm:p-4 lg:p-6 xl:p-8 flex-grow overflow-y-auto flex flex-col">
-          {pages[page] || <DesignerPage />}
+          <Routes>
+            <Route path="/" element={<DesignerPage />} />
+            <Route path="/history" element={isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : <Navigate to="/signin" replace />} />
+            <Route path="/pricing" element={<PricingPage onNavigate={navigateTo} />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/signin" replace />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/fair-use-policy" element={<FairUsePolicyPage />} />
+            <Route path="/success" element={<SuccessPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </main>
         <Footer />
       </div>
@@ -205,6 +191,18 @@ const PageContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const page = pathToPage[location.pathname] || 'main';
+    useAppStore.setState({ page });
+  }, [location.pathname]);
+
+  useEffect(() => {
+    useAppStore.getState().setNavigate(navigate);
+  }, [navigate]);
+
   return (
     <ErrorBoundary>
       <AuthInitializer />

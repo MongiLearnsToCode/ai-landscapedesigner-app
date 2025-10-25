@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import { ClerkProvider, useAuth } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
@@ -36,15 +37,17 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ClerkProvider
-      publishableKey={publishableKey}
-      routing="hash"
-      signInUrl="/signin"
-      signUpUrl="/signup"
-    >
-      <ConvexClerkWrapper>
-        <App />
-      </ConvexClerkWrapper>
-    </ClerkProvider>
+    <BrowserRouter>
+      <ClerkProvider
+        publishableKey={publishableKey}
+        routing="path"
+        signInUrl="/signin"
+        signUpUrl="/signup"
+      >
+        <ConvexClerkWrapper>
+          <App />
+        </ConvexClerkWrapper>
+      </ClerkProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
