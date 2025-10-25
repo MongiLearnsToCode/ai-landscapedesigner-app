@@ -98,6 +98,9 @@ export const DesignerPage: React.FC = () => {
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
   const checkLimitQuery = useQuery(api.redesigns.checkLimit);
 
+  // Derive authentication status from query result
+  const authenticated = checkLimitQuery?.isAuthenticated ?? false;
+
   // Update remaining from Convex
   useEffect(() => {
     if (checkLimitQuery) {
@@ -122,7 +125,7 @@ export const DesignerPage: React.FC = () => {
   // Reset history request flag when authentication state changes
   useEffect(() => {
     hasRequestedInitialHistory.current = false;
-  }, [isAuthenticated]);
+  }, [authenticated]);
 
 
 
@@ -179,17 +182,18 @@ export const DesignerPage: React.FC = () => {
       return;
     }
 
-    // Redirect unauthenticated users to sign-in page
-    if (!isAuthenticated) {
-      navigateTo('signin');
-      return;
-    }
-
     // Check limit before proceeding
     if (!checkLimitQuery) {
       // Still loading, don't show error yet
       return;
     }
+
+    // Redirect unauthenticated users to sign-in page
+    if (!authenticated) {
+      navigateTo('signin');
+      return;
+    }
+
     if (checkLimitQuery.hasReachedLimit) {
       const limit = checkLimitQuery.limit || 3;
       setError({ message: `You have reached the maximum number of ${limit} redesigns for your account.` });
@@ -292,7 +296,7 @@ export const DesignerPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, checkLimitQuery, saveRedesignMutation, isFromHistory, addToast, isAuthenticated, navigateTo]);
+  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, checkLimitQuery, saveRedesignMutation, isFromHistory, addToast, authenticated, navigateTo]);
 
 
 
@@ -325,7 +329,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || !originalImage.base64 || isLoading || !checkLimitQuery || (!isAuthenticated ? false : checkLimitQuery.hasReachedLimit)}
+              disabled={!originalImage || !originalImage.base64 || isLoading || !checkLimitQuery || (!authenticated ? false : checkLimitQuery.hasReachedLimit)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
@@ -337,11 +341,11 @@ export const DesignerPage: React.FC = () => {
                   {redesignedImage ? 'Refining...' : 'Redesigning...'}
                 </>
               ) : (
-                !isAuthenticated ? 'Sign up or sign in to get free designs' : 
+                !authenticated ? 'Sign up or sign in to get free designs' :
                 remainingRedesigns === 0 ? 'Limit Reached' : 'Generate Redesign'
               )}
             </button>
-            {isAuthenticated && (
+            {authenticated && (
               <p className="text-xs text-center mt-2 text-slate-500">
                 {remainingRedesigns} redesign{remainingRedesigns !== 1 ? 's' : ''} remaining
               </p>
