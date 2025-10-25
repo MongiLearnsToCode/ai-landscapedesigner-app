@@ -116,6 +116,7 @@ export const DesignerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
+  const [isFromHistory, setIsFromHistory] = useState<boolean>(false);
   const hasRequestedInitialHistory = useRef(false);
 
   // Reset history request flag when authentication state changes
@@ -146,6 +147,7 @@ export const DesignerPage: React.FC = () => {
       setDesignerState(newState);
       setRedesignedImage(itemToLoad.redesignedImage);
       setDesignCatalog(itemToLoad.designCatalog);
+      setIsFromHistory(itemToLoad.fromHistory || false);
       setError(null);
       onItemLoaded();
     }
@@ -157,6 +159,7 @@ export const DesignerPage: React.FC = () => {
     setDesignerState(prev => ({ ...prev, originalImage: file }));
     setRedesignedImage(null);
     setDesignCatalog(null);
+    setIsFromHistory(false); // New upload is not from history
     setError(null);
   };
 
@@ -167,6 +170,12 @@ export const DesignerPage: React.FC = () => {
   const handleGenerateRedesign = useCallback(async () => {
     if (!originalImage) {
       setError({ message: "Please upload an image first." });
+      return;
+    }
+
+    // Prevent redesign of history items (they lack base64 data)
+    if (isFromHistory) {
+      setError({ message: "Cannot redesign items loaded from history. Please upload a new image." });
       return;
     }
 

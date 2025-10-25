@@ -65,6 +65,8 @@ export interface HydratedHistoryItem {
     // Full data for view functionality (populated when viewing)
     originalImage?: ImageFile;
     redesignedImage?: string;
+    // Flag to indicate if this item came from history (cannot be redesigned)
+    fromHistory?: boolean;
 }
 
 

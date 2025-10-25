@@ -176,7 +176,7 @@ const PageContent: React.FC = () => {
 
   const pages: { [key: string]: React.ReactNode } = {
     main: <DesignerPage />,
-    history: isAuthenticated ? <HistoryPage historyItems={processedHistory} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={false} /> : null,
+    history: isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : null,
     pricing: <PricingPage onNavigate={navigateTo} />,
     contact: <ContactPage />,
     terms: <TermsPage />,
