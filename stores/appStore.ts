@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { HydratedHistoryItem, User } from '../types';
 
-export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fairuse' | 'success';
+export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fair-use-policy' | 'success';
 
 interface AppState {
   page: Page;
@@ -29,7 +29,7 @@ type AppStore = AppState & AppActions;
 
 const getInitialPage = (): Page => {
   const hash = window.location.hash.slice(1) as Page;
-  const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
+  const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fair-use-policy', 'success'];
   return validPages.includes(hash) ? hash : 'main';
 };
 

@@ -143,17 +143,7 @@ const PageContent: React.FC = () => {
   };
 
   // Hash change effect
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) as Page;
-      const validPages: Page[] = ['main', 'history', 'pricing', 'contact', 'terms', 'privacy', 'signin', 'signup', 'profile', 'reset-password', 'fairuse', 'success'];
-      const newPage = validPages.includes(hash) ? hash : 'main';
-      useAppStore.getState().navigateTo(newPage);
-    };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
 
 
@@ -164,7 +154,7 @@ const PageContent: React.FC = () => {
     let pageTitle = page.charAt(0).toUpperCase() + page.slice(1);
     if (page === 'main') pageTitle = 'Home';
     if (page === 'history') pageTitle = 'Projects';
-    if (page === 'fairuse') pageTitle = 'Fair Use Policy';
+    if (page === 'fair-use-policy') pageTitle = 'Fair Use Policy';
 
     document.title = `${baseTitle} | ${pageTitle}`;
   }, [page]);
@@ -189,6 +179,7 @@ const PageContent: React.FC = () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/fair-use-policy" element={<FairUsePolicyPage />} />
             <Route path="/success" element={<SuccessPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         <Footer />
