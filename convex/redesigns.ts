@@ -66,13 +66,14 @@ export const checkLimit = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      // Return default limit if not authenticated
+      // Return limit indicating not authenticated
       const limit = 3;
       return {
         used: 0,
         limit,
-        remaining: limit,
-        hasReachedLimit: false,
+        remaining: 0,
+        hasReachedLimit: true,
+        isAuthenticated: false,
       };
     }
 
@@ -87,6 +88,7 @@ export const checkLimit = query({
       limit,
       remaining: Math.max(0, limit - all.length),
       hasReachedLimit: all.length >= limit,
+      isAuthenticated: true,
     };
   },
 });

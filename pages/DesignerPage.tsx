@@ -179,17 +179,18 @@ export const DesignerPage: React.FC = () => {
       return;
     }
 
-    // Redirect unauthenticated users to sign-in page
-    if (!isAuthenticated) {
-      navigateTo('signin');
-      return;
-    }
-
     // Check limit before proceeding
     if (!checkLimitQuery) {
       // Still loading, don't show error yet
       return;
     }
+
+    // Redirect unauthenticated users to sign-in page
+    if (!checkLimitQuery.isAuthenticated) {
+      navigateTo('signin');
+      return;
+    }
+
     if (checkLimitQuery.hasReachedLimit) {
       const limit = checkLimitQuery.limit || 3;
       setError({ message: `You have reached the maximum number of ${limit} redesigns for your account.` });
