@@ -91,10 +91,20 @@ function escapeHtml(text) {
 }
 
 // Helper to sanitize prompt inputs to prevent injection
-const sanitizePromptInput = (input) => {
+const sanitizeInput = (input, maxLength = 200) => {
   if (typeof input !== 'string') return '';
-  // Remove quotes and newlines that could break prompt structure
-  return input.replace(/['"\n\r]/g, '').trim();
+  let sanitized = input.trim();
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength);
+  }
+  // Remove control characters, newlines, quotes, and template delimiters
+  sanitized = sanitized.replace(/[\x00-\x1F\x7F-\x9F'"\n\r`]/g, '');
+  // Neutralize dangerous substrings (case-insensitive)
+  const dangerous = /ignore\s+previous|do\s+not\s+follow|system:|user:|assistant:|as\s+an\s+ai|forget\s+instructions/i;
+  if (dangerous.test(sanitized)) {
+    return ''; // Reject input containing dangerous patterns
+  }
+  return sanitized;
 };
 
 // Rate limiting check
@@ -697,13 +707,13 @@ app.post('/api/gemini/element-info', requireAuth(), async (req, res) => {
   try {
     const { elementName } = req.body;
 
-    if (!elementName) {
-      return res.status(400).json({ error: 'Element name required' });
+    if (typeof elementName !== 'string' || elementName.trim().length === 0) {
+      return res.status(400).json({ error: 'Element name must be a non-empty string' });
     }
 
-    const sanitizedElementName = sanitizePromptInput(elementName);
+    const sanitizedElementName = sanitizeInput(elementName);
     if (!sanitizedElementName) {
-      return res.status(400).json({ error: 'Invalid element name' });
+      return res.status(400).json({ error: 'Invalid element name after sanitization' });
     }
 
     const prompt = `Provide a brief, user-friendly description for a "${sanitizedElementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip. Format the response as a single, concise paragraph.`;
@@ -730,13 +740,19 @@ app.post('/api/gemini/replacements', requireAuth(), async (req, res) => {
   try {
     const { elementName, styles, climateZone } = req.body;
 
+    if (typeof elementName !== 'string' || elementName.trim().length === 0) {
+      return res.status(400).json({ error: 'Element name must be a non-empty string' });
+    }
     if (!Array.isArray(styles)) {
       return res.status(400).json({ error: 'Styles must be an array' });
     }
 
-    const sanitizedElementName = sanitizePromptInput(elementName);
-    const sanitizedClimateZone = sanitizePromptInput(climateZone);
-    const styleNames = styles.map(styleId => sanitizePromptInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId)).join(' and ');
+    const sanitizedElementName = sanitizeInput(elementName);
+    if (!sanitizedElementName) {
+      return res.status(400).json({ error: 'Invalid element name after sanitization' });
+    }
+    const sanitizedClimateZone = sanitizeInput(climateZone);
+    const styleNames = styles.map(styleId => sanitizeInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId)).join(' and ');
     const climateInstruction = sanitizedClimateZone ? ` The suggestions must be suitable for the '${sanitizedClimateZone}' climate.` : '';
 
     const prompt = `I am redesigning a garden and want to replace a "${sanitizedElementName}".
@@ -770,8 +786,18 @@ app.post('/api/gemini/element-image', requireAuth(), async (req, res) => {
   try {
     const { elementName, description } = req.body;
 
-    const sanitizedElementName = sanitizePromptInput(elementName);
-    const sanitizedDescription = sanitizePromptInput(description);
+    if (typeof elementName !== 'string' || elementName.trim().length === 0) {
+      return res.status(400).json({ error: 'Element name must be a non-empty string' });
+    }
+    if (description && typeof description !== 'string') {
+      return res.status(400).json({ error: 'Description must be a string if provided' });
+    }
+
+    const sanitizedElementName = sanitizeInput(elementName);
+    const sanitizedDescription = sanitizeInput(description);
+    if (!sanitizedElementName) {
+      return res.status(400).json({ error: 'Invalid element name after sanitization' });
+    }
 
     const prompt = sanitizedDescription
       ? `Photorealistic image of a single "${sanitizedElementName}" (${sanitizedDescription}), isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`
@@ -801,7 +827,7 @@ app.post('/api/gemini/element-image', requireAuth(), async (req, res) => {
 
 // Helper function to build redesign prompt (copied from geminiService.ts)
 const buildRedesignPrompt = (styles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity) => {
-  const sanitizedClimateZone = sanitizePromptInput(climateZone);
+  const sanitizedClimateZone = sanitizeInput(climateZone);
   const structuralChangeInstruction = allowStructuralChanges
     ? `You are allowed to make structural changes to the LANDSCAPE. This includes adding or altering hardscapes like pergolas, decks, stone patios, retaining walls, and pathways. This permission **DOES NOT** apply to the house. You are **STRICTLY FORBIDDEN** from altering the main building's architecture, windows, doors, or roof.`
     : '**ABSOLUTELY NO** structural changes. You are forbidden from adding, removing, or altering buildings, walls, gates, fences, driveways, or other permanent structures. Your redesign must focus exclusively on softscapes (plants, flowers, grass, mulch) and easily movable elements (outdoor furniture, pots, decorative items).';
@@ -839,7 +865,7 @@ const buildRedesignPrompt = (styles, allowStructuralChanges, climateZone, lockAs
     features: [{ name: "string", description: "string" }],
   }, null, 2);
 
-  const styleNames = styles.map(styleId => sanitizePromptInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId));
+  const styleNames = styles.map(styleId => sanitizeInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId));
   const styleInstruction = styleNames.length > 1
     ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.`
     : `Redesign the landscape in a '${styleNames[0]}' style.`;
