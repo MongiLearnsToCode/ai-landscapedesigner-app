@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Modal } from './components/Modal';
 import { DesignerPage } from './pages/DesignerPage';
@@ -24,6 +25,8 @@ import { api } from './convex/_generated/api';
 const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
+  const navigate = useNavigate();
+  const location = useLocation();
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
@@ -167,34 +170,27 @@ const PageContent: React.FC = () => {
     document.title = `${baseTitle} | ${pageTitle}`;
   }, [page]);
 
-  // Protected Routes Logic
-  useEffect(() => {
-    if (!isAuthenticated && (page === 'history' || page === 'profile')) {
-      navigateTo('signin');
-    }
-  }, [isAuthenticated, page, navigateTo]);
 
-  const pages: { [key: string]: React.ReactNode } = {
-    main: <DesignerPage />,
-    history: isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : null,
-    pricing: <PricingPage onNavigate={navigateTo} />,
-    contact: <ContactPage />,
-    terms: <TermsPage />,
-    privacy: <PrivacyPage />,
-    signin: <SignInPage />,
-    signup: <SignUpPage />,
-    profile: isAuthenticated ? <ProfilePage /> : null,
-    'reset-password': <ResetPasswordPage />,
-    fairuse: <FairUsePolicyPage />,
-    success: <SuccessPage />,
-  };
 
   return (
     <div className="min-h-screen text-slate-800 font-sans p-2 sm:p-4 lg:p-6 xl:p-8 flex flex-col">
       <div className="w-full flex-grow mx-auto bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-lg ring-1 ring-black/5 flex flex-col">
         <Header />
         <main className="p-3 sm:p-4 lg:p-6 xl:p-8 flex-grow overflow-y-auto flex flex-col">
-          {pages[page] || <DesignerPage />}
+          <Routes>
+            <Route path="/" element={<DesignerPage />} />
+            <Route path="/history" element={isAuthenticated ? <HistoryPage historyItems={processedHistory || []} onView={viewFromHistory} onPin={handlePin} onDelete={handleDelete} onDeleteMultiple={handleDeleteMultiple} isLoading={convexHistory === undefined} /> : null} />
+            <Route path="/pricing" element={<PricingPage onNavigate={navigateTo} />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : null} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/fair-use-policy" element={<FairUsePolicyPage />} />
+            <Route path="/success" element={<SuccessPage />} />
+          </Routes>
         </main>
         <Footer />
       </div>
