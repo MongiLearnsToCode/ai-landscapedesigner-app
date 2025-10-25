@@ -87,7 +87,7 @@ const PageContent: React.FC = () => {
     designCatalog: redesign.designCatalog,
     styles: redesign.styles,
     climateZone: redesign.climateZone || '',
-    timestamp: redesign.createdAt || redesign._creationTime,
+    timestamp: typeof redesign.createdAt === 'number' ? redesign.createdAt : (new Date(redesign.createdAt || redesign._creationTime).getTime() || 0),
     isPinned: redesign.isPinned || false,
     originalImageUrl: redesign.originalImageUrl,
     redesignedImageUrl: redesign.redesignedImageUrl

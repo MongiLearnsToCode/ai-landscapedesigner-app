@@ -187,11 +187,12 @@ export const DesignerPage: React.FC = () => {
 
     // Check limit before proceeding
     if (!checkLimitQuery) {
-      setError({ message: "Unable to check redesign limit." });
+      // Still loading, don't show error yet
       return;
     }
     if (checkLimitQuery.hasReachedLimit) {
-      setError({ message: "You have reached the maximum limit of 3 redesigns per account." });
+      const limit = checkLimitQuery.limit || 3;
+      setError({ message: `You have reached the maximum number of ${limit} redesigns for your account.` });
       return;
     }
 
@@ -245,7 +246,7 @@ export const DesignerPage: React.FC = () => {
               })
             ]);
 
-            const redesignId = `redesign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const redesignId = `redesign_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
             await saveRedesignMutation({
               redesignId,
@@ -291,7 +292,7 @@ export const DesignerPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, addToast, isAuthenticated, navigateTo]);
+  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, checkLimitQuery, saveRedesignMutation, isFromHistory, addToast, isAuthenticated, navigateTo]);
 
 
 
@@ -324,7 +325,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || !originalImage.base64 || isLoading || (!isAuthenticated ? false : remainingRedesigns === 0)}
+              disabled={!originalImage || !originalImage.base64 || isLoading || !checkLimitQuery || (!isAuthenticated ? false : checkLimitQuery.hasReachedLimit)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
