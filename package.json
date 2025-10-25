@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
     "dev:client": "vite",
-    "dev:api": "NODE_ENV=development node server.js",
+    "dev:api": "cross-env NODE_ENV=development node server.js",
     "build": "node scripts/generate-sitemap.js && vite build",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
@@ -35,6 +35,7 @@
     "@vercel/node": "^5.4.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.5",
     "postcss": "^8.5.6",
     "tailwindcss": "3.4.1",
