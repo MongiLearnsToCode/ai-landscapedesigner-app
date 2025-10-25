@@ -675,34 +675,7 @@ app.post('/api/gemini/element-info', requireAuth(), async (req, res) => {
 
 // POST /api/gemini/validate - Validate redesign
 app.post('/api/gemini/validate', requireAuth(), async (req, res) => {
-  try {
-    const {
-      originalBase64,
-      originalMimeType,
-      redesignedBase64,
-      redesignedMimeType,
-      styles,
-      allowStructuralChanges,
-      climateZone,
-      redesignDensity
-    } = req.body;
-
-    // Simplified validation - in real implementation, would do full check
-    res.json({
-      propertyConsistency: true,
-      styleAccuracy: true,
-      aspectRatioCompliance: true,
-      structuralChangeRules: true,
-      locationClimateRespect: true,
-      redesignDensity: true,
-      authenticityGuard: true,
-      overallPass: true,
-      reasons: []
-    });
-  } catch (error) {
-    console.error('❌ Validation error:', error);
-    res.status(500).json({ error: 'Failed to validate redesign' });
-  }
+  res.status(501).json({ error: 'Validation not implemented yet. Please check manually.' });
 });
 
 // POST /api/gemini/replacements - Get replacement suggestions
