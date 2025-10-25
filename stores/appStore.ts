@@ -44,8 +44,10 @@ export const pathToPage: Record<string, Page> = {
   '/success': 'success',
 };
 
+const validPages = new Set(Object.values(pathToPage));
+
 const getInitialPage = (): Page => {
-  const path = window.location.pathname;
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   return pathToPage[path] || 'main';
 };
 
@@ -65,15 +67,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   navigateTo: (pageOrPath: string) => {
+    const normalized = pageOrPath.trim();
     let path: string;
     let page: Page;
-    if (pageOrPath.startsWith('/')) {
-      path = pageOrPath;
-      page = pathToPage[path] || 'main';
+
+    if (normalized.startsWith('/')) {
+      path = normalized === '/' ? '/' : normalized.replace(/\/$/, ''); // remove trailing slash except for root
+      page = pathToPage[path];
+      if (!page) return; // unknown path
     } else {
-      page = pageOrPath as Page;
+      if (!validPages.has(normalized as Page)) return; // unknown page
+      page = normalized as Page;
       path = page === 'main' ? '/' : `/${page}`;
     }
+
     set({ page });
     get().navigate?.(path);
     window.scrollTo(0, 0);

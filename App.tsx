@@ -64,10 +64,10 @@ const AuthInitializer: React.FC = () => {
 
       // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, navigateTo, ensureUser]);
+  }, [isLoaded, isSignedIn, clerkUser, page, navigate, ensureUser]);
 
   return null;
 };
