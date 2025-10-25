@@ -1,16 +1,14 @@
-import { convexAuth } from "@convex-dev/auth/server";
-import { clerk } from "@convex-dev/auth/providers/clerk";
+import { AuthConfig } from "convex/server";
 
 if (!process.env.CLERK_JWT_ISSUER_DOMAIN) {
   throw new Error('CLERK_JWT_ISSUER_DOMAIN is required');
 }
 
-const customAuth = convexAuth({
+export default {
   providers: [
-    clerk({
-      issuer: process.env.CLERK_JWT_ISSUER_DOMAIN,
-    }),
+    {
+      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      applicationID: "convex",
+    },
   ],
-});
-
-export default customAuth;
+} satisfies AuthConfig;
