@@ -4,10 +4,12 @@ if (!process.env.CLERK_JWT_ISSUER_DOMAIN) {
   throw new Error('CLERK_JWT_ISSUER_DOMAIN is required');
 }
 
+const issuer = process.env.CLERK_JWT_ISSUER_DOMAIN as string;
+
 export default {
   providers: [
     {
-      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      domain: issuer,
       applicationID: "convex",
     },
   ],
