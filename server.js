@@ -90,6 +90,13 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, char => htmlEntities[char]);
 }
 
+// Helper to sanitize prompt inputs to prevent injection
+const sanitizePromptInput = (input) => {
+  if (typeof input !== 'string') return '';
+  // Remove quotes and newlines that could break prompt structure
+  return input.replace(/['"\n\r]/g, '').trim();
+};
+
 // Rate limiting check
 const checkRateLimit = (identifier) => {
   const now = Date.now();
@@ -599,6 +606,11 @@ app.post('/api/gemini/redesign', requireAuth(), async (req, res) => {
       return res.status(400).json({ error: 'Image data and MIME type required' });
     }
 
+    // Validate styles
+    if (!Array.isArray(styles)) {
+      return res.status(400).json({ error: 'Styles must be an array' });
+    }
+
     // Validate MIME type
     const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
     if (!allowedMimeTypes.includes(mimeType)) {
@@ -689,7 +701,12 @@ app.post('/api/gemini/element-info', requireAuth(), async (req, res) => {
       return res.status(400).json({ error: 'Element name required' });
     }
 
-    const prompt = `Provide a brief, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip. Format the response as a single, concise paragraph.`;
+    const sanitizedElementName = sanitizePromptInput(elementName);
+    if (!sanitizedElementName) {
+      return res.status(400).json({ error: 'Invalid element name' });
+    }
+
+    const prompt = `Provide a brief, user-friendly description for a "${sanitizedElementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip. Format the response as a single, concise paragraph.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -713,11 +730,17 @@ app.post('/api/gemini/replacements', requireAuth(), async (req, res) => {
   try {
     const { elementName, styles, climateZone } = req.body;
 
-    const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' and ');
-    const climateInstruction = climateZone ? ` The suggestions must be suitable for the '${climateZone}' climate.` : '';
+    if (!Array.isArray(styles)) {
+      return res.status(400).json({ error: 'Styles must be an array' });
+    }
 
-    const prompt = `I am redesigning a garden and want to replace a "${elementName}". 
-    Please provide 4 alternative suggestions that fit a '${styleNames}' style. 
+    const sanitizedElementName = sanitizePromptInput(elementName);
+    const sanitizedClimateZone = sanitizePromptInput(climateZone);
+    const styleNames = styles.map(styleId => sanitizePromptInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId)).join(' and ');
+    const climateInstruction = sanitizedClimateZone ? ` The suggestions must be suitable for the '${sanitizedClimateZone}' climate.` : '';
+
+    const prompt = `I am redesigning a garden and want to replace a "${sanitizedElementName}".
+    Please provide 4 alternative suggestions that fit a '${styleNames}' style.
     ${climateInstruction}
     The suggestions should be similar in function or scale to the original item.
     The response must be a JSON array of strings.`;
@@ -747,9 +770,12 @@ app.post('/api/gemini/element-image', requireAuth(), async (req, res) => {
   try {
     const { elementName, description } = req.body;
 
-    const prompt = description
-      ? `Photorealistic image of a single "${elementName}" (${description}), isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`
-      : `Photorealistic image of a single "${elementName}" isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`;
+    const sanitizedElementName = sanitizePromptInput(elementName);
+    const sanitizedDescription = sanitizePromptInput(description);
+
+    const prompt = sanitizedDescription
+      ? `Photorealistic image of a single "${sanitizedElementName}" (${sanitizedDescription}), isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`
+      : `Photorealistic image of a single "${sanitizedElementName}" isolated on a clean, plain white background. The subject should be centered and clear, like a product photo for a catalog. No text, watermarks, or other objects.`;
 
     const response = await ai.models.generateImages({
       model: 'imagen-4.0-generate-001',
@@ -775,6 +801,7 @@ app.post('/api/gemini/element-image', requireAuth(), async (req, res) => {
 
 // Helper function to build redesign prompt (copied from geminiService.ts)
 const buildRedesignPrompt = (styles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity) => {
+  const sanitizedClimateZone = sanitizePromptInput(climateZone);
   const structuralChangeInstruction = allowStructuralChanges
     ? `You are allowed to make structural changes to the LANDSCAPE. This includes adding or altering hardscapes like pergolas, decks, stone patios, retaining walls, and pathways. This permission **DOES NOT** apply to the house. You are **STRICTLY FORBIDDEN** from altering the main building's architecture, windows, doors, or roof.`
     : '**ABSOLUTELY NO** structural changes. You are forbidden from adding, removing, or altering buildings, walls, gates, fences, driveways, or other permanent structures. Your redesign must focus exclusively on softscapes (plants, flowers, grass, mulch) and easily movable elements (outdoor furniture, pots, decorative items).';
@@ -783,11 +810,11 @@ const buildRedesignPrompt = (styles, allowStructuralChanges, climateZone, lockAs
     ? 'A critical rule is to handle objects like people, animals, or vehicles. You MUST completely remove any such objects from the property and seamlessly redesign the landscape area they were occupying. The ground underneath (grass, pavement, garden beds, etc.) must be filled in as part of the new design.'
     : 'You are **STRICTLY FORBIDDEN** from removing or altering any people, animals, or vehicles (cars, trucks, etc.). Treat all of these as permanent objects in the scene that must not be changed. Your design must work around them.';
 
-  let climateInstruction = climateZone
-    ? `All plants, trees, and materials MUST be suitable for the '${climateZone}' climate/region.`
+  let climateInstruction = sanitizedClimateZone
+    ? `All plants, trees, and materials MUST be suitable for the '${sanitizedClimateZone}' climate/region.`
     : 'Select plants and materials that are generally appropriate for the visual context of the image.';
 
-  if (climateZone && /arid|desert/i.test(climateZone)) {
+  if (sanitizedClimateZone && /arid|desert/i.test(sanitizedClimateZone)) {
     climateInstruction += " For this arid climate, prioritize drought-tolerant plants. Excellent choices include succulents (like Agave, Aloe), cacti (like Prickly Pear), ornamental grasses (like Blue Grama), and hardy shrubs (like Sagebrush).";
   }
 
@@ -812,7 +839,7 @@ const buildRedesignPrompt = (styles, allowStructuralChanges, climateZone, lockAs
     features: [{ name: "string", description: "string" }],
   }, null, 2);
 
-  const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId);
+  const styleNames = styles.map(styleId => sanitizePromptInput(LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId));
   const styleInstruction = styleNames.length > 1
     ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.`
     : `Redesign the landscape in a '${styleNames[0]}' style.`;
