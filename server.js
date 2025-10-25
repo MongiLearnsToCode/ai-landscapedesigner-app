@@ -376,7 +376,8 @@ app.get('/api/history', requireAuth(), async (req, res) => {
 
     res.json({ redesigns });
   } catch (error) {
-    console.error('❌ Error fetching history:', error);
+    console.error('❌ Error fetching history:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
@@ -558,7 +559,8 @@ app.post('/api/users/ensure', requireAuth(), async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ Error ensuring user:', error);
+    console.error('❌ Error ensuring user:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Failed to ensure user' });
   }
 });
