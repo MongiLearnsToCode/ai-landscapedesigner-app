@@ -14,7 +14,7 @@ interface AppState {
 }
 
 interface AppActions {
-  navigateTo: (page: Page) => void;
+  navigateTo: (pageOrPath: string) => void;
   setNavigate: (navigate: (path: string) => void) => void;
   openModal: (imageUrl: string) => void;
   closeModal: () => void;
@@ -29,22 +29,23 @@ interface AppActions {
 
 type AppStore = AppState & AppActions;
 
+export const pathToPage: Record<string, Page> = {
+  '/': 'main',
+  '/history': 'history',
+  '/pricing': 'pricing',
+  '/contact': 'contact',
+  '/terms': 'terms',
+  '/privacy': 'privacy',
+  '/signin': 'signin',
+  '/signup': 'signup',
+  '/profile': 'profile',
+  '/reset-password': 'reset-password',
+  '/fair-use-policy': 'fair-use-policy',
+  '/success': 'success',
+};
+
 const getInitialPage = (): Page => {
   const path = window.location.pathname;
-  const pathToPage: Record<string, Page> = {
-    '/': 'main',
-    '/history': 'history',
-    '/pricing': 'pricing',
-    '/contact': 'contact',
-    '/terms': 'terms',
-    '/privacy': 'privacy',
-    '/signin': 'signin',
-    '/signup': 'signup',
-    '/profile': 'profile',
-    '/reset-password': 'reset-password',
-    '/fair-use-policy': 'fair-use-policy',
-    '/success': 'success',
-  };
   return pathToPage[path] || 'main';
 };
 
@@ -63,8 +64,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ navigate });
   },
 
-  navigateTo: (page: Page) => {
-    const path = page === 'main' ? '/' : `/${page}`;
+  navigateTo: (pageOrPath: string) => {
+    let path: string;
+    let page: Page;
+    if (pageOrPath.startsWith('/')) {
+      path = pageOrPath;
+      page = pathToPage[path] || 'main';
+    } else {
+      page = pageOrPath as Page;
+      path = page === 'main' ? '/' : `/${page}`;
+    }
     set({ page });
     get().navigate?.(path);
     window.scrollTo(0, 0);
