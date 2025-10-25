@@ -4,15 +4,18 @@ import { StyleSelector } from '../components/StyleSelector';
 import { ClimateZoneSection } from '../components/ClimateZoneSection';
 import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
+import { uploadImageToCloudinary } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
 import { useAppStore } from '../stores/appStore';
-import { useHistoryStore } from '../stores/historyStore';
 import { useToastStore } from '../stores/toastStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
-import { checkRedesignLimit } from '../services/historyService';
+
+import { useUser } from '@clerk/clerk-react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 interface RedesignError {
   message: string;
@@ -85,18 +88,22 @@ export const DesignerPage: React.FC = () => {
       page: state.page,
     }))
   );
-  const { saveNewRedesign, history, viewFromHistory, isLoading: historyLoading, refreshHistory } = useHistoryStore(
-    useShallow((state) => ({
-      saveNewRedesign: state.saveNewRedesign,
-      history: state.history,
-      viewFromHistory: state.viewFromHistory,
-      isLoading: state.isLoading,
-      refreshHistory: state.refreshHistory,
-    }))
-  );
+
   const { addToast } = useToastStore(
     useShallow((state) => ({ addToast: state.addToast }))
   );
+  const { user: clerkUser } = useUser();
+
+  // Convex hooks
+  const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit);
+
+  // Update remaining from Convex
+  useEffect(() => {
+    if (checkLimitQuery) {
+      setRemainingRedesigns(checkLimitQuery.remaining);
+    }
+  }, [checkLimitQuery]);
 
   const styleSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +116,7 @@ export const DesignerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<RedesignError | null>(null);
   const [remainingRedesigns, setRemainingRedesigns] = useState<number>(3);
+  const [isFromHistory, setIsFromHistory] = useState<boolean>(false);
   const hasRequestedInitialHistory = useRef(false);
 
   // Reset history request flag when authentication state changes
@@ -116,44 +124,9 @@ export const DesignerPage: React.FC = () => {
     hasRequestedInitialHistory.current = false;
   }, [isAuthenticated]);
 
-  // Check redesign limit on component mount and when user changes
-  useEffect(() => {
-    const checkLimit = async () => {
-      // Small delay to ensure user ID is set
-      await new Promise(resolve => setTimeout(resolve, 100));
-      try {
-        const { remaining } = await checkRedesignLimit();
-        setRemainingRedesigns(remaining);
-      } catch (error) {
-        console.error('Failed to check redesign limit:', error);
-      }
-    };
-    
-    if (isAuthenticated) {
-      checkLimit();
-    } else {
-      setRemainingRedesigns(0);
-    }
-  }, [isAuthenticated]); // Add isAuthenticated as dependency
 
-  // Ensure history is loaded when user is authenticated and on main page
-  useEffect(() => {
-    if (
-      page === 'main' &&
-      isAuthenticated &&
-      !historyLoading &&
-      history.length === 0 &&
-      !hasRequestedInitialHistory.current
-    ) {
-      hasRequestedInitialHistory.current = true;
-      // Small delay to ensure user ID is properly set
-      const timer = setTimeout(() => {
-        console.log('🔄 Triggering history refresh from DesignerPage');
-        refreshHistory();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [page, isAuthenticated, historyLoading, history.length, refreshHistory]);
+
+
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
@@ -174,6 +147,7 @@ export const DesignerPage: React.FC = () => {
       setDesignerState(newState);
       setRedesignedImage(itemToLoad.redesignedImage);
       setDesignCatalog(itemToLoad.designCatalog);
+      setIsFromHistory(itemToLoad.fromHistory || false);
       setError(null);
       onItemLoaded();
     }
@@ -185,6 +159,7 @@ export const DesignerPage: React.FC = () => {
     setDesignerState(prev => ({ ...prev, originalImage: file }));
     setRedesignedImage(null);
     setDesignCatalog(null);
+    setIsFromHistory(false); // New upload is not from history
     setError(null);
   };
 
@@ -198,6 +173,12 @@ export const DesignerPage: React.FC = () => {
       return;
     }
 
+    // Prevent redesign of history items (they lack base64 data)
+    if (isFromHistory) {
+      setError({ message: "Cannot redesign items loaded from history. Please upload a new image." });
+      return;
+    }
+
     // Redirect unauthenticated users to sign-in page
     if (!isAuthenticated) {
       navigateTo('signin');
@@ -205,9 +186,13 @@ export const DesignerPage: React.FC = () => {
     }
 
     // Check limit before proceeding
-    const { canRedesign, remaining } = await checkRedesignLimit();
-    if (!canRedesign) {
-      setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
+    if (!checkLimitQuery) {
+      // Still loading, don't show error yet
+      return;
+    }
+    if (checkLimitQuery.hasReachedLimit) {
+      const limit = checkLimitQuery.limit || 3;
+      setError({ message: `You have reached the maximum number of ${limit} redesigns for your account.` });
       return;
     }
 
@@ -251,15 +236,28 @@ export const DesignerPage: React.FC = () => {
           );
 
           if (validation.overallPass) {
-            await saveNewRedesign({
-              originalImage: originalImage,
-              redesignedImage: { base64: result.base64ImageBytes, type: result.mimeType },
-              catalog: result.catalog,
+            // Upload images to Cloudinary
+            const [originalUpload, redesignedUpload] = await Promise.all([
+              uploadImageToCloudinary(originalImage),
+              uploadImageToCloudinary({
+                base64: result.base64ImageBytes,
+                type: result.mimeType,
+                name: `redesigned_${Date.now()}`
+              })
+            ]);
+
+            const redesignId = `redesign_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+            await saveRedesignMutation({
+              redesignId,
+              originalImageUrl: originalUpload.secure_url,
+              redesignedImageUrl: redesignedUpload.secure_url,
+              designCatalog: result.catalog,
               styles: selectedStyles,
-              climateZone: climateZone,
+              climateZone,
             });
-            
-            const { remaining: newRemaining } = await checkRedesignLimit();
+
+            const newRemaining = checkLimitQuery ? checkLimitQuery.remaining : 0;
             setRemainingRedesigns(newRemaining);
 
             setRedesignedImage(`data:${result.mimeType};base64,${result.base64ImageBytes}`);
@@ -294,7 +292,7 @@ export const DesignerPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, saveNewRedesign, addToast, isAuthenticated, navigateTo]);
+  }, [originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity, checkLimitQuery, saveRedesignMutation, isFromHistory, addToast, isAuthenticated, navigateTo]);
 
 
 
@@ -327,7 +325,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || isLoading || (!isAuthenticated ? false : remainingRedesigns === 0)}
+              disabled={!originalImage || !originalImage.base64 || isLoading || !checkLimitQuery || (!isAuthenticated ? false : checkLimitQuery.hasReachedLimit)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
@@ -383,9 +381,9 @@ export const DesignerPage: React.FC = () => {
           redesignedImage={redesignedImage}
           designCatalog={designCatalog}
           isLoading={isLoading}
-          historyItems={history}
-          onHistoryItemClick={viewFromHistory}
-          historyLoading={historyLoading}
+          historyItems={[]}
+          onHistoryItemClick={() => {}}
+          historyLoading={false}
         />
       </div>
     </div>

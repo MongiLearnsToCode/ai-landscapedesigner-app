@@ -4,7 +4,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { HydratedHistoryItem, LandscapingStyle } from '../types';
 import { SlidersHorizontal, Search, Trash2, List, LayoutGrid, ChevronsUpDown, Filter, X } from 'lucide-react';
 import { LANDSCAPING_STYLES } from '../constants';
-import { useHistoryStore } from '../stores/historyStore';
+
 
 
 interface HistoryPageProps {
@@ -12,13 +12,14 @@ interface HistoryPageProps {
   onView: (item: HydratedHistoryItem) => void;
   onPin: (id: string) => void;
   onDelete: (id: string) => void;
+  onDeleteMultiple: (ids: string[]) => Promise<void>;
+  isLoading: boolean;
 }
 
 type SortOption = 'default' | 'date-desc' | 'date-asc' | 'name-asc';
 type DateFilterOption = 'all' | '7d' | '30d';
 
-export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, onPin, onDelete }) => {
-  const { deleteMultipleItems, isLoading } = useHistoryStore();
+export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, onPin, onDelete, onDeleteMultiple, isLoading }) => {
 
   const [unpinModalState, setUnpinModalState] = useState({ isOpen: false, itemId: null as string | null });
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false });
@@ -97,7 +98,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
     setSelectedItemIds(prev => prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]);
   };
   const handleConfirmDeleteSelected = async () => {
-    await deleteMultipleItems(selectedItemIds);
+    await onDeleteMultiple(selectedItemIds);
     setDeleteModalState({ isOpen: false });
     setIsSelectionMode(false);
     setSelectedItemIds([]);
