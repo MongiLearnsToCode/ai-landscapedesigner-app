@@ -48,12 +48,20 @@ const allowedOrigins = clientOrigin ? clientOrigin.split(',').map(origin => orig
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow same-origin requests
-    if (!origin || (allowedOrigins && allowedOrigins.includes(origin))) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin header (e.g., same-origin or mobile apps)
+    if (!origin) {
+      return callback(null, true);
     }
+    // Allow all origins if CLIENT_ORIGIN is not set (e.g., local development)
+    if (!allowedOrigins || allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+    // Check if origin is in the allowlist
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Reject otherwise
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true, // Enable credentials for Clerk auth cookies
 };
@@ -372,6 +380,18 @@ app.post('/api/history', requireAuth(), async (req, res) => {
       return res.status(400).json({ error: 'Image URLs required' });
     }
 
+    // Validate catalog and styles
+    if (!Array.isArray(catalog)) {
+      return res.status(400).json({ error: 'Invalid catalog format: must be an array' });
+    }
+    // Optional: validate each item in catalog, e.g., has name, etc.
+    // For now, basic check
+
+    if (typeof styles !== 'object' || styles === null) {
+      return res.status(400).json({ error: 'Invalid styles format: must be an object' });
+    }
+    // Optional: validate styles keys and types
+
     console.log('💾 Saving redesign for authenticated user:', userId);
 
     const newRedesign = await db
@@ -485,6 +505,16 @@ app.post('/api/users/ensure', requireAuth(), async (req, res) => {
     const userId = req.auth.userId;
     const { email, name } = req.body;
 
+    // Validate email
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email is required and must be a string' });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     console.log('👤 Ensuring user exists:', userId);
 
     const existing = await db
@@ -496,7 +526,7 @@ app.post('/api/users/ensure', requireAuth(), async (req, res) => {
     if (existing.length === 0) {
       await db.insert(user).values({
         id: userId,
-        email,
+        email: normalizedEmail,
         name: name || 'User',
         emailVerified: true,
       });
@@ -504,7 +534,7 @@ app.post('/api/users/ensure', requireAuth(), async (req, res) => {
     } else {
       await db
         .update(user)
-        .set({ name, email, updatedAt: new Date() })
+        .set({ name, email: normalizedEmail, updatedAt: new Date() })
         .where(eq(user.id, userId));
       console.log('✅ User updated');
     }
