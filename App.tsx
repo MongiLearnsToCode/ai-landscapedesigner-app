@@ -56,7 +56,6 @@ const AuthInitializer: React.FC = () => {
       const email = clerkUser.primaryEmailAddress?.emailAddress || '';
       const name = clerkUser.fullName || clerkUser.firstName || 'User';
       ensureUser({
-        clerkUserId: clerkUser.id,
         email,
         name,
       });
@@ -76,11 +75,11 @@ const PageContent: React.FC = () => {
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
 
   // Convex hooks
-  const convexHistory = useQuery(api.redesigns.getHistory, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+  const convexHistory = useQuery(api.redesigns.getHistory);
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
   const togglePinMutation = useMutation(api.redesigns.togglePin);
   const deleteRedesignMutation = useMutation(api.redesigns.deleteRedesign);
-  const checkLimitQuery = useQuery(api.redesigns.checkLimit, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit);
 
   // Process Convex history to match HydratedHistoryItem
   const processedHistory = convexHistory ? convexHistory.map(redesign => ({
@@ -126,15 +125,17 @@ const PageContent: React.FC = () => {
   };
 
   const viewFromHistory = (item: any) => {
+    // History items cannot be redesigned since we don't have the original base64
     const fullItem = {
       ...item,
       originalImage: {
         name: 'Original Image',
         type: 'image/jpeg',
-        base64: '',
+        base64: '', // Empty - cannot be used for redesign
         url: item.originalImageUrl
       },
-      redesignedImage: item.redesignedImageUrl
+      redesignedImage: item.redesignedImageUrl,
+      fromHistory: true // Flag to prevent redesign attempts
     };
     useAppStore.getState().loadItem(fullItem);
   };

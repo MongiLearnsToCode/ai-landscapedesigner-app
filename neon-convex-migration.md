@@ -198,36 +198,37 @@ root.render(
 ```typescript
 // Direct SQL in browser ⚠️
 const redesigns = await sql`
-  SELECT * FROM redesigns 
+  SELECT * FROM redesigns
   WHERE clerk_user_id = ${userId}
-`;
+ `;
 ```
 
 **After (Convex - Secure):**
 ```typescript
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { useUser } from "@clerk/clerk-react";
 
 function MyComponent() {
-  const user = useUser();
-  
-  // Queries auto-refresh on data changes
-  const history = useQuery(api.redesigns.getHistory, {
-    clerkUserId: user.id,
-  });
-  
+  const { user } = useUser();
+
+  // Queries auto-refresh on data changes (no args needed - uses auth)
+  const history = useQuery(api.redesigns.getHistory);
+  const limit = useQuery(api.redesigns.checkLimit);
+
   const saveRedesign = useMutation(api.redesigns.saveRedesign);
   const togglePin = useMutation(api.redesigns.togglePin);
-  
-  // Use them
+
+  // Use them (no clerkUserId needed - derived from auth)
   await saveRedesign({
-    clerkUserId: user.id,
     redesignId: "...",
     originalImageUrl: "...",
-    resultImageUrl: "...",
-    prompt: "...",
+    redesignedImageUrl: "...",
+    designCatalog: {...},
+    styles: [...],
+    climateZone: "...",
   });
-  
+
   await togglePin({ redesignId: "..." });
 }
 ```
@@ -352,7 +353,10 @@ Remove all `sql` imports and API route files.
 - [x] Create `convex/redesigns.ts` and `convex/users.ts`
 - [x] Wrap app in `ConvexProviderWithClerk`
 - [x] Replace all SQL calls with `useQuery`/`useMutation`
-- [ ] Migrate existing data (run export-data.ts if needed)
+- [x] Fix security vulnerabilities (auth bypasses, ownership checks)
+- [x] Make migration idempotent and preserve timestamps
+- [x] Remove exposed secrets from git and add to .gitignore
+- [ ] Migrate existing data (run tsx export-data.ts after rotating secrets)
 - [x] Remove Neon dependencies
 - [ ] Deploy: `npx convex deploy`
 

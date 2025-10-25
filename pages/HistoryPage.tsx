@@ -12,7 +12,7 @@ interface HistoryPageProps {
   onView: (item: HydratedHistoryItem) => void;
   onPin: (id: string) => void;
   onDelete: (id: string) => void;
-  onDeleteMultiple: (ids: string[]) => void;
+  onDeleteMultiple: (ids: string[]) => Promise<void>;
   isLoading: boolean;
 }
 

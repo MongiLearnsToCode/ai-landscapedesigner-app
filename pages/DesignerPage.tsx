@@ -96,7 +96,7 @@ export const DesignerPage: React.FC = () => {
 
   // Convex hooks
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
-  const checkLimitQuery = useQuery(api.redesigns.checkLimit, clerkUser ? { clerkUserId: clerkUser.id } : undefined);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit);
 
   // Update remaining from Convex
   useEffect(() => {
@@ -182,7 +182,7 @@ export const DesignerPage: React.FC = () => {
       return;
     }
     if (checkLimitQuery.hasReachedLimit) {
-      setError({ message: "You have reached the maximum limit of 3 redesigns per device." });
+      setError({ message: "You have reached the maximum limit of 3 redesigns per account." });
       return;
     }
 
@@ -239,7 +239,6 @@ export const DesignerPage: React.FC = () => {
             const redesignId = `redesign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
             await saveRedesignMutation({
-              clerkUserId: clerkUser!.id,
               redesignId,
               originalImageUrl: originalUpload.secure_url,
               redesignedImageUrl: redesignedUpload.secure_url,
@@ -316,7 +315,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || isLoading || (!isAuthenticated ? false : remainingRedesigns === 0)}
+              disabled={!originalImage || !originalImage.base64 || isLoading || (!isAuthenticated ? false : remainingRedesigns === 0)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (

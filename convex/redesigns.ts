@@ -3,11 +3,14 @@ import { mutation, query } from "./_generated/server";
 
 // Get history
 export const getHistory = query({
-  args: { clerkUserId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
     return await ctx.db
       .query("redesigns")
-      .withIndex("by_user", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_user", (q) => q.eq("clerkUserId", identity.subject))
       .order("desc")
       .collect();
   },
@@ -16,7 +19,6 @@ export const getHistory = query({
 // Save redesign
 export const saveRedesign = mutation({
   args: {
-    clerkUserId: v.string(),
     redesignId: v.string(),
     originalImageUrl: v.string(),
     redesignedImageUrl: v.string(),
@@ -25,8 +27,12 @@ export const saveRedesign = mutation({
     climateZone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
     return await ctx.db.insert("redesigns", {
       ...args,
+      clerkUserId: identity.subject,
       isPinned: false,
       createdAt: Date.now(),
     });
@@ -37,12 +43,16 @@ export const saveRedesign = mutation({
 export const togglePin = mutation({
   args: { redesignId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
     const redesign = await ctx.db
       .query("redesigns")
       .withIndex("by_redesign_id", (q) => q.eq("redesignId", args.redesignId))
       .unique();
 
     if (!redesign) throw new Error("Not found");
+    if (redesign.clerkUserId !== identity.subject) throw new Error("Not authorized");
 
     await ctx.db.patch(redesign._id, {
       isPinned: !redesign.isPinned,
@@ -52,19 +62,22 @@ export const togglePin = mutation({
 
 // Check limit
 export const checkLimit = query({
-  args: { clerkUserId: v.string() },
-  handler: async (ctx, args) => {
-    const count = await ctx.db
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const all = await ctx.db
       .query("redesigns")
-      .withIndex("by_user", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_user", (q) => q.eq("clerkUserId", identity.subject))
       .collect();
 
     const limit = 3; // Free tier
     return {
-      used: count.length,
+      used: all.length,
       limit,
-      remaining: Math.max(0, limit - count.length),
-      hasReachedLimit: count.length >= limit,
+      remaining: Math.max(0, limit - all.length),
+      hasReachedLimit: all.length >= limit,
     };
   },
 });
@@ -73,12 +86,16 @@ export const checkLimit = query({
 export const deleteRedesign = mutation({
   args: { redesignId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
     const redesign = await ctx.db
       .query("redesigns")
       .withIndex("by_redesign_id", (q) => q.eq("redesignId", args.redesignId))
       .unique();
 
     if (!redesign) throw new Error("Not found");
+    if (redesign.clerkUserId !== identity.subject) throw new Error("Not authorized");
 
     await ctx.db.delete(redesign._id);
   },
