@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.53.2",
+    "@convex-dev/auth": "^0.0.90",
     "@google/genai": "^1.20.0",
     "concurrently": "^9.2.1",
     "convex": "^1.28.0",
