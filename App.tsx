@@ -75,11 +75,11 @@ const PageContent: React.FC = () => {
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
 
   // Convex hooks
-  const convexHistory = useQuery(api.redesigns.getHistory);
+  const convexHistory = useQuery(api.redesigns.getHistory, isAuthenticated ? undefined : "skip");
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
   const togglePinMutation = useMutation(api.redesigns.togglePin);
   const deleteRedesignMutation = useMutation(api.redesigns.deleteRedesign);
-  const checkLimitQuery = useQuery(api.redesigns.checkLimit);
+  const checkLimitQuery = useQuery(api.redesigns.checkLimit, isAuthenticated ? undefined : "skip");
 
   // Process Convex history to match HydratedHistoryItem
   const processedHistory = convexHistory ? convexHistory.map(redesign => ({
