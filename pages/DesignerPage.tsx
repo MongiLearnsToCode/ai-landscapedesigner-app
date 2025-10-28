@@ -106,6 +106,11 @@ export const DesignerPage: React.FC = () => {
   // Derive authentication status from query result
   const authenticated = checkLimitQuery?.isAuthenticated ?? false;
 
+  // Debug logging
+  console.log('DesignerPage - convexHistory:', convexHistory);
+  console.log('DesignerPage - processedHistory:', processedHistory);
+  console.log('DesignerPage - authenticated:', authenticated);
+
   // Update remaining from Convex
   useEffect(() => {
     if (checkLimitQuery) {
