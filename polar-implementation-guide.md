@@ -13,7 +13,7 @@
 3. Navigate to **Products** → **Create Product**
 
 #### Create Three Products:
-```
+```text
 Product 1: Personal Plan
 - Name: Personal
 - Description: For casual users or hobbyists
