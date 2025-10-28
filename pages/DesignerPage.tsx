@@ -107,11 +107,7 @@ export const DesignerPage: React.FC = () => {
   // Use Clerk authentication status directly for faster resolution
   const authenticated = isSignedIn ?? false;
 
-  // Debug logging
-  console.log('DesignerPage - convexHistory:', convexHistory);
-  console.log('DesignerPage - processedHistory:', processedHistory);
-  console.log('DesignerPage - authenticated (Clerk):', authenticated);
-  console.log('DesignerPage - checkLimitQuery auth:', checkLimitQuery?.isAuthenticated);
+
 
   // Update remaining from Convex
   useEffect(() => {
