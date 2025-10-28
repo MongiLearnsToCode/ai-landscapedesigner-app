@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { HistoryCard } from '../components/HistoryCard';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { HydratedHistoryItem, LandscapingStyle } from '../types';
@@ -30,7 +30,6 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
   const [sortOption, setSortOption] = useState<SortOption>('default');
   
    const [searchQuery, setSearchQuery] = useState('');
-   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
    const [selectedStyles, setSelectedStyles] = useState<LandscapingStyle[]>([]);
    const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -47,18 +46,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
      return () => document.removeEventListener('mousedown', handleClickOutside);
    }, []);
 
-   useEffect(() => {
-     const timer = setTimeout(() => {
-       setDebouncedSearchQuery(searchQuery);
-     }, 300);
-     return () => clearTimeout(timer);
-   }, [searchQuery]);
+
 
   const filteredAndSortedItems = useMemo(() => {
     let items = [...historyItems];
 
-    if (debouncedSearchQuery.trim()) {
-      const lowercasedQuery = debouncedSearchQuery.toLowerCase();
+    if (searchQuery.trim()) {
+      const lowercasedQuery = searchQuery.toLowerCase();
       items = items.filter(item => {
         const styleNames = item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || '').join(' ').toLowerCase();
         if (styleNames.includes(lowercasedQuery)) return true;
@@ -91,7 +85,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
           return b.timestamp - a.timestamp;
         });
     }
-   }, [historyItems, debouncedSearchQuery, selectedStyles, dateFilter, sortOption]);
+   }, [historyItems, searchQuery, selectedStyles, dateFilter, sortOption]);
 
   const handleAttemptUnpin = (id: string) => setUnpinModalState({ isOpen: true, itemId: id });
   const handleConfirmUnpin = () => {
@@ -112,17 +106,17 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
     setSelectedItemIds([]);
   };
 
-  const handleStyleToggle = (styleId: LandscapingStyle) => {
+  const handleStyleToggle = useCallback((styleId: LandscapingStyle) => {
     setSelectedStyles(prev => prev.includes(styleId) ? prev.filter(s => s !== styleId) : [...prev, styleId]);
-  };
-  const resetFilters = () => {
+  }, []);
+  const resetFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedStyles([]);
     setDateFilter('all');
-  };
+  }, []);
   const hasActiveFilters = searchQuery.trim() !== '' || selectedStyles.length > 0 || dateFilter !== 'all';
 
-  const FilterPanel = () => (
+  const FilterPanel = useMemo(() => () => (
     <div className="space-y-6">
       <div>
         <label htmlFor="search-projects" className="block text-sm font-medium text-slate-700 mb-1.5">Search</label>
@@ -140,7 +134,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
       </div>
       {hasActiveFilters && <div className="pt-4 border-t border-slate-200/80"><button onClick={resetFilters} className="w-full text-sm text-center font-semibold text-orange-600 hover:underline">Reset all filters</button></div>}
     </div>
-  );
+  ), [searchQuery, selectedStyles, dateFilter, hasActiveFilters, handleStyleToggle, resetFilters]);
 
   const containerClasses = viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6';
 
