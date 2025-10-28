@@ -4,6 +4,7 @@ import { getCloudinaryUrl } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
 import { ImageWithLoader } from './ImageWithLoader';
 import { Eye } from 'lucide-react';
+import { useAppStore } from '../stores/appStore';
 
 interface HistoryGalleryItemProps {
     item: HydratedHistoryItem;
@@ -11,6 +12,7 @@ interface HistoryGalleryItemProps {
 }
 
 export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, onClick }) => {
+    const { openModal } = useAppStore();
     const [imageUrl, setImageUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -57,12 +59,12 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
                     <p className="text-xs text-slate-300 drop-shadow-sm">{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Unknown date'}</p>
                     {/* Mobile/Tablet: Always visible View button */}
                     <button
-                        onClick={(e) => { e.stopPropagation(); onClick(item); }}
+                        onClick={(e) => { e.stopPropagation(); openModal(item.redesignedImageUrl); }}
                         className="lg:hidden flex items-center gap-1 bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-1.5 rounded-lg text-xs shadow-md"
-                        aria-label={`View ${styleNames}`}
+                        aria-label={`View larger ${styleNames}`}
                     >
                         <Eye className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">View</span>
+                        <span className="hidden sm:inline">Larger</span>
                     </button>
                 </div>
             </div>
