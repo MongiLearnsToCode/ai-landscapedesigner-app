@@ -160,6 +160,39 @@ export const DesignerPage: React.FC = () => {
       setDesignCatalog(itemToLoad.designCatalog);
       setIsFromHistory(itemToLoad.fromHistory || false);
       setError(null);
+
+      // Pre-fetch original image for history items to speed up redesign
+      if (itemToLoad.fromHistory && itemToLoad.originalImage && !itemToLoad.originalImage.base64 && itemToLoad.originalImage.url) {
+        // Async fetch without blocking the UI
+        fetch(itemToLoad.originalImage.url)
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.blob();
+          })
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = reader.result as string;
+              const imageBase64 = base64.split(',')[1];
+
+              // Update the originalImage with the fetched base64
+              setDesignerState(prev => ({
+                ...prev,
+                originalImage: prev.originalImage ? {
+                  ...prev.originalImage,
+                  base64: imageBase64,
+                  type: blob.type || 'image/jpeg'
+                } : null
+              }));
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(error => {
+            console.warn('Failed to pre-fetch original image for history item:', error);
+            // Don't show error to user, just log it
+          });
+      }
+
       onItemLoaded();
     }
   }, [itemToLoad, onItemLoaded]);
