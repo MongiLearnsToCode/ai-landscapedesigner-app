@@ -57,14 +57,6 @@ const getPrompt = (
       climateInstruction += " Incorporate serene elements like maples (Japanese Maple), bamboo, moss, and cherry trees.";
     } else if (/coastal/i.test(lowerZone)) {
       climateInstruction += " Select salt-tolerant plants like ornamental grasses (Pampas Grass), beach roses, and hardy shrubs.";
-    } else if (/rustic|farmhouse/i.test(lowerZone)) {
-      climateInstruction += " Use practical, hardy plants like oaks, wildflowers, and vegetable patches.";
-    } else if (/modern|minimalist|urban/i.test(lowerZone)) {
-      climateInstruction += " Opt for sleek, low-maintenance plants like boxwoods, ornamental grasses, and succulents.";
-    } else if (/english|cottage/i.test(lowerZone)) {
-      climateInstruction += " Include charming plants like roses, climbing vines, and informal flower beds.";
-    } else if (/bohemian/i.test(lowerZone)) {
-      climateInstruction += " Blend eclectic, colorful plants like sunflowers, wildflowers, and herbs.";
     }
   }
 
@@ -90,9 +82,43 @@ const getPrompt = (
   }, null, 2);
 
   const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId);
+
+  // Add style-specific plant guidance
+  const getStylePlantGuidance = (styleId: LandscapingStyle): string => {
+    switch (styleId) {
+      case 'modern':
+        return 'sleek, low-maintenance plants like boxwoods, ornamental grasses, and succulents';
+      case 'minimalist':
+        return 'minimal, clean plants like succulents, ornamental grasses, and simple shrubs';
+      case 'rustic':
+        return 'natural, hardy plants like oaks, wildflowers, and rugged shrubs';
+      case 'japanese':
+        return 'serene plants like maples, bamboo, moss, and cherry trees';
+      case 'urban-modern':
+        return 'compact, resilient plants like boxwoods, ornamental grasses, and vertical gardens';
+      case 'english-cottage':
+        return 'charming plants like roses, climbing vines, and informal flower beds';
+      case 'mediterranean':
+        return 'sun-tolerant plants like olive trees, lavender, rosemary, and citrus';
+      case 'tropical':
+        return 'lush plants like palms, hibiscus, ferns, and orchids';
+      case 'farmhouse':
+        return 'practical plants like oaks, wildflowers, vegetable patches, and picket fences';
+      case 'coastal':
+        return 'salt-tolerant plants like ornamental grasses, beach roses, and hardy shrubs';
+      case 'desert':
+        return 'drought-tolerant plants like succulents, cacti, and ornamental grasses';
+      case 'bohemian':
+        return 'eclectic, colorful plants like sunflowers, wildflowers, and herbs';
+      default:
+        return 'appropriate plants for the style';
+    }
+  };
+
+  const stylePlantGuidance = styles.map(style => getStylePlantGuidance(style)).filter(g => g !== 'appropriate plants for the style').join(', ');
   const styleInstruction = styleNames.length > 1
-    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.`
-    : `Redesign the landscape in a '${styleNames[0]}' style.`;
+    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics. Incorporate plants like ${stylePlantGuidance}.`
+    : `Redesign the landscape in a '${styleNames[0]}' style. Incorporate plants like ${getStylePlantGuidance(styles[0])}.`;
 
   const layoutInstruction = `**CRITICAL RULE: Functional Access (No Exceptions):**
   - **Garages & Driveways:** You MUST consistently identify all garage doors. A functional driveway MUST lead directly to each garage door. This driveway must be kept completely clear of any new plants, trees, hardscaping, or other obstructions. The driveway's width MUST be maintained to be at least as wide as the full width of the garage door it serves. Do not place any design elements on the driveway surface. This is a non-negotiable rule.
