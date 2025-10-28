@@ -117,6 +117,9 @@ export const DesignerPage: React.FC = () => {
   }, [checkLimitQuery]);
 
   const styleSelectorRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const currentFetchControllerRef = useRef<AbortController | null>(null);
+  const currentRequestIdRef = useRef<string | null>(null);
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;
@@ -143,10 +146,31 @@ export const DesignerPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('designerSession', JSON.stringify(designerState));
   }, [designerState]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (currentFetchControllerRef.current) {
+        currentFetchControllerRef.current.abort();
+      }
+    };
+  }, []);
   
   // Load item from history
   useEffect(() => {
     if (itemToLoad) {
+      // Cancel any ongoing fetch for previous item
+      if (currentFetchControllerRef.current) {
+        currentFetchControllerRef.current.abort();
+        currentFetchControllerRef.current = null;
+      }
+
+      // Generate unique request ID for this load operation
+      const requestId = `${itemToLoad.id || 'unknown'}-${Date.now()}`;
+      currentRequestIdRef.current = requestId;
+
       const newState: DesignerState = {
         originalImage: itemToLoad.originalImage,
         selectedStyles: itemToLoad.styles,
@@ -160,8 +184,68 @@ export const DesignerPage: React.FC = () => {
       setDesignCatalog(itemToLoad.designCatalog);
       setIsFromHistory(itemToLoad.fromHistory || false);
       setError(null);
+
+      // Pre-fetch original image for history items to speed up redesign
+      if (itemToLoad.fromHistory && itemToLoad.originalImage && !itemToLoad.originalImage.base64 && itemToLoad.originalImage.url) {
+        const controller = new AbortController();
+        currentFetchControllerRef.current = controller;
+
+        // Async fetch without blocking the UI
+        fetch(itemToLoad.originalImage.url, { signal: controller.signal })
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.blob();
+          })
+          .then(blob => {
+            // Check if this request is still valid
+            if (!mountedRef.current || currentRequestIdRef.current !== requestId || controller.signal.aborted) {
+              return; // Skip if aborted, unmounted, or newer request started
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+              // Double-check validity before updating state
+              if (!mountedRef.current || currentRequestIdRef.current !== requestId || controller.signal.aborted) {
+                return;
+              }
+
+              const base64 = reader.result as string;
+              const imageBase64 = base64.split(',')[1];
+
+              // Update the originalImage with the fetched base64
+              setDesignerState(prev => ({
+                ...prev,
+                originalImage: prev.originalImage ? {
+                  ...prev.originalImage,
+                  base64: imageBase64,
+                  type: blob.type || 'image/jpeg'
+                } : null
+              }));
+            };
+            reader.onerror = () => {
+              // Silently handle FileReader errors
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(error => {
+            if (error.name !== 'AbortError') {
+              console.warn('Failed to pre-fetch original image for history item:', error);
+            }
+            // Don't show error to user, just log it
+          });
+      }
+
       onItemLoaded();
     }
+
+    // Cleanup function
+    return () => {
+      if (currentFetchControllerRef.current) {
+        currentFetchControllerRef.current.abort();
+        currentFetchControllerRef.current = null;
+      }
+      currentRequestIdRef.current = null;
+    };
   }, [itemToLoad, onItemLoaded]);
 
 
