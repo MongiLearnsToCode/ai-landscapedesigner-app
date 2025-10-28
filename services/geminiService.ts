@@ -47,16 +47,27 @@ const getPrompt = (
 
   if (climateZone) {
     const lowerZone = climateZone.toLowerCase();
-    if (/arid|desert/i.test(lowerZone)) {
-      climateInstruction += " Prioritize drought-tolerant plants like succulents (Agave, Aloe), cacti (Prickly Pear), ornamental grasses (Blue Grama), and hardy shrubs (Sagebrush).";
-    } else if (/tropical/i.test(lowerZone)) {
-      climateInstruction += " Use lush, humidity-loving plants like palms (Coconut Palm), hibiscus, ferns (Boston Fern), and orchids.";
-    } else if (/mediterranean/i.test(lowerZone)) {
-      climateInstruction += " Choose sun-tolerant plants like olive trees, lavender, rosemary, and citrus trees.";
-    } else if (/japanese|zen/i.test(lowerZone)) {
-      climateInstruction += " Incorporate serene elements like maples (Japanese Maple), bamboo, moss, and cherry trees.";
-    } else if (/coastal/i.test(lowerZone)) {
-      climateInstruction += " Select salt-tolerant plants like ornamental grasses (Pampas Grass), beach roses, and hardy shrubs.";
+    const lowerStyles = styles.map(s => s.toLowerCase());
+    const climateCoveredByStyle = lowerStyles.some(s => {
+      if (/arid|desert/i.test(lowerZone)) return s === 'desert';
+      if (/tropical/i.test(lowerZone)) return s === 'tropical';
+      if (/mediterranean/i.test(lowerZone)) return s === 'mediterranean';
+      if (/coastal/i.test(lowerZone)) return s === 'coastal';
+      return false;
+    });
+
+    if (!climateCoveredByStyle) {
+      if (/arid|desert/i.test(lowerZone)) {
+        climateInstruction += " Prioritize drought-tolerant plants like succulents (Agave, Aloe), cacti (Prickly Pear), ornamental grasses (Blue Grama), and hardy shrubs (Sagebrush).";
+      } else if (/tropical/i.test(lowerZone)) {
+        climateInstruction += " Use lush, humidity-loving plants like palms (Coconut Palm), hibiscus, ferns (Boston Fern), and orchids.";
+      } else if (/mediterranean/i.test(lowerZone)) {
+        climateInstruction += " Choose sun-tolerant plants like olive trees, lavender, rosemary, and citrus trees.";
+      } else if (/japanese|zen/i.test(lowerZone)) {
+        climateInstruction += " Incorporate serene elements like maples (Japanese Maple), bamboo, moss, and cherry trees.";
+      } else if (/coastal/i.test(lowerZone)) {
+        climateInstruction += " Select salt-tolerant plants like ornamental grasses (Pampas Grass), beach roses, and hardy shrubs.";
+      }
     }
   }
 
@@ -111,14 +122,17 @@ const getPrompt = (
       case 'bohemian':
         return 'eclectic, colorful plants like sunflowers, wildflowers, and herbs';
       default:
-        return 'appropriate plants for the style';
+        return 'plants appropriate to the selected style';
     }
   };
 
-  const stylePlantGuidance = styles.map(style => getStylePlantGuidance(style)).filter(g => g !== 'appropriate plants for the style').join(', ');
+  const stylePlantGuidance = styles.map(style => getStylePlantGuidance(style)).filter(g => g !== 'plants appropriate to the selected style').join(', ');
   const styleInstruction = styleNames.length > 1
-    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics. Incorporate plants like ${stylePlantGuidance}.`
-    : `Redesign the landscape in a '${styleNames[0]}' style. Incorporate plants like ${getStylePlantGuidance(styles[0])}.`;
+    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.${stylePlantGuidance ? ` Incorporate plants like ${stylePlantGuidance}.` : ' Incorporate plants appropriate to the selected style(s).'}`
+    : (() => {
+        const guidance = getStylePlantGuidance(styles[0]);
+        return `Redesign the landscape in a '${styleNames[0]}' style.${guidance !== 'plants appropriate to the selected style' ? ` Incorporate plants like ${guidance}.` : ' Incorporate plants appropriate to the selected style.'}`;
+      })();
 
   const layoutInstruction = `**CRITICAL RULE: Functional Access (No Exceptions):**
   - **Garages & Driveways:** You MUST consistently identify all garage doors. A functional driveway MUST lead directly to each garage door. This driveway must be kept completely clear of any new plants, trees, hardscaping, or other obstructions. The driveway's width MUST be maintained to be at least as wide as the full width of the garage door it serves. Do not place any design elements on the driveway surface. This is a non-negotiable rule.
