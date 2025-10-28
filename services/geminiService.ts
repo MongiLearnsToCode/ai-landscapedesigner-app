@@ -45,8 +45,31 @@ const getPrompt = (
     ? `All plants, trees, and materials MUST be suitable for the '${climateZone}' climate/region.`
     : 'Select plants and materials that are generally appropriate for the visual context of the image.';
 
-  if (climateZone && /arid|desert/i.test(climateZone)) {
-    climateInstruction += " For this arid climate, prioritize drought-tolerant plants. Excellent choices include succulents (like Agave, Aloe), cacti (like Prickly Pear), ornamental grasses (like Blue Grama), and hardy shrubs (like Sagebrush).";
+  if (climateZone) {
+    const lowerZone = climateZone.toLowerCase();
+    const lowerStyles = styles.map(s => s.toLowerCase());
+    const climateCoveredByStyle = lowerStyles.some(s => {
+      if (/arid|desert/i.test(lowerZone)) return s === 'desert';
+      if (/tropical/i.test(lowerZone)) return s === 'tropical';
+      if (/mediterranean/i.test(lowerZone)) return s === 'mediterranean';
+      if (/coastal/i.test(lowerZone)) return s === 'coastal';
+      if (/japanese|zen/i.test(lowerZone)) return s === 'japanese';
+      return false;
+    });
+
+    if (!climateCoveredByStyle) {
+      if (/arid|desert/i.test(lowerZone)) {
+        climateInstruction += " Prioritize drought-tolerant plants like succulents (Agave, Aloe), cacti (Prickly Pear), ornamental grasses (Blue Grama), and hardy shrubs (Sagebrush).";
+      } else if (/tropical/i.test(lowerZone)) {
+        climateInstruction += " Use lush, humidity-loving plants like palms (Coconut Palm), hibiscus, ferns (Boston Fern), and orchids.";
+      } else if (/mediterranean/i.test(lowerZone)) {
+        climateInstruction += " Choose sun-tolerant plants like olive trees, lavender, rosemary, and citrus trees.";
+      } else if (/japanese|zen/i.test(lowerZone)) {
+        climateInstruction += " Incorporate serene elements like maples (Japanese Maple), bamboo, moss, and cherry trees.";
+      } else if (/coastal/i.test(lowerZone)) {
+        climateInstruction += " Select salt-tolerant plants like ornamental grasses (Pampas Grass), beach roses, and hardy shrubs.";
+      }
+    }
   }
 
   const aspectRatioInstruction = lockAspectRatio
@@ -71,55 +94,74 @@ const getPrompt = (
   }, null, 2);
 
   const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId);
+
+  // Add style-specific plant guidance
+  const getStylePlantGuidance = (styleId: LandscapingStyle): string => {
+    switch (styleId) {
+      case 'modern':
+        return 'sleek, low-maintenance plants like boxwoods, ornamental grasses, and succulents';
+      case 'minimalist':
+        return 'minimal, clean plants like succulents, ornamental grasses, and simple shrubs';
+      case 'rustic':
+        return 'natural, hardy plants like oaks, wildflowers, and rugged shrubs';
+      case 'japanese':
+        return 'serene plants like maples, bamboo, moss, and cherry trees';
+      case 'urban-modern':
+        return 'compact, resilient plants like boxwoods, ornamental grasses, and vertical gardens';
+      case 'english-cottage':
+        return 'charming plants like roses, climbing vines, and informal flower beds';
+      case 'mediterranean':
+        return 'sun-tolerant plants like olive trees, lavender, rosemary, and citrus';
+      case 'tropical':
+        return 'lush plants like palms, hibiscus, ferns, and orchids';
+      case 'farmhouse':
+        return 'practical plants like oaks, wildflowers, vegetable patches, and picket fences';
+      case 'coastal':
+        return 'salt-tolerant plants like ornamental grasses, beach roses, and hardy shrubs';
+      case 'desert':
+        return 'drought-tolerant plants like succulents, cacti, and ornamental grasses';
+      case 'bohemian':
+        return 'eclectic, colorful plants like sunflowers, wildflowers, and herbs';
+      default:
+        return 'plants appropriate to the selected style';
+    }
+  };
+
+  const stylePlantGuidance = styles.map(style => getStylePlantGuidance(style)).filter(g => g !== 'plants appropriate to the selected style').join(', ');
   const styleInstruction = styleNames.length > 1
-    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.`
-    : `Redesign the landscape in a '${styleNames[0]}' style.`;
+    ? `Redesign the landscape in a blended style that combines '${styleNames.join("' and '")}'. Prioritize a harmonious fusion of these aesthetics.${stylePlantGuidance ? ` Incorporate plants like ${stylePlantGuidance}.` : ' Incorporate plants appropriate to the selected style(s).'}`
+    : (() => {
+        const guidance = getStylePlantGuidance(styles[0]);
+        return `Redesign the landscape in a '${styleNames[0]}' style.${guidance !== 'plants appropriate to the selected style' ? ` Incorporate plants like ${guidance}.` : ' Incorporate plants appropriate to the selected style.'}`;
+      })();
 
   const layoutInstruction = `**CRITICAL RULE: Functional Access (No Exceptions):**
   - **Garages & Driveways:** You MUST consistently identify all garage doors. A functional driveway MUST lead directly to each garage door. This driveway must be kept completely clear of any new plants, trees, hardscaping, or other obstructions. The driveway's width MUST be maintained to be at least as wide as the full width of the garage door it serves. Do not place any design elements on the driveway surface. This is a non-negotiable rule.
   - **All Other Doors:** EVERY door (front doors, side doors, patio doors, etc.) MUST be accessible. This means each door must have a clear, direct, and unobstructed pathway leading to it. This pathway must be at least as wide as the door itself and must connect logically to a larger circulation route like the main driveway or a walkway. Do not isolate any doors.`;
 
   return `
-You are an expert AI landscape designer. Your task is to perform an in-place edit of the user's provided image.
+You are an expert AI landscape designer. Perform an in-place edit of the user's image to redesign the landscape while preserving the property.
 
-**CORE DIRECTIVE: MODIFY THE LANDSCAPE, PRESERVE THE PROPERTY**
-This is the most important rule. You MUST use the user's uploaded image as the base for your work. Your sole purpose is to modify the *landscape* within that photo. You are **STRICTLY FORBIDDEN** from generating a completely new image, replacing the property, or altering the main house/building. The output image must clearly be the same property as the input, but with a new landscape design.
+## Core Rules
+- **Preserve Property**: Use the input image as the base. Modify ONLY the landscape (plants, paths, furniture). Do NOT generate a new image, replace the property, or alter the house/building in any way (architecture, color, windows, doors, roof).
+- **Functional Access**: ${layoutInstruction.replace(/\*\*CRITICAL RULE: Functional Access \(No Exceptions\):\*\*\s*/, '').replace(/\*\*/g, '')}
+- **Object Handling**: ${objectRemovalInstruction}
+- **Structural Changes**: ${structuralChangeInstruction}
 
-**CRITICAL RULE: THE HOUSE IS IMMUTABLE**
-This is a non-negotiable, absolute command. The main building in the photo MUST NOT be changed in any way.
-- **DO NOT** alter its architecture, color, materials, windows, doors, roof, or any part of its structure.
-- **DO NOT** add new doors or windows where there were none.
-- **DO NOT** remove existing doors or windows.
-- **DO NOT** change the color of the house paint, trim, or roof.
-All design work must be done *around* the existing house as if it were a permanent, uneditable backdrop. This rule takes precedence over all other instructions, including style requests.
+## Output Requirements
+- **Image First**: Response must start with the redesigned image.
+- **JSON After**: Provide ONLY a valid JSON object (no intro text) describing plants and features, following the schema below.
 
-${layoutInstruction}
+## Redesign Instructions
+- **Style**: ${styleInstruction} Convey style through visual elements only—no text labels.
+- **Quality**: Ultra-photorealistic, high-resolution, sharp focus, matching original lighting. No artifacts.
+- **Climate**: ${climateInstruction}
+- **Density**: ${densityInstruction}
+- **Aspect Ratio**: ${aspectRatioInstruction}
 
-**PRIMARY GOAL: IMAGE GENERATION**
-Your response MUST begin with the image part. This is a non-negotiable instruction. The first part of your multipart response must be the redesigned image.
-
-**SECONDARY GOAL: JSON DATA**
-After the image, you MUST provide a valid JSON object describing the new plants and features. Do not add any introductory text like "Here is the JSON" or conversational filler. The text part should contain ONLY the JSON object, optionally wrapped in a markdown code block.
-
-**INPUT:**
-You will receive one image (and potentially a second layout image) and this set of instructions.
-
-**IMAGE REDESIGN INSTRUCTIONS:**
-- **Style:** ${styleInstruction}
-- **CRITICAL STYLE APPLICATION RULE:** Applying a style means modifying ONLY the landscape elements (plants, paths, furniture, etc.) within the user's photo to match the requested style. It does NOT mean creating a new property or scene. The house and its surroundings must remain identical to the original image, with only the landscape design changing. This rule is absolute.
-- **Image Quality:** This is a CRITICAL instruction. The output image MUST be of the absolute highest professional quality. It must be ultra-photorealistic, extremely detailed, with sharp focus and lighting that matches the original image. The resolution should be as high as possible. Avoid any blurry, pixelated, distorted, or digitally artifacted results. The final image must look like it was taken with a high-end DSLR camera.
-- **CRITICAL AESTHETIC RULE: NO TEXTUAL LABELS.** You are absolutely forbidden from adding any text, words, signs, or labels that name the style (e.g., do not write the word 'Modern' or 'Farmhouse' anywhere in the image). The style must be conveyed purely through visual design elements, not through text.
-- **Object Removal:** ${objectRemovalInstruction}
-- **Structural Landscape Changes:** ${structuralChangeInstruction}
-- **Climate:** ${climateInstruction}
-- **Aspect Ratio:** ${aspectRatioInstruction}
-- **Design Density:** ${densityInstruction}
-
-**JSON SCHEMA (for the text part):**
-The JSON object must follow this exact schema.
+## JSON Schema
 ${jsonSchemaString}
-- Ensure every single plant in the JSON catalog is suitable for the specified climate zone. This is a non-negotiable rule.
-- If a category is empty, provide an empty list [].
+Ensure all plants suit the climate zone. Empty categories: [].
 `;
 };
 
@@ -294,11 +336,13 @@ export const getElementImage = async (elementName: string, description?: string)
 /**
  * Gets a user-friendly description for a landscape element.
  * @param elementName - The name of the element.
+ * @param climateZone - Optional climate zone to tailor the description.
  * @returns A promise that resolves to a string with the element's information.
  */
-export const getElementInfo = async (elementName: string): Promise<string> => {
+export const getElementInfo = async (elementName: string, climateZone?: string): Promise<string> => {
     try {
-        const prompt = `Provide a brief, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip. Format the response as a single, concise paragraph.`;
+        const climateInstruction = climateZone ? ` Tailor the description to the '${climateZone}' climate, noting suitability and any adaptations needed.` : '';
+        const prompt = `Provide a brief, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions (sun, water), and one interesting fact or design tip.${climateInstruction} Format the response as a single, concise paragraph.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -449,11 +493,13 @@ export const getReplacementSuggestions = async (
     const styleNames = styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' and ');
     const climateInstruction = climateZone ? ` The suggestions must be suitable for the '${climateZone}' climate.` : '';
 
-    const prompt = `I am redesigning a garden and want to replace a "${elementName}". 
-    Please provide 4 alternative suggestions that fit a '${styleNames}' style. 
+    const prompt = `I am redesigning a garden and want to replace a "${elementName}".
+    Please provide 3-5 alternative suggestions that fit a '${styleNames}' style.
     ${climateInstruction}
-    The suggestions should be similar in function or scale to the original item.
-    The response must be a JSON array of strings.`;
+    Prioritize native or sustainable options for the climate zone.
+    Each suggestion should be similar in function or scale to the original item.
+    For each suggestion, include a brief rationale (e.g., why it fits the style or climate).
+    Respond with a JSON array of objects, each with "suggestion" and "rationale" fields.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -463,8 +509,12 @@ export const getReplacementSuggestions = async (
         responseSchema: {
           type: Type.ARRAY,
           items: {
-            type: Type.STRING,
-            description: 'A single suggested replacement item.'
+            type: Type.OBJECT,
+            properties: {
+              suggestion: { type: Type.STRING, description: 'The name of the suggested replacement item.' },
+              rationale: { type: Type.STRING, description: 'A brief reason why this suggestion fits.' }
+            },
+            required: ['suggestion', 'rationale']
           }
         }
       }
@@ -473,10 +523,10 @@ export const getReplacementSuggestions = async (
     const text = response.text.trim();
     try {
         const suggestions = JSON.parse(text);
-        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
-            return suggestions;
+        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'object' && s !== null && 'suggestion' in s && 'rationale' in s)) {
+            return suggestions.map(s => `Suggestion: ${s.suggestion} - Rationale: ${s.rationale}`);
         }
-        console.warn('Parsed JSON is not an array of strings:', suggestions);
+        console.warn('Parsed JSON is not an array of objects with suggestion and rationale:', suggestions);
         return [];
     } catch (e) {
       console.error("Failed to parse suggestions JSON from model:", e, "Received text:", text);
