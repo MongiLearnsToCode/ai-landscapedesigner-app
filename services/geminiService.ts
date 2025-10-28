@@ -53,6 +53,7 @@ const getPrompt = (
       if (/tropical/i.test(lowerZone)) return s === 'tropical';
       if (/mediterranean/i.test(lowerZone)) return s === 'mediterranean';
       if (/coastal/i.test(lowerZone)) return s === 'coastal';
+      if (/japanese|zen/i.test(lowerZone)) return s === 'japanese';
       return false;
     });
 
