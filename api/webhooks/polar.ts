@@ -91,11 +91,11 @@ async function handleSubscriptionActive(subscription: any) {
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: subscription.priceId,
+    subscriptionPriceId: subscription.prices?.[0]?.id || null, // Get first price ID
     status: 'active',
     plan: planConfig.plan,
     limit: planConfig.limit,
-    currentPeriodEnd: new Date(subscription.currentPeriodEnd).getTime(),
+    currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
   });
 }
 
@@ -105,19 +105,19 @@ async function handleSubscriptionCanceled(subscription: any) {
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: subscription.priceId,
+    subscriptionPriceId: subscription.prices?.[0]?.id || null, // Get first price ID
     status: 'canceled',
     plan: 'Free',
     limit: 3,
-    currentPeriodEnd: new Date(subscription.currentPeriodEnd).getTime(),
+    currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
   });
 }
 
 async function handleOrderCreated(order: any) {
   // Link Polar customer to Clerk user if metadata exists
-  if (order.customerMetadata?.clerk_user_id) {
+  if (order.customer?.metadata?.clerk_user_id) {
     await convex.mutation(api.users.linkPolarCustomer, {
-      clerkUserId: order.customerMetadata.clerk_user_id,
+      clerkUserId: order.customer.metadata.clerk_user_id,
       polarCustomerId: order.customerId,
     });
   }

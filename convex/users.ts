@@ -55,11 +55,11 @@ export const updateSubscription = mutation({
   args: {
     polarCustomerId: v.string(),
     subscriptionId: v.string(),
-    subscriptionPriceId: v.string(),
+    subscriptionPriceId: v.optional(v.string()),
     status: v.string(),
     plan: v.string(),
     limit: v.number(),
-    currentPeriodEnd: v.number(),
+    currentPeriodEnd: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
