@@ -161,6 +161,16 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onHistoryItemClick,
   historyLoading,
 }) => {
+  // Debug logging
+  console.log('ResultDisplay props:', {
+    hasOriginalImage: !!originalImageFile,
+    hasRedesignedImage: !!redesignedImage,
+    isLoading,
+    historyItemsCount: historyItems?.length || 0,
+    hasHistoryItemClick: !!onHistoryItemClick,
+    historyLoading
+  });
+
   if (isLoading) {
     return <EngagingLoader />;
   }
