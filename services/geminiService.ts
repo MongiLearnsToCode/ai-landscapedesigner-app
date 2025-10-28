@@ -499,8 +499,7 @@ export const getReplacementSuggestions = async (
     Prioritize native or sustainable options for the climate zone.
     Each suggestion should be similar in function or scale to the original item.
     For each suggestion, include a brief rationale (e.g., why it fits the style or climate).
-    Format as: "Suggestion: [name] - Rationale: [brief reason]".
-    The response must be a JSON array of strings.`;
+    Respond with a JSON array of objects, each with "suggestion" and "rationale" fields.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -510,8 +509,12 @@ export const getReplacementSuggestions = async (
         responseSchema: {
           type: Type.ARRAY,
           items: {
-            type: Type.STRING,
-            description: 'A single suggested replacement item.'
+            type: Type.OBJECT,
+            properties: {
+              suggestion: { type: Type.STRING, description: 'The name of the suggested replacement item.' },
+              rationale: { type: Type.STRING, description: 'A brief reason why this suggestion fits.' }
+            },
+            required: ['suggestion', 'rationale']
           }
         }
       }
@@ -520,10 +523,10 @@ export const getReplacementSuggestions = async (
     const text = response.text.trim();
     try {
         const suggestions = JSON.parse(text);
-        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
-            return suggestions;
+        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'object' && s !== null && 'suggestion' in s && 'rationale' in s)) {
+            return suggestions.map(s => `Suggestion: ${s.suggestion} - Rationale: ${s.rationale}`);
         }
-        console.warn('Parsed JSON is not an array of strings:', suggestions);
+        console.warn('Parsed JSON is not an array of objects with suggestion and rationale:', suggestions);
         return [];
     } catch (e) {
       console.error("Failed to parse suggestions JSON from model:", e, "Received text:", text);
