@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, memo } from 'react';
 import { HistoryCard } from '../components/HistoryCard';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { HydratedHistoryItem, LandscapingStyle } from '../types';
@@ -18,6 +18,37 @@ interface HistoryPageProps {
 
 type SortOption = 'default' | 'date-desc' | 'date-asc' | 'name-asc';
 type DateFilterOption = 'all' | '7d' | '30d';
+
+interface FilterPanelProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedStyles: LandscapingStyle[];
+  dateFilter: DateFilterOption;
+  setDateFilter: (filter: DateFilterOption) => void;
+  hasActiveFilters: boolean;
+  handleStyleToggle: (styleId: LandscapingStyle) => void;
+  resetFilters: () => void;
+}
+
+const FilterPanel = memo<FilterPanelProps>(({ searchQuery, setSearchQuery, selectedStyles, dateFilter, setDateFilter, hasActiveFilters, handleStyleToggle, resetFilters }) => (
+  <div className="space-y-6">
+    <div>
+      <label htmlFor="search-projects" className="block text-sm font-medium text-slate-700 mb-1.5">Search</label>
+      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><input type="text" id="search-projects" placeholder="Keywords..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-slate-100/80 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 h-10"/></div>
+    </div>
+    <div>
+      <h4 className="text-sm font-medium text-slate-700 mb-2">Date Created</h4>
+      <div className="flex flex-col space-y-2">
+        {(['all', '7d', '30d'] as const).map(d => <label key={d} className="flex items-center space-x-2 cursor-pointer text-sm"><input type="radio" name="date-filter" value={d} checked={dateFilter === d} onChange={() => setDateFilter(d)} className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300"/><span>{{ all: 'All Time', '7d': 'Last 7 Days', '30d': 'Last 30 Days' }[d]}</span></label>)}
+      </div>
+    </div>
+    <div>
+      <h4 className="text-sm font-medium text-slate-700 mb-2">Styles</h4>
+      <div className="space-y-2 max-h-60 overflow-y-auto pr-2">{LANDSCAPING_STYLES.map(style => <label key={style.id} className="flex items-center space-x-2 cursor-pointer text-sm"><input type="checkbox" checked={selectedStyles.includes(style.id)} onChange={() => handleStyleToggle(style.id)} className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"/><span>{style.name}</span></label>)}</div>
+    </div>
+    {hasActiveFilters && <div className="pt-4 border-t border-slate-200/80"><button onClick={resetFilters} className="w-full text-sm text-center font-semibold text-orange-600 hover:underline">Reset all filters</button></div>}
+  </div>
+));
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, onPin, onDelete, onDeleteMultiple, isLoading }) => {
 
@@ -116,26 +147,6 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
   }, []);
   const hasActiveFilters = searchQuery.trim() !== '' || selectedStyles.length > 0 || dateFilter !== 'all';
 
-  const FilterPanel = useMemo(() => () => (
-    <div className="space-y-6">
-      <div>
-        <label htmlFor="search-projects" className="block text-sm font-medium text-slate-700 mb-1.5">Search</label>
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><input type="text" id="search-projects" placeholder="Keywords..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-slate-100/80 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 h-10"/></div>
-      </div>
-      <div>
-        <h4 className="text-sm font-medium text-slate-700 mb-2">Date Created</h4>
-        <div className="flex flex-col space-y-2">
-          {(['all', '7d', '30d'] as const).map(d => <label key={d} className="flex items-center space-x-2 cursor-pointer text-sm"><input type="radio" name="date-filter" value={d} checked={dateFilter === d} onChange={() => setDateFilter(d)} className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300"/><span>{{ all: 'All Time', '7d': 'Last 7 Days', '30d': 'Last 30 Days' }[d]}</span></label>)}
-        </div>
-      </div>
-      <div>
-        <h4 className="text-sm font-medium text-slate-700 mb-2">Styles</h4>
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">{LANDSCAPING_STYLES.map(style => <label key={style.id} className="flex items-center space-x-2 cursor-pointer text-sm"><input type="checkbox" checked={selectedStyles.includes(style.id)} onChange={() => handleStyleToggle(style.id)} className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"/><span>{style.name}</span></label>)}</div>
-      </div>
-      {hasActiveFilters && <div className="pt-4 border-t border-slate-200/80"><button onClick={resetFilters} className="w-full text-sm text-center font-semibold text-orange-600 hover:underline">Reset all filters</button></div>}
-    </div>
-  ), [searchQuery, selectedStyles, dateFilter, hasActiveFilters, handleStyleToggle, resetFilters]);
-
   const containerClasses = viewMode === 'list' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6';
 
   return (
@@ -147,10 +158,19 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="hidden lg:block lg:col-span-1">
-          <div className="sticky top-28 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Filter & Sort</h3>
-            <FilterPanel />
-          </div>
+           <div className="sticky top-28 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+             <h3 className="text-lg font-bold text-slate-800 mb-4">Filter & Sort</h3>
+             <FilterPanel
+               searchQuery={searchQuery}
+               setSearchQuery={setSearchQuery}
+               selectedStyles={selectedStyles}
+               dateFilter={dateFilter}
+               setDateFilter={setDateFilter}
+               hasActiveFilters={hasActiveFilters}
+               handleStyleToggle={handleStyleToggle}
+               resetFilters={resetFilters}
+             />
+           </div>
         </aside>
 
         <main className="lg:col-span-3">
@@ -197,8 +217,17 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
       
       <div className={`fixed inset-0 bg-slate-900/40 z-40 lg:hidden transition-opacity duration-300 ${isFilterPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsFilterPanelOpen(false)}>
         <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg z-50 w-80 p-6 transition-transform duration-300 ease-in-out ${isFilterPanelOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold">Filter & Sort</h3><button onClick={() => setIsFilterPanelOpen(false)} className="p-1 rounded-full hover:bg-slate-100"><X className="h-5 w-5 text-slate-600" /></button></div>
-          <FilterPanel />
+           <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold">Filter & Sort</h3><button onClick={() => setIsFilterPanelOpen(false)} className="p-1 rounded-full hover:bg-slate-100"><X className="h-5 w-5 text-slate-600" /></button></div>
+           <FilterPanel
+             searchQuery={searchQuery}
+             setSearchQuery={setSearchQuery}
+             selectedStyles={selectedStyles}
+             dateFilter={dateFilter}
+             setDateFilter={setDateFilter}
+             hasActiveFilters={hasActiveFilters}
+             handleStyleToggle={handleStyleToggle}
+             resetFilters={resetFilters}
+           />
         </div>
       </div>
 
