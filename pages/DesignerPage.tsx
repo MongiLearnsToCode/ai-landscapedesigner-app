@@ -16,6 +16,7 @@ import { DensitySelector } from '../components/DensitySelector';
 import { useUser } from '@clerk/clerk-react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import { processConvexHistory } from '../src/utils/historyUtils';
 
 interface RedesignError {
   message: string;
@@ -100,42 +101,7 @@ export const DesignerPage: React.FC = () => {
   const convexHistory = useQuery(api.redesigns.getHistory);
 
   // Process Convex history to match HydratedHistoryItem
-  const processedHistory = convexHistory ? convexHistory.map(redesign => {
-    let timestamp: number | null = null;
-
-    if (typeof redesign.createdAt === 'number' && Number.isFinite(redesign.createdAt)) {
-      timestamp = redesign.createdAt;
-    } else {
-      const parsedTime = new Date(redesign.createdAt || redesign._creationTime).getTime();
-      if (Number.isFinite(parsedTime)) {
-        timestamp = parsedTime;
-      } else {
-        console.warn(`Invalid timestamp for redesign ${redesign.redesignId}: createdAt=${redesign.createdAt}, _creationTime=${redesign._creationTime}`);
-      }
-    }
-
-    return {
-      id: redesign.redesignId,
-      designCatalog: redesign.designCatalog,
-      styles: redesign.styles,
-      climateZone: redesign.climateZone || '',
-      timestamp,
-      isPinned: redesign.isPinned || false,
-      originalImageUrl: redesign.originalImageUrl,
-      redesignedImageUrl: redesign.redesignedImageUrl
-    };
-  }).sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-
-    // Treat null timestamps as newest (appear first)
-    if (a.timestamp === null && b.timestamp !== null) return -1;
-    if (b.timestamp === null && a.timestamp !== null) return 1;
-
-    // Both null or both have timestamps - sort by timestamp descending
-    if (a.timestamp === null && b.timestamp === null) return 0;
-    return (b.timestamp as number) - (a.timestamp as number);
-  }) : [];
+  const processedHistory = processConvexHistory(convexHistory);
 
   // Derive authentication status from query result
   const authenticated = checkLimitQuery?.isAuthenticated ?? false;
