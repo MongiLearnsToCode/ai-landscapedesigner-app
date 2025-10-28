@@ -113,16 +113,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     try {
       const productMap: Record<string, Record<string, string>> = {
         Personal: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_YEARLY,
+          monthly: import.meta.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRICE_PERSONAL_ANNUAL,
         },
         Creator: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_YEARLY,
+          monthly: import.meta.env.VITE_POLAR_PRICE_CREATOR_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRICE_CREATOR_ANNUAL,
         },
         Business: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_YEARLY,
+          monthly: import.meta.env.VITE_POLAR_PRICE_BUSINESS_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRICE_BUSINESS_ANNUAL,
         },
       };
 
@@ -131,7 +131,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       const checkout = await createCheckout({
         productPriceId,
         successUrl: `${window.location.origin}/success`,
-        customerEmail: clerkUser.primaryEmailAddress?.emailAddress || '',
         metadata: {
           clerk_user_id: clerkUser.id,
         },

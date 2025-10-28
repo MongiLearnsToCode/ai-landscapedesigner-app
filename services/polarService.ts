@@ -8,22 +8,21 @@ const polar = new Polar({
 export interface CheckoutConfig {
   productPriceId: string;
   successUrl: string;
-  customerEmail: string;
-  customerId?: string;
+  customerEmail?: string; // Not used in checkout link creation
+  customerId?: string; // Not used in checkout link creation
   metadata?: Record<string, string>;
 }
 
 export const createCheckout = async (config: CheckoutConfig) => {
   try {
-    const checkout = await polar.checkouts.create({
-      products: [config.productPriceId], // Note: products is an array of product IDs, not price IDs
+    const checkoutLink = await polar.checkoutLinks.create({
+      productPriceId: config.productPriceId,
       successUrl: config.successUrl,
-      customerEmail: config.customerEmail,
-      customerId: config.customerId,
-      customerMetadata: config.metadata,
+      metadata: config.metadata,
+      paymentProcessor: "stripe", // Required field
     });
 
-    return checkout;
+    return { url: checkoutLink.url };
   } catch (error) {
     console.error('Polar checkout error:', error);
     throw error;
