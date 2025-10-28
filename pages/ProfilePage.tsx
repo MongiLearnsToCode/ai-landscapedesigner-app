@@ -3,6 +3,9 @@ import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
 import { User, DollarSign, LogOut, AlertTriangle } from 'lucide-react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
+import { getCustomerPortalUrl } from '../services/polarService';
 
 // --- Reusable Components for the Profile Page ---
 
@@ -48,11 +51,30 @@ const ClerkProfilePlaceholder: React.FC = () => {
 };
 
 const SubscriptionContent: React.FC = () => {
-  const { user, navigateTo } = useAppStore();
+  const { navigateTo } = useAppStore();
   const { addToast } = useToastStore();
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
 
-  if (!user) return null;
+  const userData = useQuery(api.users.getUser);
+
+  const handleManageSubscription = async () => {
+    if (!userData?.polarCustomerId) {
+      addToast('No subscription found to manage.', 'error');
+      return;
+    }
+
+    setIsLoadingPortal(true);
+    try {
+      const portalUrl = await getCustomerPortalUrl(userData.polarCustomerId);
+      window.location.href = portalUrl;
+    } catch (error) {
+      console.error('Customer portal error:', error);
+      addToast('Failed to open customer portal. Please try again.', 'error');
+    } finally {
+      setIsLoadingPortal(false);
+    }
+  };
 
   const handleConfirmCancel = () => {
     addToast('Your subscription has been canceled.', 'info');
@@ -60,20 +82,55 @@ const SubscriptionContent: React.FC = () => {
     // API call to cancel subscription would go here.
   };
 
+  if (!userData) {
+    return (
+      <Section title="My Subscription">
+        <div className="text-center py-8">
+          <p className="text-slate-500">Loading subscription information...</p>
+        </div>
+      </Section>
+    );
+  }
+
+  const plan = userData.subscriptionPlan || 'Free';
+  const status = userData.subscriptionStatus || 'active';
+  const nextBillingDate = userData.currentPeriodEnd ? new Date(userData.currentPeriodEnd).toLocaleDateString() : null;
+
   return (
     <>
       <Section title="My Subscription">
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200/80">
             <div>
-              <p className="text-base font-semibold text-slate-800">{user.subscription.plan} Plan</p>
-              <p className="text-sm text-slate-500">Next billing date: {new Date(user.subscription.nextBillingDate).toLocaleDateString()}</p>
+              <p className="text-base font-semibold text-slate-800">{plan} Plan</p>
+              {nextBillingDate && plan !== 'Free' && (
+                <p className="text-sm text-slate-500">Next billing date: {nextBillingDate}</p>
+              )}
+              {plan === 'Free' && (
+                <p className="text-sm text-slate-500">Free plan with 3 redesigns per month</p>
+              )}
             </div>
-            <span className="mt-2 sm:mt-0 capitalize text-sm font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">{user.subscription.status}</span>
+            <span className={`mt-2 sm:mt-0 capitalize text-sm font-bold px-3 py-1 rounded-full ${
+              status === 'active' ? 'text-green-700 bg-green-100' :
+              status === 'canceled' ? 'text-red-700 bg-red-100' :
+              'text-yellow-700 bg-yellow-100'
+            }`}>
+              {status}
+            </span>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-            <button onClick={() => setIsCancelModalOpen(true)} className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">Cancel Subscription</button>
-            <button onClick={() => navigateTo('pricing')} className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors">Change Plan</button>
+            {plan !== 'Free' && (
+              <button
+                onClick={handleManageSubscription}
+                disabled={isLoadingPortal}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoadingPortal ? 'Loading...' : 'Manage Subscription'}
+              </button>
+            )}
+            <button onClick={() => navigateTo('pricing')} className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors">
+              {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
+            </button>
           </div>
         </div>
       </Section>

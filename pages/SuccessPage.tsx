@@ -1,14 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAppStore } from '../stores/appStore';
 import { CheckCircle, LayoutDashboard, User } from 'lucide-react';
 
 export const SuccessPage: React.FC = () => {
-  const { navigateTo, upgradeSubscription } = useAppStore();
-
-  useEffect(() => {
-    // Simulate updating the user's subscription status upon landing on this page.
-    upgradeSubscription('Creator'); // Hardcoding to 'Creator' for this example.
-  }, [upgradeSubscription]);
+  const { navigateTo } = useAppStore();
 
   return (
     <div className="w-full max-w-2xl mx-auto my-auto text-center flex flex-col items-center justify-center p-4">
@@ -32,12 +27,12 @@ export const SuccessPage: React.FC = () => {
         <CheckCircle className="h-24 w-24 text-green-500 animate-scale-in" strokeWidth={1.5} />
       </div>
       
-      <h2 className="text-4xl font-extrabold text-slate-900 sm:text-5xl animate-fade-in-up">
-        Subscription Successful!
-      </h2>
-      <p className="mt-4 text-lg text-slate-600 max-w-md mx-auto animate-fade-in-up delay-100">
-        Thank you for subscribing! Your plan has been upgraded, and you now have access to all the premium features.
-      </p>
+       <h2 className="text-4xl font-extrabold text-slate-900 sm:text-5xl animate-fade-in-up">
+         Payment Successful!
+       </h2>
+       <p className="mt-4 text-lg text-slate-600 max-w-md mx-auto animate-fade-in-up delay-100">
+         Thank you for your purchase! Your subscription has been activated and you now have access to your new plan features.
+       </p>
 
       <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-200">
         <button

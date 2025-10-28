@@ -27,7 +27,7 @@ export const migrateFromNeon = internalMutation({
         .withIndex("by_clerk_id", q => q.eq("clerkUserId", user.clerkUserId))
         .unique();
       if (!existing) {
-        await ctx.db.insert("users", { ...user, isPremium: false });
+        await ctx.db.insert("users", { ...user, subscriptionPlan: "Free", monthlyRedesignLimit: 3, redesignsUsedThisMonth: 0, currentMonthStart: Date.now() });
       }
     }
 
