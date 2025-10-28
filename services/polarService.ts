@@ -1,5 +1,11 @@
 import { Polar } from '@polar-sh/sdk';
 
+// Debug logging for Polar configuration
+console.log('🔍 Polar Configuration Debug:');
+console.log('VITE_POLAR_ACCESS_TOKEN:', import.meta.env.VITE_POLAR_ACCESS_TOKEN ? 'Set (length: ' + import.meta.env.VITE_POLAR_ACCESS_TOKEN.length + ')' : 'NOT SET');
+console.log('VITE_POLAR_SANDBOX:', import.meta.env.VITE_POLAR_SANDBOX);
+console.log('VITE_POLAR_PRICE_PERSONAL_MONTHLY:', import.meta.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY);
+
 const polar = new Polar({
   accessToken: import.meta.env.VITE_POLAR_ACCESS_TOKEN,
   server: import.meta.env.VITE_POLAR_SANDBOX === 'true' ? 'sandbox' : 'production',
@@ -14,6 +20,13 @@ export interface CheckoutConfig {
 }
 
 export const createCheckout = async (config: CheckoutConfig) => {
+  console.log('🛒 Creating Polar checkout with config:', {
+    productPriceId: config.productPriceId,
+    successUrl: config.successUrl,
+    hasMetadata: !!config.metadata,
+    metadataKeys: config.metadata ? Object.keys(config.metadata) : [],
+  });
+
   try {
     const checkoutLink = await polar.checkoutLinks.create({
       productPriceId: config.productPriceId,
@@ -22,9 +35,19 @@ export const createCheckout = async (config: CheckoutConfig) => {
       paymentProcessor: "stripe", // Required field
     });
 
+    console.log('✅ Polar checkout created successfully:', {
+      hasUrl: !!checkoutLink.url,
+      urlLength: checkoutLink.url?.length,
+    });
+
     return { url: checkoutLink.url };
   } catch (error) {
-    console.error('Polar checkout error:', error);
+    console.error('❌ Polar checkout error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      body: error.body,
+    });
     throw error;
   }
 };
