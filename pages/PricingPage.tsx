@@ -1,6 +1,9 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
 import type { Page } from '../stores/appStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import { createCheckout } from '../services/polarService';
+import { useToastStore } from '../stores/toastStore';
 
 interface PricingPageProps {
   onNavigate: (page: Page) => void;
@@ -19,9 +22,11 @@ interface PlanCardProps {
   cta: string;
   isPopular?: boolean;
   ribbonText?: string;
+  onClick?: () => void;
+  isLoading?: boolean;
 }
 
-const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText }, ref) => {
+const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onClick, isLoading }, ref) => {
   const cardClasses = isPopular
     ? 'border-orange-500 border-2 transform md:scale-105 shadow-lg'
     : 'border-slate-200/80 border';
@@ -60,9 +65,13 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         ))}
       </ul>
       
-      <a href="#" className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg ${buttonClasses}`}>
-        {cta}
-      </a>
+       <button
+         onClick={onClick}
+         disabled={isLoading}
+         className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
+       >
+         {isLoading ? 'Processing...' : cta}
+       </button>
     </div>
   );
 });
@@ -72,8 +81,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const containerRef = useRef<HTMLDivElement>(null);
   const popularCardRef = useRef<HTMLDivElement>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
 
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
+
+  const { user: clerkUser } = useUser();
+  const { addToast } = useToastStore();
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -87,6 +100,49 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const smoothScrollBy = (amount: number) => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubscribe = async (plan: string, billingCycle: BillingCycle) => {
+    if (!clerkUser) {
+      onNavigate('signin');
+      return;
+    }
+
+    setIsCheckingOut(plan);
+    try {
+      const productMap: Record<string, Record<string, string>> = {
+        Personal: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_YEARLY,
+        },
+        Creator: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_YEARLY,
+        },
+        Business: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_YEARLY,
+        },
+      };
+
+      const productPriceId = productMap[plan][billingCycle];
+
+      const checkout = await createCheckout({
+        productPriceId,
+        successUrl: `${window.location.origin}/success`,
+        customerEmail: clerkUser.primaryEmailAddress?.emailAddress || '',
+        metadata: {
+          clerk_user_id: clerkUser.id,
+        },
+      });
+
+      window.location.href = checkout.url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      addToast('Failed to start checkout. Please try again.', 'error');
+    } finally {
+      setIsCheckingOut(null);
     }
   };
 
@@ -208,39 +264,45 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <ScrollIndicator direction="left" visible={scrollState.canScrollLeft} />
           <ScrollIndicator direction="right" visible={scrollState.canScrollRight} />
           <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
-            <PlanCard 
-                plan="Personal"
-                price={billingCycle === 'monthly' ? "$12" : "$120"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
-                description="For casual users or hobbyists."
-                features={["50 redesigns per month", ...commonFeatures]}
-                cta="Get Personal"
-            />
-            <PlanCard 
-                ref={popularCardRef}
-                plan="Creator"
-                price={billingCycle === 'monthly' ? "$29" : "$240"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
-                description="For regular creators & freelancers."
-                features={["200 redesigns per month", ...commonFeatures]}
-                cta="Choose Creator"
-                isPopular={true}
-                ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
-            />
-            <PlanCard 
-                plan="Business"
-                price={billingCycle === 'monthly' ? "$60" : "$480"}
-                pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
-                savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
-                description="For teams, agencies & power users."
-                features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
-                cta="Go Business"
-            />
+             <PlanCard
+                 plan="Personal"
+                 price={billingCycle === 'monthly' ? "$12" : "$120"}
+                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+                 monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
+                 savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
+                 description="For casual users or hobbyists."
+                 features={["50 redesigns per month", ...commonFeatures]}
+                 cta="Get Personal"
+                 onClick={() => handleSubscribe('Personal', billingCycle)}
+                 isLoading={isCheckingOut === 'Personal'}
+             />
+             <PlanCard
+                 ref={popularCardRef}
+                 plan="Creator"
+                 price={billingCycle === 'monthly' ? "$29" : "$240"}
+                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+                 monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
+                 savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
+                 description="For regular creators & freelancers."
+                 features={["200 redesigns per month", ...commonFeatures]}
+                 cta="Choose Creator"
+                 isPopular={true}
+                 ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
+                 onClick={() => handleSubscribe('Creator', billingCycle)}
+                 isLoading={isCheckingOut === 'Creator'}
+             />
+             <PlanCard
+                 plan="Business"
+                 price={billingCycle === 'monthly' ? "$60" : "$480"}
+                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+                 monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
+                 savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
+                 description="For teams, agencies & power users."
+                 features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
+                 cta="Go Business"
+                 onClick={() => handleSubscribe('Business', billingCycle)}
+                 isLoading={isCheckingOut === 'Business'}
+             />
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@
 import type * as migrate from "../migrate.js";
 import type * as redesigns from "../redesigns.js";
 import type * as users from "../users.js";
+import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   migrate: typeof migrate;
   redesigns: typeof redesigns;
   users: typeof users;
+  webhooks: typeof webhooks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
