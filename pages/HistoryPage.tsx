@@ -29,28 +29,36 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('default');
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStyles, setSelectedStyles] = useState<LandscapingStyle[]>([]);
-  const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+   const [selectedStyles, setSelectedStyles] = useState<LandscapingStyle[]>([]);
+   const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
+   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+   const sortDropdownRef = useRef<HTMLDivElement>(null);
+   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-        setIsSortDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+   useEffect(() => {
+     const handleClickOutside = (event: MouseEvent) => {
+       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+         setIsSortDropdownOpen(false);
+       }
+     };
+     document.addEventListener('mousedown', handleClickOutside);
+     return () => document.removeEventListener('mousedown', handleClickOutside);
+   }, []);
+
+   useEffect(() => {
+     const timer = setTimeout(() => {
+       setDebouncedSearchQuery(searchQuery);
+     }, 300);
+     return () => clearTimeout(timer);
+   }, [searchQuery]);
 
   const filteredAndSortedItems = useMemo(() => {
     let items = [...historyItems];
 
-    if (searchQuery.trim()) {
-      const lowercasedQuery = searchQuery.toLowerCase();
+    if (debouncedSearchQuery.trim()) {
+      const lowercasedQuery = debouncedSearchQuery.toLowerCase();
       items = items.filter(item => {
         const styleNames = item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || '').join(' ').toLowerCase();
         if (styleNames.includes(lowercasedQuery)) return true;
@@ -83,7 +91,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
           return b.timestamp - a.timestamp;
         });
     }
-  }, [historyItems, searchQuery, selectedStyles, dateFilter, sortOption]);
+   }, [historyItems, debouncedSearchQuery, selectedStyles, dateFilter, sortOption]);
 
   const handleAttemptUnpin = (id: string) => setUnpinModalState({ isOpen: true, itemId: id });
   const handleConfirmUnpin = () => {
