@@ -101,19 +101,35 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
     if (dateFilter !== 'all') {
       const days = dateFilter === '7d' ? 7 : 30;
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-      items = items.filter(item => item.timestamp >= cutoff);
+      items = items.filter(item => item.timestamp !== null && item.timestamp >= cutoff);
     }
 
     const getStyleNames = (item: HydratedHistoryItem) => item.styles.map(styleId => LANDSCAPING_STYLES.find(s => s.id === styleId)?.name || styleId).join(' & ');
 
     switch (sortOption) {
-      case 'date-desc': return items.sort((a, b) => b.timestamp - a.timestamp);
-      case 'date-asc': return items.sort((a, b) => a.timestamp - b.timestamp);
+      case 'date-desc': return items.sort((a, b) => {
+        // Treat null timestamps as newest (appear first)
+        if (a.timestamp === null && b.timestamp !== null) return -1;
+        if (b.timestamp === null && a.timestamp !== null) return 1;
+        if (a.timestamp === null && b.timestamp === null) return 0;
+        return (b.timestamp as number) - (a.timestamp as number);
+      });
+      case 'date-asc': return items.sort((a, b) => {
+        // Treat null timestamps as newest (appear last in ascending order)
+        if (a.timestamp === null && b.timestamp !== null) return 1;
+        if (b.timestamp === null && a.timestamp !== null) return -1;
+        if (a.timestamp === null && b.timestamp === null) return 0;
+        return (a.timestamp as number) - (b.timestamp as number);
+      });
       case 'name-asc': return items.sort((a, b) => getStyleNames(a).localeCompare(getStyleNames(b)));
       default:
         return items.sort((a, b) => {
           if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-          return b.timestamp - a.timestamp;
+          // Treat null timestamps as newest (appear first)
+          if (a.timestamp === null && b.timestamp !== null) return -1;
+          if (b.timestamp === null && a.timestamp !== null) return 1;
+          if (a.timestamp === null && b.timestamp === null) return 0;
+          return (b.timestamp as number) - (a.timestamp as number);
         });
     }
    }, [historyItems, searchQuery, selectedStyles, dateFilter, sortOption]);

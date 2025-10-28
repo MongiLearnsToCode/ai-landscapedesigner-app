@@ -57,7 +57,7 @@ export interface HydratedHistoryItem {
     designCatalog: DesignCatalog;
     styles: LandscapingStyle[];
     climateZone: string;
-    timestamp: number;
+    timestamp: number | null;
     isPinned: boolean;
     // Minimized data structure - only essential URLs to reduce response size
     originalImageUrl: string;

@@ -117,7 +117,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
             <h4 className="font-bold text-slate-800 text-base capitalize truncate">{styleNames}</h4>
             <p className="text-sm text-slate-500 truncate">{item.climateZone || 'General Climate'}</p>
           </div>
-          <span className="text-xs text-slate-400 mt-2 self-start">{new Date(item.timestamp).toLocaleDateString()}</span>
+          <span className="text-xs text-slate-400 mt-2 self-start">{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Unknown date'}</span>
         </div>
       </div>
     );
@@ -141,7 +141,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
       <div className="flex-grow min-w-0">
         <h4 className="font-bold text-slate-800 text-sm capitalize truncate">{styleNames}</h4>
         <p className="text-sm text-slate-500 truncate">{item.climateZone || 'General Climate'}</p>
-        <p className="text-xs text-slate-400 mt-1">{new Date(item.timestamp).toLocaleString()}</p>
+        <p className="text-xs text-slate-400 mt-1">{item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Unknown date'}</p>
       </div>
         {!isSelectionMode && (
           <div className="flex-shrink-0 flex items-center gap-2 lg:hidden">

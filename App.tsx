@@ -21,6 +21,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useAppStore, type Page, pathToPage } from './stores/appStore';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from './convex/_generated/api';
+import { processConvexHistory } from './src/utils/historyUtils';
 
 const AuthInitializer: React.FC = () => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
@@ -84,20 +85,7 @@ const PageContent: React.FC = () => {
   const checkLimitQuery = useQuery(api.redesigns.checkLimit);
 
   // Process Convex history to match HydratedHistoryItem
-  const processedHistory = convexHistory ? convexHistory.map(redesign => ({
-    id: redesign.redesignId,
-    designCatalog: redesign.designCatalog,
-    styles: redesign.styles,
-    climateZone: redesign.climateZone || '',
-    timestamp: typeof redesign.createdAt === 'number' ? redesign.createdAt : (new Date(redesign.createdAt || redesign._creationTime).getTime() || 0),
-    isPinned: redesign.isPinned || false,
-    originalImageUrl: redesign.originalImageUrl,
-    redesignedImageUrl: redesign.redesignedImageUrl
-  })).sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return b.timestamp - a.timestamp;
-  }) : [];
+  const processedHistory = processConvexHistory(convexHistory);
 
   // Convex action handlers
   const handlePin = async (id: string) => {

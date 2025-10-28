@@ -54,7 +54,7 @@ export const HistoryGalleryItem: React.FC<HistoryGalleryItemProps> = ({ item, on
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
                 <h4 className="text-white font-bold text-sm truncate drop-shadow-md">{styleNames}</h4>
                 <div className="flex items-center justify-between">
-                    <p className="text-xs text-slate-300 drop-shadow-sm">{new Date(item.timestamp).toLocaleDateString()}</p>
+                    <p className="text-xs text-slate-300 drop-shadow-sm">{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Unknown date'}</p>
                     {/* Mobile/Tablet: Always visible View button */}
                     <button
                         onClick={(e) => { e.stopPropagation(); onClick(item); }}

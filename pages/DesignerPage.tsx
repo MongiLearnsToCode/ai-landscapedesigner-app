@@ -6,7 +6,7 @@ import { ResultDisplay } from '../components/ResultDisplay';
 import { redesignOutdoorSpace, validateRedesign } from '../services/geminiService';
 import { uploadImageToCloudinary } from '../services/cloudinaryService';
 import { LANDSCAPING_STYLES } from '../constants';
-import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity } from '../types';
+import type { LandscapingStyle, ImageFile, DesignCatalog, RedesignDensity, HydratedHistoryItem } from '../types';
 import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -16,6 +16,7 @@ import { DensitySelector } from '../components/DensitySelector';
 import { useUser } from '@clerk/clerk-react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import { processConvexHistory } from '../src/utils/historyUtils';
 
 interface RedesignError {
   message: string;
@@ -97,6 +98,10 @@ export const DesignerPage: React.FC = () => {
   // Convex hooks
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
   const checkLimitQuery = useQuery(api.redesigns.checkLimit);
+  const convexHistory = useQuery(api.redesigns.getHistory);
+
+  // Process Convex history to match HydratedHistoryItem
+  const processedHistory = processConvexHistory(convexHistory);
 
   // Derive authentication status from query result
   const authenticated = checkLimitQuery?.isAuthenticated ?? false;
@@ -176,10 +181,39 @@ export const DesignerPage: React.FC = () => {
       return;
     }
 
-    // Prevent redesign of history items (they lack base64 data)
-    if (isFromHistory) {
-      setError({ message: "Cannot redesign items loaded from history. Please upload a new image." });
-      return;
+    // If from history and no base64, fetch the image from URL
+    let imageBase64 = originalImage.base64;
+    let imageType = originalImage.type;
+
+    if (isFromHistory && !originalImage.base64 && originalImage.url) {
+      try {
+        setIsLoading(true);
+        setError(null);
+        addToast("Loading image from history...", "info");
+
+        const response = await fetch(originalImage.url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        const blob = await response.blob();
+        imageType = blob.type || 'image/jpeg';
+
+        // Convert blob to base64
+        imageBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        // Remove the data:image/jpeg;base64, prefix
+        imageBase64 = imageBase64.split(',')[1];
+      } catch (error) {
+        console.error('Failed to load image from history:', error);
+        setError({ message: "Failed to load image from history. Please upload a new image." });
+        setIsLoading(false);
+        return;
+      }
     }
 
     // Check limit before proceeding
@@ -219,8 +253,8 @@ export const DesignerPage: React.FC = () => {
           }
 
           const result = await redesignOutdoorSpace(
-            originalImage.base64,
-            originalImage.type,
+            imageBase64,
+            imageType,
             selectedStyles,
             allowStructuralChanges,
             climateZone,
@@ -229,8 +263,8 @@ export const DesignerPage: React.FC = () => {
           );
 
           const validation = await validateRedesign(
-            originalImage.base64,
-            originalImage.type,
+            imageBase64,
+            imageType,
             result.base64ImageBytes,
             result.mimeType,
             selectedStyles,
@@ -329,7 +363,7 @@ export const DesignerPage: React.FC = () => {
         <div>
             <button
               onClick={handleGenerateRedesign}
-              disabled={!originalImage || !originalImage.base64 || isLoading || (authenticated && checkLimitQuery?.hasReachedLimit)}
+              disabled={!originalImage || isLoading || (authenticated && checkLimitQuery?.hasReachedLimit)}
               className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {isLoading ? (
@@ -385,9 +419,23 @@ export const DesignerPage: React.FC = () => {
           redesignedImage={redesignedImage}
           designCatalog={designCatalog}
           isLoading={isLoading}
-          historyItems={[]}
-          onHistoryItemClick={() => {}}
-          historyLoading={false}
+          historyItems={processedHistory}
+          onHistoryItemClick={(item) => {
+            // Load item from history similar to viewFromHistory in App.tsx
+            const fullItem = {
+              ...item,
+              originalImage: {
+                name: 'Original Image',
+                type: 'image/jpeg',
+                base64: '', // Empty - cannot be used for redesign
+                url: item.originalImageUrl
+              },
+              redesignedImage: item.redesignedImageUrl,
+              fromHistory: true // Flag to prevent redesign attempts
+            };
+            useAppStore.getState().loadItem(fullItem);
+          }}
+          historyLoading={convexHistory === undefined}
         />
       </div>
     </div>
