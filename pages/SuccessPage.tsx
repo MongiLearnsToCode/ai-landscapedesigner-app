@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
-import { CheckCircle, LayoutDashboard, User } from 'lucide-react';
+import { CheckCircle, LayoutDashboard, Cog } from 'lucide-react';
 
 export const SuccessPage: React.FC = () => {
   const { navigateTo } = useAppStore();
@@ -43,11 +43,11 @@ export const SuccessPage: React.FC = () => {
           <span>Go to Dashboard</span>
         </button>
         <button
-          onClick={() => navigateTo('profile')}
+          onClick={() => navigateTo('settings')}
           className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-6 rounded-lg transition-colors"
         >
-          <User className="h-5 w-5" />
-          <span>View Profile</span>
+          <Cog className="h-5 w-5" />
+          <span>App Settings</span>
         </button>
       </div>
     </div>
