@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { HydratedHistoryItem, User } from '../types';
 
-export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'profile' | 'reset-password' | 'fair-use-policy' | 'success';
+export type Page = 'main' | 'history' | 'pricing' | 'contact' | 'terms' | 'privacy' | 'signin' | 'signup' | 'settings' | 'reset-password' | 'fair-use-policy' | 'success';
 
 interface AppState {
   page: Page;
@@ -38,7 +38,7 @@ export const pathToPage: Record<string, Page> = {
   '/privacy': 'privacy',
   '/signin': 'signin',
   '/signup': 'signup',
-  '/profile': 'profile',
+  '/settings': 'settings',
   '/reset-password': 'reset-password',
   '/fair-use-policy': 'fair-use-policy',
   '/success': 'success',

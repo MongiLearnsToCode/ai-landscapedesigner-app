@@ -89,12 +89,12 @@ export const Header: React.FC = () => {
              {isAuthenticated ? (
                <div className="flex items-center space-x-3">
                  <button
-                   onClick={() => navigateTo('profile')}
+                   onClick={() => navigateTo('settings')}
                    className="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
                    title="Account Settings"
                  >
                    <User className="h-4 w-4" />
-                   <span>Profile</span>
+                   <span>Settings</span>
                  </button>
                  <UserButton
                    afterSignOutUrl="/"
@@ -165,7 +165,7 @@ export const Header: React.FC = () => {
                  {isAuthenticated && <MobileNavLink targetPage="history">Projects</MobileNavLink>}
                  <MobileNavLink targetPage="pricing">Pricing</MobileNavLink>
                  <MobileNavLink targetPage="contact">Contact</MobileNavLink>
-                 {isAuthenticated && <MobileNavLink targetPage="profile">Profile</MobileNavLink>}
+                 {isAuthenticated && <MobileNavLink targetPage="settings">Settings</MobileNavLink>}
              </nav>
             {!isAuthenticated && (
                 <div className="p-4 space-y-3 border-t border-slate-200/80">
