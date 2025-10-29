@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -23,11 +22,31 @@ const CurrentPlan: React.FC = () => {
   const { navigateTo } = useAppStore();
   const userData = useQuery(api.users.getUser);
   const plan = userData?.subscriptionPlan || 'Free';
-  const price = plan === 'Free' ? 0 : (plan === 'Pro' ? 10 : 0); // Example pricing
+  const status = userData?.subscriptionStatus || 'active';
+  const billingCycle = userData?.billingCycle || 'monthly';
+  
+  // Plan pricing based on Polar plans
+  const getPlanInfo = (planName: string) => {
+    switch (planName) {
+      case 'Personal':
+        return { price: 10, description: 'Perfect for individuals' };
+      case 'Creator':
+        return { price: 29, description: 'For content creators' };
+      case 'Business':
+        return { price: 99, description: 'For teams and businesses' };
+      default:
+        return { price: 0, description: 'Our basic free-forever plan' };
+    }
+  };
+  
+  const planInfo = getPlanInfo(plan);
+  const price = billingCycle === 'annual' ? Math.floor(planInfo.price * 10) : planInfo.price;
 
   const footer = (
     <div className="flex justify-between items-center">
-      <p className="text-sm text-slate-600">For more features, upgrade your plan.</p>
+      <p className="text-sm text-slate-600">
+        {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription'}
+      </p>
       <button 
         onClick={() => navigateTo('pricing')}
         className="px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
@@ -41,11 +60,25 @@ const CurrentPlan: React.FC = () => {
     <SectionCard title="Current Plan" footer={footer}>
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-xl font-bold text-slate-800">{plan} Plan</p>
-          <p className="text-slate-500">Our basic free-forever plan.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-bold text-slate-800">{plan} Plan</p>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              status === 'active' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {status}
+            </span>
+          </div>
+          <p className="text-slate-500">{planInfo.description}</p>
+          {billingCycle && plan !== 'Free' && (
+            <p className="text-sm text-slate-400 mt-1">Billed {billingCycle}</p>
+          )}
         </div>
         <div className="text-right">
-          <p className="text-4xl font-bold text-slate-800">${price}<span className="text-lg font-medium text-slate-500">/month</span></p>
+          <p className="text-4xl font-bold text-slate-800">
+            ${price}<span className="text-lg font-medium text-slate-500">/{billingCycle === 'annual' ? 'year' : 'month'}</span>
+          </p>
         </div>
       </div>
     </SectionCard>
