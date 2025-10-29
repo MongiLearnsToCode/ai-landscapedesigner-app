@@ -119,6 +119,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
       const productId = productMap[plan];
 
+      // Validate productId exists and is properly configured
+      if (!productId || productId === 'REPLACE_WITH_REAL_PRODUCT_ID') {
+        console.error('Product ID not configured for plan:', plan, 'productId:', productId);
+        addToast(`Payment system not configured for ${plan} plan. Please contact support.`, 'error');
+        return;
+      }
+
       const checkout = await createCheckout({
         productId,
         successUrl: `${window.location.origin}/success`,
