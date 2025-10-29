@@ -4,7 +4,7 @@ import { Polar } from '@polar-sh/sdk';
 console.log('🔍 Polar Configuration Debug:');
 console.log('VITE_POLAR_ACCESS_TOKEN:', import.meta.env.VITE_POLAR_ACCESS_TOKEN ? 'Set (length: ' + import.meta.env.VITE_POLAR_ACCESS_TOKEN.length + ')' : 'NOT SET');
 console.log('VITE_POLAR_SANDBOX:', import.meta.env.VITE_POLAR_SANDBOX);
-console.log('VITE_POLAR_PRICE_PERSONAL_MONTHLY:', import.meta.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY);
+console.log('VITE_POLAR_PRODUCT_PERSONAL_ID:', import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ID);
 
 const polar = new Polar({
   accessToken: import.meta.env.VITE_POLAR_ACCESS_TOKEN,
@@ -12,7 +12,7 @@ const polar = new Polar({
 });
 
 export interface CheckoutConfig {
-  productPriceId: string;
+  productId: string; // Changed from productPriceId to productId
   successUrl: string;
   customerEmail?: string; // Not used in checkout link creation
   customerId?: string; // Not used in checkout link creation
@@ -21,7 +21,7 @@ export interface CheckoutConfig {
 
 export const createCheckout = async (config: CheckoutConfig) => {
   console.log('🛒 Creating Polar checkout with config:', {
-    productPriceId: config.productPriceId,
+    productId: config.productId,
     successUrl: config.successUrl,
     hasMetadata: !!config.metadata,
     metadataKeys: config.metadata ? Object.keys(config.metadata) : [],
@@ -29,7 +29,7 @@ export const createCheckout = async (config: CheckoutConfig) => {
 
   try {
     const checkoutLink = await polar.checkoutLinks.create({
-      productPriceId: config.productPriceId,
+      products: [config.productId], // Use products array with product ID
       successUrl: config.successUrl,
       metadata: config.metadata,
       paymentProcessor: "stripe", // Required field

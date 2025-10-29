@@ -111,25 +111,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
     setIsCheckingOut(plan);
     try {
-      const productMap: Record<string, Record<string, string>> = {
-        Personal: {
-          monthly: import.meta.env.VITE_POLAR_PRICE_PERSONAL_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRICE_PERSONAL_ANNUAL,
-        },
-        Creator: {
-          monthly: import.meta.env.VITE_POLAR_PRICE_CREATOR_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRICE_CREATOR_ANNUAL,
-        },
-        Business: {
-          monthly: import.meta.env.VITE_POLAR_PRICE_BUSINESS_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRICE_BUSINESS_ANNUAL,
-        },
+      const productMap: Record<string, string> = {
+        Personal: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ID,
+        Creator: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_ID,
+        Business: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_ID,
       };
 
-      const productPriceId = productMap[plan][billingCycle];
+      const productId = productMap[plan];
 
       const checkout = await createCheckout({
-        productPriceId,
+        productId,
         successUrl: `${window.location.origin}/success`,
         metadata: {
           clerk_user_id: clerkUser.id,
