@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { User, CreditCard, BarChart2, Settings, LogOut } from 'lucide-react';
+import { CreditCard, BarChart2, Settings, LogOut } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 
 const navItems = [
-  { id: 'profile', label: 'Profile', icon: User },
   { id: 'billing', label: 'Subscription & Billing', icon: CreditCard },
   { id: 'usage', label: 'Usage', icon: BarChart2 },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -15,16 +14,16 @@ interface AccountLayoutProps {
 }
 
 export const AccountLayout: React.FC<AccountLayoutProps> = ({ children }) => {
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState('billing');
   const { logout } = useAppStore();
 
   return (
     <div className="bg-slate-50 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Account</h1>
+          <h1 className="text-3xl font-bold text-slate-900">App Settings</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Manage your profile, subscription, and settings.
+            Manage your subscription, usage, and app-specific settings.
           </p>
         </header>
 
