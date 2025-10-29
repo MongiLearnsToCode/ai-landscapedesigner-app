@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
-import { CreditCard, BarChart2, Settings, LogOut } from 'lucide-react';
+import { CreditCard, BarChart2, Settings, LogOut, Cog } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 
 const navItems = [
   { id: 'billing', label: 'Subscription & Billing', icon: CreditCard },
   { id: 'usage', label: 'Usage', icon: BarChart2 },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'App Settings', icon: Cog },
 ];
 
 interface AccountLayoutProps {
