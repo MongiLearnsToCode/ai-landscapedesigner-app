@@ -111,13 +111,22 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
     setIsCheckingOut(plan);
     try {
-      const productMap: Record<string, string> = {
-        Personal: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ID,
-        Creator: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_ID,
-        Business: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_ID,
+      const productMap: Record<string, Record<string, string>> = {
+        Personal: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ANNUAL,
+        },
+        Creator: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_ANNUAL,
+        },
+        Business: {
+          monthly: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_MONTHLY,
+          annual: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_ANNUAL,
+        },
       };
 
-      const productId = productMap[plan];
+      const productId = productMap[plan]?.[billingCycle];
 
       // Validate productId exists and is properly configured
       if (!productId || productId === 'REPLACE_WITH_REAL_PRODUCT_ID') {
