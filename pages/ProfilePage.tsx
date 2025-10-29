@@ -3,9 +3,8 @@ import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
 import { User, DollarSign, LogOut, AlertTriangle } from 'lucide-react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
-import { getCustomerPortalUrl } from '../services/polarService';
 
 // --- Reusable Components for the Profile Page ---
 
@@ -55,19 +54,21 @@ const SubscriptionContent: React.FC = () => {
   const { addToast } = useToastStore();
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   const userData = useQuery(api.users.getUser);
+  const getPortalUrl = useQuery(api.users.getCustomerPortalUrl);
+  const cancelSubscription = useMutation(api.users.cancelSubscription);
 
   const handleManageSubscription = async () => {
-    if (!userData?.polarCustomerId) {
+    if (!getPortalUrl) {
       addToast('No subscription found to manage.', 'error');
       return;
     }
 
     setIsLoadingPortal(true);
     try {
-      const portalUrl = await getCustomerPortalUrl(userData.polarCustomerId);
-      window.location.href = portalUrl;
+      window.location.href = getPortalUrl;
     } catch (error) {
       console.error('Customer portal error:', error);
       addToast('Failed to open customer portal. Please try again.', 'error');
@@ -76,10 +77,29 @@ const SubscriptionContent: React.FC = () => {
     }
   };
 
-  const handleConfirmCancel = () => {
-    addToast('Your subscription has been canceled.', 'info');
-    setIsCancelModalOpen(false);
-    // API call to cancel subscription would go here.
+  const handleConfirmCancel = async () => {
+    setIsCanceling(true);
+    try {
+      const result = await cancelSubscription();
+
+      if (result?.usePortal && getPortalUrl) {
+        // Redirect to portal for cancellation
+        window.location.href = getPortalUrl;
+        // Don't close modal or show success message yet - user will handle in portal
+      } else if (result?.success) {
+        // Direct cancellation succeeded
+        addToast('Your subscription has been canceled.', 'info');
+        setIsCancelModalOpen(false);
+      } else {
+        // Unexpected result
+        throw new Error('Unexpected cancellation result');
+      }
+    } catch (error) {
+      console.error('Cancel subscription error:', error);
+      addToast('Failed to cancel subscription. Please try again.', 'error');
+    } finally {
+      setIsCanceling(false);
+    }
   };
 
   if (!userData) {
@@ -118,20 +138,29 @@ const SubscriptionContent: React.FC = () => {
               {status}
             </span>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-            {plan !== 'Free' && (
-              <button
-                onClick={handleManageSubscription}
-                disabled={isLoadingPortal}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoadingPortal ? 'Loading...' : 'Manage Subscription'}
-              </button>
-            )}
-            <button onClick={() => navigateTo('pricing')} className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors">
-              {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
-            </button>
-          </div>
+           <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
+             {plan !== 'Free' && (
+               <>
+                 <button
+                   onClick={handleManageSubscription}
+                   disabled={isLoadingPortal}
+                   className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   {isLoadingPortal ? 'Loading...' : 'Manage Subscription'}
+                 </button>
+                 <button
+                   onClick={() => setIsCancelModalOpen(true)}
+                   disabled={isCanceling}
+                   className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   {isCanceling ? 'Canceling...' : 'Cancel Subscription'}
+                 </button>
+               </>
+             )}
+             <button onClick={() => navigateTo('pricing')} className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors">
+               {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
+             </button>
+           </div>
         </div>
       </Section>
       <ConfirmationModal
@@ -139,7 +168,7 @@ const SubscriptionContent: React.FC = () => {
         onClose={() => setIsCancelModalOpen(false)}
         onConfirm={handleConfirmCancel}
         title="Cancel Subscription"
-        message="Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period."
+        message="Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period. You can manage your subscription details through the customer portal."
         confirmText="Yes, Cancel"
         cancelText="Nevermind"
       />
