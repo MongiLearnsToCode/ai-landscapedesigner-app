@@ -1,229 +1,13 @@
+
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
-import { User, DollarSign, LogOut, AlertTriangle, Settings } from 'lucide-react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../convex/_generated/api';
-import { useUser, UserProfile } from '@clerk/clerk-react';
-
-// --- Reusable Components for the Profile Page ---
-
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
-    <div className="p-6 border-b border-slate-200/80">
-      <h3 className="text-xl font-bold text-slate-800">{title}</h3>
-    </div>
-    <div className="p-6">{children}</div>
-  </div>
-);
-
-const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div>
-    <p className="text-sm font-medium text-slate-500">{label}</p>
-    <p className="text-base text-slate-800">{value}</p>
-  </div>
-);
-
-// --- Page-specific sections ---
-
-const ClerkProfileSection: React.FC = () => {
-  const { user: clerkUser } = useUser();
-
-  if (!clerkUser) return null;
-
-  return (
-    <Section title="Profile & Security">
-      <div className="space-y-6">
-        <div className="flex items-center gap-6">
-          <img
-            src={clerkUser.imageUrl}
-            alt="User avatar"
-            className="h-20 w-20 rounded-full ring-4 ring-white shadow-md"
-          />
-          <div className="space-y-4 flex-1">
-            <InfoRow label="Full Name" value={clerkUser.fullName || 'Not set'} />
-            <InfoRow label="Email Address" value={clerkUser.primaryEmailAddress?.emailAddress || 'Not set'} />
-            <InfoRow label="Account Created" value={new Date(clerkUser.createdAt).toLocaleDateString()} />
-          </div>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-          <div className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-blue-600" />
-            <div>
-              <h4 className="font-semibold text-blue-800">Account Management</h4>
-              <p className="text-sm text-blue-700 mt-1">
-                Update your profile, change password, and manage security settings through Clerk's secure interface.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="text-sm text-blue-600">
-              Use the user menu in the top-right corner to access your Clerk account settings.
-            </p>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-};
-
-const SubscriptionContent: React.FC = () => {
-  const { navigateTo } = useAppStore();
-  const { addToast } = useToastStore();
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
-  const [isCanceling, setIsCanceling] = useState(false);
-
-  const userData = useQuery(api.users.getUser);
-  const getPortalUrl = useQuery(api.users.getCustomerPortalUrl);
-  const cancelSubscription = useMutation(api.users.cancelSubscription);
-
-  const handleManageSubscription = async () => {
-    if (!getPortalUrl) {
-      addToast('No subscription found to manage.', 'error');
-      return;
-    }
-
-    setIsLoadingPortal(true);
-    try {
-      window.location.href = getPortalUrl;
-    } catch (error) {
-      console.error('Customer portal error:', error);
-      addToast('Failed to open customer portal. Please try again.', 'error');
-    } finally {
-      setIsLoadingPortal(false);
-    }
-  };
-
-  const handleConfirmCancel = async () => {
-    setIsCanceling(true);
-    try {
-      const result = await cancelSubscription();
-
-      if (result?.usePortal && getPortalUrl) {
-        // Redirect to portal for cancellation
-        window.location.href = getPortalUrl;
-        // Don't close modal or show success message yet - user will handle in portal
-      } else if (result?.success) {
-        // Direct cancellation succeeded
-        addToast('Your subscription has been canceled.', 'info');
-        setIsCancelModalOpen(false);
-      } else {
-        // Unexpected result
-        throw new Error('Unexpected cancellation result');
-      }
-    } catch (error) {
-      console.error('Cancel subscription error:', error);
-      addToast('Failed to cancel subscription. Please try again.', 'error');
-    } finally {
-      setIsCanceling(false);
-    }
-  };
-
-  if (!userData) {
-    return (
-      <Section title="My Subscription">
-        <div className="text-center py-8">
-          <p className="text-slate-500">Loading subscription information...</p>
-        </div>
-      </Section>
-    );
-  }
-
-  const plan = userData.subscriptionPlan || 'Free';
-  const status = userData.subscriptionStatus || 'active';
-  const billingCycle = userData.billingCycle;
-  const nextBillingDate = userData.currentPeriodEnd ? new Date(userData.currentPeriodEnd).toLocaleDateString() : null;
-  const monthlyLimit = userData.monthlyRedesignLimit || 3;
-  const usedThisMonth = userData.redesignsUsedThisMonth || 0;
-
-  return (
-    <>
-      <Section title="My Subscription">
-        <div className="space-y-4">
-           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-             <div>
-               <p className="text-base font-semibold text-slate-800">{plan} Plan</p>
-               <p className="text-sm text-slate-500">
-                 {usedThisMonth} of {monthlyLimit} redesigns used this month
-               </p>
-               {billingCycle && plan !== 'Free' && (
-                 <p className="text-sm text-slate-500 capitalize">{billingCycle} billing</p>
-               )}
-               {nextBillingDate && plan !== 'Free' && (
-                 <p className="text-sm text-slate-500">Next billing date: {nextBillingDate}</p>
-               )}
-             </div>
-            <span className={`mt-2 sm:mt-0 capitalize text-sm font-bold px-3 py-1 rounded-full ${
-              status === 'active' ? 'text-green-700 bg-green-100' :
-              status === 'canceled' ? 'text-red-700 bg-red-100' :
-              'text-yellow-700 bg-yellow-100'
-            }`}>
-              {status}
-            </span>
-          </div>
-           <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-             {plan !== 'Free' && (
-               <>
-                 <button
-                   onClick={handleManageSubscription}
-                   disabled={isLoadingPortal}
-                   className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   {isLoadingPortal ? 'Loading...' : 'Manage Subscription'}
-                 </button>
-                 <button
-                   onClick={() => setIsCancelModalOpen(true)}
-                   disabled={isCanceling}
-                   className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   {isCanceling ? 'Canceling...' : 'Cancel Subscription'}
-                 </button>
-               </>
-             )}
-             <button onClick={() => navigateTo('pricing')} className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors">
-               {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
-             </button>
-           </div>
-        </div>
-      </Section>
-      <ConfirmationModal
-        isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
-        onConfirm={handleConfirmCancel}
-        title="Cancel Subscription"
-        message="Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period. You can manage your subscription details through the customer portal."
-        confirmText="Yes, Cancel"
-        cancelText="Nevermind"
-      />
-    </>
-  );
-};
-
-const AccountContent: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
-  return (
-    <Section title="Danger Zone">
-      <div className="bg-red-50 p-4 rounded-xl border border-red-200">
-        <h4 className="font-bold text-red-800">Delete Your Account</h4>
-        <p className="mt-1 text-sm text-red-700">
-          Once you delete your account, there is no going back. All of your data, including your projects and personal information, will be permanently removed. Please be certain before you proceed.
-        </p>
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={onDelete}
-            className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Delete My Account
-          </button>
-        </div>
-      </div>
-    </Section>
-  );
-};
-
-// --- Main Profile Page Component ---
+import { AccountLayout } from '../components/Account/AccountLayout';
+import { ProfileSection } from '../components/Account/ProfileSection';
+import { BillingSection } from '../components/Account/BillingSection';
+import { UsageSection } from '../components/Account/UsageSection';
+import { SettingsSection } from '../components/Account/SettingsSection';
 
 export const ProfilePage: React.FC = () => {
   const { user, logout } = useAppStore();
@@ -240,30 +24,27 @@ export const ProfilePage: React.FC = () => {
     addToast('Your account has been successfully deleted.', 'info');
   };
 
+  const renderSection = (activeSection: string) => {
+    switch (activeSection) {
+      case 'profile':
+        return <ProfileSection />;
+      case 'billing':
+        return <BillingSection />;
+      case 'usage':
+        return <UsageSection />;
+      case 'settings':
+        return <SettingsSection onDelete={() => setIsDeleteModalOpen(true)} />;
+      default:
+        return <ProfileSection />;
+    }
+  };
+
   return (
     <>
-      <div className="max-w-4xl mx-auto w-full space-y-8">
-        <div className="text-center">
-            <h2 className="text-3xl font-bold text-slate-800">Account Settings</h2>
-            <p className="text-slate-500 mt-1">Manage your profile, subscription, and account settings.</p>
-        </div>
-        
-        <ClerkProfileSection />
-        
-        <SubscriptionContent />
-        
-        <AccountContent onDelete={() => setIsDeleteModalOpen(true)} />
-        
-        <div className="pt-4 text-center border-t border-slate-200/80">
-            <button
-                onClick={logout}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 hover:text-slate-800 transition-colors flex items-center mx-auto"
-            >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-            </button>
-        </div>
-      </div>
+      <AccountLayout>
+        {(activeSection) => renderSection(activeSection)}
+      </AccountLayout>
+      
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
