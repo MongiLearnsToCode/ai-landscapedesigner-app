@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { CreditCard, BarChart2, Settings, LogOut, Cog } from 'lucide-react';
+import { CreditCard, BarChart2, LogOut, Cog } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 
 const navItems = [

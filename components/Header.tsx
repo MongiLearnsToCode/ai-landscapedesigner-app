@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Leaf, Menu, X, User, Cog } from 'lucide-react';
+import { Leaf, Menu, X, Cog } from 'lucide-react';
 import { UserButton } from '@clerk/clerk-react';
 import { useAppStore, type Page } from '../stores/appStore';
 
