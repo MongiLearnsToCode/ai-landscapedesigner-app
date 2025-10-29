@@ -80,9 +80,20 @@ const SubscriptionContent: React.FC = () => {
   const handleConfirmCancel = async () => {
     setIsCanceling(true);
     try {
-      await cancelSubscription();
-      addToast('Your subscription has been canceled.', 'info');
-      setIsCancelModalOpen(false);
+      const result = await cancelSubscription();
+
+      if (result?.usePortal && getPortalUrl) {
+        // Redirect to portal for cancellation
+        window.location.href = getPortalUrl;
+        // Don't close modal or show success message yet - user will handle in portal
+      } else if (result?.success) {
+        // Direct cancellation succeeded
+        addToast('Your subscription has been canceled.', 'info');
+        setIsCancelModalOpen(false);
+      } else {
+        // Unexpected result
+        throw new Error('Unexpected cancellation result');
+      }
     } catch (error) {
       console.error('Cancel subscription error:', error);
       addToast('Failed to cancel subscription. Please try again.', 'error');
