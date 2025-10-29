@@ -37,11 +37,21 @@ export const ProfileSection: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const trimmedName = fullName.trim();
+      if (!trimmedName) {
+        addToast('Full name cannot be empty.', 'error');
+        return;
+      }
+
+      const nameParts = trimmedName.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
       await clerkUser.update({
-        fullName: fullName,
+        firstName: firstName,
+        lastName: lastName,
       });
-      // Note: Email updates often require verification and are more complex.
-      // For now, we focus on updating the full name.
+
       addToast('Profile updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);

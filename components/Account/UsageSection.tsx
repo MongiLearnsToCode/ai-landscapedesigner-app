@@ -22,8 +22,10 @@ export const UsageSection: React.FC = () => {
 
   const used = userData?.redesignsUsedThisMonth || 0;
   const limit = userData?.monthlyRedesignLimit || 3;
-  const percentage = limit > 0 ? (used / limit) * 100 : 0;
-  const summariesLeft = limit - used;
+
+  const percentage = limit <= 0 ? 0 : Math.max(0, Math.min(100, (used / limit) * 100));
+  const summariesLeft = Math.max(0, limit - used);
+  const displayedUsed = Math.min(used, limit);
 
   return (
     <SectionCard title="Current Usage">
@@ -31,7 +33,7 @@ export const UsageSection: React.FC = () => {
         <div>
           <div className="flex justify-between items-center mb-1">
             <h4 className="font-semibold text-slate-700">Monthly Summaries</h4>
-            <p className="text-sm text-slate-500">{used} of {limit} used</p>
+            <p className="text-sm text-slate-500">{displayedUsed} of {limit} used</p>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-2.5">
             <div 
