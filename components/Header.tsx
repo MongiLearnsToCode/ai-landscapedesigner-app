@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Leaf, Menu, X } from 'lucide-react';
+import { Leaf, Menu, X, User } from 'lucide-react';
 import { UserButton } from '@clerk/clerk-react';
 import { useAppStore, type Page } from '../stores/appStore';
 
@@ -86,11 +86,21 @@ export const Header: React.FC = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <UserButton 
-                afterSignOutUrl="/"
-              />
-            ) : (
+             {isAuthenticated ? (
+               <div className="flex items-center space-x-3">
+                 <button
+                   onClick={() => navigateTo('profile')}
+                   className="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
+                   title="Account Settings"
+                 >
+                   <User className="h-4 w-4" />
+                   <span>Profile</span>
+                 </button>
+                 <UserButton
+                   afterSignOutUrl="/"
+                 />
+               </div>
+             ) : (
               <div className="hidden sm:flex items-center space-x-2">
                  <button 
                   onClick={() => navigateTo('signin')}
@@ -150,12 +160,13 @@ export const Header: React.FC = () => {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <nav className="p-4 space-y-2">
-                <MobileNavLink targetPage="main">Home</MobileNavLink>
-                {isAuthenticated && <MobileNavLink targetPage="history">Projects</MobileNavLink>}
-                <MobileNavLink targetPage="pricing">Pricing</MobileNavLink>
-                <MobileNavLink targetPage="contact">Contact</MobileNavLink>
-            </nav>
+             <nav className="p-4 space-y-2">
+                 <MobileNavLink targetPage="main">Home</MobileNavLink>
+                 {isAuthenticated && <MobileNavLink targetPage="history">Projects</MobileNavLink>}
+                 <MobileNavLink targetPage="pricing">Pricing</MobileNavLink>
+                 <MobileNavLink targetPage="contact">Contact</MobileNavLink>
+                 {isAuthenticated && <MobileNavLink targetPage="profile">Profile</MobileNavLink>}
+             </nav>
             {!isAuthenticated && (
                 <div className="p-4 space-y-3 border-t border-slate-200/80">
                     <button

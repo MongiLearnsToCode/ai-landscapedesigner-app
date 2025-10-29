@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
-import { User, DollarSign, LogOut, AlertTriangle } from 'lucide-react';
+import { User, DollarSign, LogOut, AlertTriangle, Settings } from 'lucide-react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import { useUser, UserProfile } from '@clerk/clerk-react';
 
 // --- Reusable Components for the Profile Page ---
 
@@ -26,23 +27,42 @@ const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) =
 
 // --- Page-specific sections ---
 
-const ClerkProfilePlaceholder: React.FC = () => {
-  const { user } = useAppStore();
-  if (!user) return null;
+const ClerkProfileSection: React.FC = () => {
+  const { user: clerkUser } = useUser();
+
+  if (!clerkUser) return null;
 
   return (
     <Section title="Profile & Security">
-      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 text-center">
-        <h4 className="font-bold text-slate-800">Coming Soon: Integrated Profile Management</h4>
-        <p className="mt-2 text-sm text-slate-600 max-w-lg mx-auto">
-          User profile information (name, email, avatar) and security settings (password changes) will be managed here using Clerk. For now, your basic information is displayed below.
-        </p>
-      </div>
-      <div className="mt-6 flex items-center gap-6">
-        <img src={user.avatarUrl} alt="User avatar" className="h-20 w-20 rounded-full ring-4 ring-white shadow-md" />
-        <div className="space-y-4">
-          <InfoRow label="Full Name" value={user.name} />
-          <InfoRow label="Email Address" value={user.email} />
+      <div className="space-y-6">
+        <div className="flex items-center gap-6">
+          <img
+            src={clerkUser.imageUrl}
+            alt="User avatar"
+            className="h-20 w-20 rounded-full ring-4 ring-white shadow-md"
+          />
+          <div className="space-y-4 flex-1">
+            <InfoRow label="Full Name" value={clerkUser.fullName || 'Not set'} />
+            <InfoRow label="Email Address" value={clerkUser.primaryEmailAddress?.emailAddress || 'Not set'} />
+            <InfoRow label="Account Created" value={new Date(clerkUser.createdAt).toLocaleDateString()} />
+          </div>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+          <div className="flex items-center gap-3">
+            <Settings className="h-5 w-5 text-blue-600" />
+            <div>
+              <h4 className="font-semibold text-blue-800">Account Management</h4>
+              <p className="text-sm text-blue-700 mt-1">
+                Update your profile, change password, and manage security settings through Clerk's secure interface.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-sm text-blue-600">
+              Use the user menu in the top-right corner to access your Clerk account settings.
+            </p>
+          </div>
         </div>
       </div>
     </Section>
@@ -114,22 +134,28 @@ const SubscriptionContent: React.FC = () => {
 
   const plan = userData.subscriptionPlan || 'Free';
   const status = userData.subscriptionStatus || 'active';
+  const billingCycle = userData.billingCycle;
   const nextBillingDate = userData.currentPeriodEnd ? new Date(userData.currentPeriodEnd).toLocaleDateString() : null;
+  const monthlyLimit = userData.monthlyRedesignLimit || 3;
+  const usedThisMonth = userData.redesignsUsedThisMonth || 0;
 
   return (
     <>
       <Section title="My Subscription">
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-            <div>
-              <p className="text-base font-semibold text-slate-800">{plan} Plan</p>
-              {nextBillingDate && plan !== 'Free' && (
-                <p className="text-sm text-slate-500">Next billing date: {nextBillingDate}</p>
-              )}
-              {plan === 'Free' && (
-                <p className="text-sm text-slate-500">Free plan with 3 redesigns per month</p>
-              )}
-            </div>
+           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+             <div>
+               <p className="text-base font-semibold text-slate-800">{plan} Plan</p>
+               <p className="text-sm text-slate-500">
+                 {usedThisMonth} of {monthlyLimit} redesigns used this month
+               </p>
+               {billingCycle && plan !== 'Free' && (
+                 <p className="text-sm text-slate-500 capitalize">{billingCycle} billing</p>
+               )}
+               {nextBillingDate && plan !== 'Free' && (
+                 <p className="text-sm text-slate-500">Next billing date: {nextBillingDate}</p>
+               )}
+             </div>
             <span className={`mt-2 sm:mt-0 capitalize text-sm font-bold px-3 py-1 rounded-full ${
               status === 'active' ? 'text-green-700 bg-green-100' :
               status === 'canceled' ? 'text-red-700 bg-red-100' :
@@ -222,7 +248,7 @@ export const ProfilePage: React.FC = () => {
             <p className="text-slate-500 mt-1">Manage your profile, subscription, and account settings.</p>
         </div>
         
-        <ClerkProfilePlaceholder />
+        <ClerkProfileSection />
         
         <SubscriptionContent />
         
