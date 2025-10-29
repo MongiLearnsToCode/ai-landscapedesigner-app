@@ -4,7 +4,8 @@ import { Polar } from '@polar-sh/sdk';
 console.log('🔍 Polar Configuration Debug:');
 console.log('VITE_POLAR_ACCESS_TOKEN:', import.meta.env.VITE_POLAR_ACCESS_TOKEN ? 'Set (length: ' + import.meta.env.VITE_POLAR_ACCESS_TOKEN.length + ')' : 'NOT SET');
 console.log('VITE_POLAR_SANDBOX:', import.meta.env.VITE_POLAR_SANDBOX);
-console.log('VITE_POLAR_PRODUCT_PERSONAL_ID:', import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ID);
+console.log('VITE_POLAR_PRODUCT_PERSONAL_MONTHLY:', import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_MONTHLY);
+console.log('VITE_POLAR_PRODUCT_PERSONAL_ANNUAL:', import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ANNUAL);
 
 const polar = new Polar({
   accessToken: import.meta.env.VITE_POLAR_ACCESS_TOKEN,
