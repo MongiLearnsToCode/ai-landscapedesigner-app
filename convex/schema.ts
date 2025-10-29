@@ -10,6 +10,7 @@ export default defineSchema({
     polarCustomerId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()), // active, canceled, past_due
     subscriptionPlan: v.optional(v.string()), // Personal, Creator, Business, Free
+    billingCycle: v.optional(v.string()), // monthly, annual
     subscriptionId: v.optional(v.string()), // Polar subscription ID
     subscriptionPriceId: v.optional(v.string()),
     currentPeriodEnd: v.optional(v.number()), // timestamp

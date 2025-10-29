@@ -59,6 +59,7 @@ export const updateSubscription = mutation({
     subscriptionPriceId: v.optional(v.string()),
     status: v.string(),
     plan: v.string(),
+    billingCycle: v.optional(v.string()),
     limit: v.number(),
     currentPeriodEnd: v.optional(v.number()),
   },
@@ -79,6 +80,7 @@ export const updateSubscription = mutation({
       subscriptionPriceId: args.subscriptionPriceId,
       subscriptionStatus: args.status,
       subscriptionPlan: args.plan,
+      billingCycle: args.billingCycle,
       monthlyRedesignLimit: args.limit,
       currentPeriodEnd: args.currentPeriodEnd,
     });
