@@ -110,7 +110,7 @@ export const Header: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => navigateTo('signup')}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-sm"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-sm"
                 >
                   Sign Up Free
                 </button>
@@ -177,7 +177,7 @@ export const Header: React.FC = () => {
                     </button>
                     <button
                         onClick={() => { navigateTo('signup'); closeMobileMenu(); }}
-                        className="w-full h-11 text-center font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition-colors shadow-sm"
+                        className="w-full h-11 text-center font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm"
                     >
                         Sign Up Free
                     </button>
