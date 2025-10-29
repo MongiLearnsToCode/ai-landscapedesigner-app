@@ -11,7 +11,7 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { SignInPage } from './pages/SignInPage';
 import { SignUpPage } from './pages/SignUpPage';
-import { ProfilePage } from './pages/ProfilePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { FairUsePolicyPage } from './pages/FairUsePolicyPage';
 import { SuccessPage } from './pages/SuccessPage';
@@ -163,7 +163,7 @@ const PageContent: React.FC = () => {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/signin" replace />} />
+            <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/signin" replace />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/fair-use-policy" element={<FairUsePolicyPage />} />
             <Route path="/success" element={<SuccessPage />} />

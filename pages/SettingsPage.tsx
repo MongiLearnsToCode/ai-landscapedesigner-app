@@ -4,12 +4,11 @@ import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { AccountLayout } from '../components/Account/AccountLayout';
-import { ProfileSection } from '../components/Account/ProfileSection';
 import { BillingSection } from '../components/Account/BillingSection';
 import { UsageSection } from '../components/Account/UsageSection';
 import { SettingsSection } from '../components/Account/SettingsSection';
 
-export const ProfilePage: React.FC = () => {
+export const SettingsPage: React.FC = () => {
   const { user, logout } = useAppStore();
   const { addToast } = useToastStore();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -26,8 +25,6 @@ export const ProfilePage: React.FC = () => {
 
   const renderSection = (activeSection: string) => {
     switch (activeSection) {
-      case 'profile':
-        return <ProfileSection />;
       case 'billing':
         return <BillingSection />;
       case 'usage':
@@ -35,7 +32,7 @@ export const ProfilePage: React.FC = () => {
       case 'settings':
         return <SettingsSection onDelete={() => setIsDeleteModalOpen(true)} />;
       default:
-        return <ProfileSection />;
+        return <BillingSection />;
     }
   };
 
