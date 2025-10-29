@@ -88,12 +88,17 @@ async function handleSubscriptionActive(subscription: any) {
   const productName = subscription.product.name;
   const planConfig = PLAN_LIMITS[productName] || { plan: 'Free', limit: 3 };
 
+  // Determine billing cycle from price interval
+  const price = subscription.prices?.[0];
+  const billingCycle = price?.interval === 'year' ? 'annual' : 'monthly';
+
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: subscription.prices?.[0]?.id || null, // Get first price ID
+    subscriptionPriceId: price?.id || null,
     status: 'active',
     plan: planConfig.plan,
+    billingCycle,
     limit: planConfig.limit,
     currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
   });
@@ -102,12 +107,17 @@ async function handleSubscriptionActive(subscription: any) {
 async function handleSubscriptionCanceled(subscription: any) {
   const customerId = subscription.customerId;
 
+  // For canceled subscriptions, we keep the billing cycle info for reference
+  const price = subscription.prices?.[0];
+  const billingCycle = price?.interval === 'year' ? 'annual' : 'monthly';
+
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: subscription.prices?.[0]?.id || null, // Get first price ID
+    subscriptionPriceId: price?.id || null,
     status: 'canceled',
     plan: 'Free',
+    billingCycle,
     limit: 3,
     currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
   });
