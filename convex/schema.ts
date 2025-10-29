@@ -6,6 +6,8 @@ export default defineSchema({
     clerkUserId: v.string(),
     email: v.optional(v.string()),
     name: v.optional(v.string()),
+    // Legacy field - to be migrated
+    isPremium: v.optional(v.boolean()),
     // Subscription tracking
     polarCustomerId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()), // active, canceled, past_due
