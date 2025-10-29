@@ -11,6 +11,19 @@ const PLAN_LIMITS: Record<string, { plan: string; limit: number }> = {
   Business: { plan: 'Business', limit: 999999 },
 };
 
+// Helper function to extract billing cycle from subscription price data
+function extractBillingCycle(subscription: any): { billingCycle: string | null; priceId: string | null } {
+  const price = subscription.prices?.[0];
+
+  if (!price) {
+    console.warn(`⚠️  Missing price data for subscription ${subscription.id}, customer ${subscription.customerId}`);
+    return { billingCycle: null, priceId: null };
+  }
+
+  const billingCycle = price.interval === 'year' ? 'annual' : 'monthly';
+  return { billingCycle, priceId: price.id };
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -88,14 +101,13 @@ async function handleSubscriptionActive(subscription: any) {
   const productName = subscription.product.name;
   const planConfig = PLAN_LIMITS[productName] || { plan: 'Free', limit: 3 };
 
-  // Determine billing cycle from price interval
-  const price = subscription.prices?.[0];
-  const billingCycle = price?.interval === 'year' ? 'annual' : 'monthly';
+  // Extract billing cycle and price ID with proper error handling
+  const { billingCycle, priceId } = extractBillingCycle(subscription);
 
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: price?.id || null,
+    subscriptionPriceId: priceId,
     status: 'active',
     plan: planConfig.plan,
     billingCycle,
@@ -108,13 +120,12 @@ async function handleSubscriptionCanceled(subscription: any) {
   const customerId = subscription.customerId;
 
   // For canceled subscriptions, we keep the billing cycle info for reference
-  const price = subscription.prices?.[0];
-  const billingCycle = price?.interval === 'year' ? 'annual' : 'monthly';
+  const { billingCycle, priceId } = extractBillingCycle(subscription);
 
   await convex.mutation(api.users.updateSubscription, {
     polarCustomerId: customerId,
     subscriptionId: subscription.id,
-    subscriptionPriceId: price?.id || null,
+    subscriptionPriceId: priceId,
     status: 'canceled',
     plan: 'Free',
     billingCycle,
