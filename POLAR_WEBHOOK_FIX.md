@@ -27,7 +27,7 @@ Fixed Polar webhook 307 redirect issue by migrating from Express API endpoint to
 ### Critical: Update Webhook URL in Polar Dashboard
 
 1. **Go to Polar Sandbox Dashboard:**
-   ```
+   ```text
    https://sandbox.polar.sh/dashboard/<your-org>/settings/webhooks
    ```
 
@@ -36,7 +36,7 @@ Fixed Polar webhook 307 redirect issue by migrating from Express API endpoint to
    - Copy your deployment URL (e.g., `https://your-app.convex.cloud`)
 
 3. **Update webhook URL to:**
-   ```
+   ```text
    https://[your-convex-deployment].convex.cloud/webhooks/polar
    ```
 

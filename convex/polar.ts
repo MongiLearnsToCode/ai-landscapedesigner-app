@@ -18,7 +18,8 @@ function extractBillingCycle(subscription: any): { billingCycle: string | null; 
     return { billingCycle: null, priceId: null };
   }
 
-  const billingCycle = price.interval === 'year' ? 'annual' : 'monthly';
+  const cadence = price.recurringInterval ?? price.recurring_interval;
+  const billingCycle = (cadence === 'year') ? 'annual' : 'monthly';
   return { billingCycle, priceId: price.id };
 }
 
