@@ -13,8 +13,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Raw body parser for webhooks (must be before express.json())
-app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
+
 
 // Rate limiting for contact form submissions (max 3 per hour per IP)
 const CONTACT_RATE_LIMIT = {
@@ -231,17 +230,7 @@ const sendAutoReplyEmail = async (formData) => {
   }
 };
 
-// Polar webhook route
-app.post('/api/webhooks/polar', async (req, res) => {
-  try {
-    // Import the handler dynamically to avoid issues with module loading
-    const { default: handler } = await import('./api/webhooks/polar.ts');
-    await handler(req, res);
-  } catch (error) {
-    console.error('Webhook handler error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
-  }
-});
+
 
 // Contact API route
 app.post('/api/contact', async (req, res) => {
@@ -302,5 +291,5 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log(`📧 Contact form API available at http://localhost:${PORT}/api/contact`);
-  console.log(`💳 Polar webhook API available at http://localhost:${PORT}/api/webhooks/polar`);
+
 });
