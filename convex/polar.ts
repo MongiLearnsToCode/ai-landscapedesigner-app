@@ -110,7 +110,25 @@ export const polarWebhook = httpAction(async (ctx, request) => {
         break;
 
       case 'order.created':
+      case 'order.updated':
         await handleOrderCreated(ctx, webhookEvent.data);
+        break;
+
+      case 'order.paid':
+        console.log('Order paid event received:', webhookEvent.data.id);
+        // Order paid is informational - subscription.active handles the actual activation
+        break;
+
+      case 'customer.created':
+      case 'customer.updated':
+      case 'customer.state_changed':
+        console.log(`Customer event received: ${webhookEvent.type}`, webhookEvent.data.id);
+        // Customer events are informational - handled via order.created
+        break;
+
+      case 'checkout.updated':
+        console.log('Checkout updated event received:', webhookEvent.data.id);
+        // Checkout events are informational - final state handled by order/subscription events
         break;
 
       default:
