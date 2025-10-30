@@ -10,12 +10,12 @@ const PLAN_LIMITS: Record<string, { plan: string; limit: number }> = {
 };
 
 // Helper function to extract billing cycle from subscription price data
-function extractBillingCycle(subscription: any): { billingCycle: string | null; priceId: string | null } {
+function extractBillingCycle(subscription: any): { billingCycle?: string; priceId?: string } {
   const price = subscription.prices?.[0];
 
   if (!price) {
     console.warn(`⚠️  Missing price data for subscription ${subscription.id}, customer ${subscription.customerId}`);
-    return { billingCycle: null, priceId: null };
+    return { billingCycle: undefined, priceId: undefined };
   }
 
   const cadence = price.recurringInterval ?? price.recurring_interval;
@@ -101,12 +101,12 @@ export const polarWebhook = httpAction(async (ctx, request) => {
       case 'subscription.created':
       case 'subscription.updated':
       case 'subscription.active':
-        await handleSubscriptionActive(ctx, webhookEvent.data);
+        await handleSubscriptionActive(ctx, webhookEvent.data, webhookEvent.type);
         break;
 
       case 'subscription.canceled':
       case 'subscription.revoked':
-        await handleSubscriptionCanceled(ctx, webhookEvent.data);
+        await handleSubscriptionCanceled(ctx, webhookEvent.data, webhookEvent.type);
         break;
 
       case 'order.created':
@@ -136,34 +136,41 @@ export const polarWebhook = httpAction(async (ctx, request) => {
   }
 });
 
-async function handleSubscriptionActive(ctx: any, subscription: any) {
+async function handleSubscriptionActive(ctx: any, subscription: any, eventType: string) {
   // Validate required properties exist and are of correct type
   if (!subscription) {
-    console.error('Invalid subscription object provided to handleSubscriptionActive');
+    console.error(`Invalid subscription object provided to handleSubscriptionActive for event type: ${eventType}`);
     return;
   }
 
   // Check if subscription has required properties
   if (!subscription.id) {
-    console.error('Subscription missing id property');
+    console.error(`Subscription missing id property for event type: ${eventType}`);
     return;
   }
 
   if (!subscription.customerId) {
-    console.error('Subscription missing customerId property');
+    console.error(`Subscription missing customerId property for event type: ${eventType}`);
     return;
   }
 
   // Validate product exists and has name property
   if (!subscription.product) {
-    console.error('Subscription missing product property');
+    console.error(`Subscription missing product property for event type: ${eventType}`);
     return;
   }
 
-  // Validate currentPeriodEnd is present and valid if it's supposed to be
+  // Handle currentPeriodEnd validation based on event type
+  // For subscription.created events, currentPeriodEnd might be missing, so we log a warning and skip setup
   if (!subscription.currentPeriodEnd) {
-    console.error('Subscription missing currentPeriodEnd property');
-    return;
+    if (eventType === 'subscription.created') {
+      console.warn(`Missing currentPeriodEnd for subscription.created event (subscriptionId: ${subscription.id}). Skipping subscription setup.`);
+      return; // Skip setting up the subscription for now
+    } else {
+      // For other event types, this is an error
+      console.error(`Missing currentPeriodEnd for event type: ${eventType}, subscriptionId: ${subscription.id}`);
+      return;
+    }
   }
 
   // Validate product name exists and is a string
@@ -202,24 +209,25 @@ async function handleSubscriptionActive(ctx: any, subscription: any) {
   });
 }
 
-async function handleSubscriptionCanceled(ctx: any, subscription: any) {
+async function handleSubscriptionCanceled(ctx: any, subscription: any, eventType: string) {
   // Validate required properties exist and are of correct type
   if (!subscription) {
-    console.error('Invalid subscription object provided to handleSubscriptionCanceled');
+    console.error(`Invalid subscription object provided to handleSubscriptionCanceled for event type: ${eventType}`);
     return;
   }
 
   if (!subscription.id) {
-    console.error('Subscription missing id property');
+    console.error(`Subscription missing id property for event type: ${eventType}`);
     return;
   }
 
   if (!subscription.customerId) {
-    console.error('Subscription missing customerId property');
+    console.error(`Subscription missing customerId property for event type: ${eventType}`);
     return;
   }
 
-  // Validate currentPeriodEnd if present and convert to timestamp
+  // For canceled subscriptions, currentPeriodEnd might not be required or might be missing in some events
+  // We'll allow the function to continue but handle the missing value gracefully
   let currentPeriodEndDate = null;
   if (subscription.currentPeriodEnd) {
     const date = new Date(subscription.currentPeriodEnd);
@@ -228,6 +236,9 @@ async function handleSubscriptionCanceled(ctx: any, subscription: any) {
       return;
     }
     currentPeriodEndDate = date.getTime();
+  } else {
+    // Log a warning when currentPeriodEnd is missing for cancellation events
+    console.warn(`Missing currentPeriodEnd for cancellation event (event type: ${eventType}, subscriptionId: ${subscription.id})`);
   }
 
   // For canceled subscriptions, we keep the billing cycle info for reference
@@ -248,9 +259,24 @@ async function handleSubscriptionCanceled(ctx: any, subscription: any) {
 async function handleOrderCreated(ctx: any, order: any) {
   // Link Polar customer to Clerk user if metadata exists
   if (order.customer?.metadata?.clerk_user_id) {
-    await ctx.runMutation(api.users.linkPolarCustomer, {
-      clerkUserId: order.customer.metadata.clerk_user_id,
-      polarCustomerId: order.customerId,
-    });
+    // Validate that order.customerId exists before calling the mutation
+    if (order.customerId) {
+      await ctx.runMutation(api.users.linkPolarCustomer, {
+        clerkUserId: order.customer.metadata.clerk_user_id,
+        polarCustomerId: order.customerId,
+      });
+    } else {
+      console.warn(`Missing order.customerId for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
+      // Optionally, we could fallback to order.customer.id if available
+      if (order.customer?.id) {
+        console.log(`Using fallback customer id: ${order.customer.id}`);
+        await ctx.runMutation(api.users.linkPolarCustomer, {
+          clerkUserId: order.customer.metadata.clerk_user_id,
+          polarCustomerId: order.customer.id,
+        });
+      } else {
+        console.error(`No valid customer ID found for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
+      }
+    }
   }
 }
