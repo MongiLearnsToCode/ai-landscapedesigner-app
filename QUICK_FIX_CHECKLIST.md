@@ -1,11 +1,15 @@
 # ⚡ Quick Fix Checklist - Settings Page Not Updating
 
+## Current Status
+- ✅ Webhook URL updated in Polar (was 307, now 404)
+- ❌ **Convex HTTP routes NOT deployed** (causing 404 errors)
+
 ## The Problem
-Webhooks returning **307 redirects** → Settings page not updating after subscription
+Webhooks now reaching correct URL but getting **404 Not Found** → Endpoint not deployed to production
 
-## The Fix (2 Steps)
+## The Fix (1 Step Remaining)
 
-### ☑️ Step 1: Update Polar Webhook URL
+### ☑️ Step 1: Update Polar Webhook URL ✅ DONE
 
 1. Go to: `https://sandbox.polar.sh/dashboard/[your-org]/settings/webhooks`
 2. Change webhook URL to:
@@ -15,11 +19,13 @@ Webhooks returning **307 redirects** → Settings page not updating after subscr
 3. Verify webhook secret is set
 4. Save changes
 
-### ☑️ Step 2: Deploy Convex Changes
+### 🚨 Step 2: Deploy Convex Changes (DO THIS NOW)
 
 ```bash
 npx convex deploy
 ```
+
+**This is critical!** The HTTP routes exist in your code but aren't deployed to production yet.
 
 ## ✅ Verification
 
