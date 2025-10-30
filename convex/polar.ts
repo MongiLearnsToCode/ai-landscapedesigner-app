@@ -73,19 +73,25 @@ export const polarWebhook = httpAction(async (ctx, request) => {
     }
 
     console.log('Polar webhook event received:', event.type);
+    console.log('Full webhook payload structure:', JSON.stringify(event, null, 2));
 
     // Type assertion to access event properties safely
     const webhookEvent = event as any;
     
+    // Extract event ID - Polar webhooks have id in data object, not at root
+    const eventId = webhookEvent.data?.id || webhookEvent.id || `${webhookEvent.type}_${Date.now()}`;
+    
+    console.log('Extracted eventId:', eventId);
+    
     // Check if already processed (idempotency)
     const logResult = await ctx.runMutation(api.webhooks.logWebhookEvent, {
-      eventId: webhookEvent.id,
+      eventId: eventId,
       eventType: webhookEvent.type,
       payload: webhookEvent,
     });
 
     if (logResult.alreadyProcessed) {
-      console.log('Event already processed:', webhookEvent.id);
+      console.log('Event already processed:', eventId);
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -133,7 +139,7 @@ export const polarWebhook = httpAction(async (ctx, request) => {
 
     // Mark as processed
     await ctx.runMutation(api.webhooks.markWebhookProcessed, {
-      eventId: webhookEvent.id,
+      eventId: eventId,
     });
 
     return new Response(JSON.stringify({ received: true }), {
