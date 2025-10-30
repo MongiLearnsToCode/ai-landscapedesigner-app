@@ -14,8 +14,9 @@ Webhooks now reaching correct URL but getting **404 Not Found** → Endpoint not
 1. Go to: `https://sandbox.polar.sh/dashboard/[your-org]/settings/webhooks`
 2. Change webhook URL to:
    ```
-   https://scintillating-gerbil-404.convex.cloud/webhooks/polar
+   https://scintillating-gerbil-404.convex.site/webhooks/polar
    ```
+   **CRITICAL:** Use `.convex.site` (NOT `.convex.cloud`)
 3. Verify webhook secret is set
 4. Save changes
 

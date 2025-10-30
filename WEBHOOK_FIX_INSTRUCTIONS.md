@@ -17,8 +17,12 @@ https://sandbox.polar.sh/dashboard/[your-org]/settings/webhooks
 
 ### 2. Update Webhook URL to:
 ```
-https://scintillating-gerbil-404.convex.cloud/webhooks/polar
+https://scintillating-gerbil-404.convex.site/webhooks/polar
 ```
+
+**IMPORTANT:** Use `.convex.site` (not `.convex.cloud`)
+- `.convex.cloud` = Client connections (queries/mutations)
+- `.convex.site` = HTTP actions (webhooks, APIs)
 
 **Important:**
 - ✅ Use HTTPS (not HTTP)
