@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as http from "../http.js";
 import type * as migrate from "../migrate.js";
+import type * as polar from "../polar.js";
 import type * as redesigns from "../redesigns.js";
 import type * as users from "../users.js";
 import type * as webhooks from "../webhooks.js";
@@ -28,7 +30,9 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  http: typeof http;
   migrate: typeof migrate;
+  polar: typeof polar;
   redesigns: typeof redesigns;
   users: typeof users;
   webhooks: typeof webhooks;
