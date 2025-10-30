@@ -45,7 +45,7 @@ export const polarWebhook = httpAction(async (ctx, request) => {
 
   try {
     // Get webhook secret from environment
-    const webhookSecret = process.env.POLAR_WEBHOOK_SECRET!;
+    const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
     if (!webhookSecret) {
       console.error("POLAR_WEBHOOK_SECRET not configured");
       return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
