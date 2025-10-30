@@ -10,7 +10,7 @@
 ## Code Style Guidelines
 
 ### Imports & Formatting
-- Use ES6 imports with absolute paths: `import { Component } from '@/components/Component'`
+- Use ES6 imports with relative paths: `import { Component } from '../components/Component'`
 - Group imports: React/libraries first, then local components, then types
 - Use TypeScript with strict mode enabled
 - Components use `.tsx` extension, utilities `.ts`
