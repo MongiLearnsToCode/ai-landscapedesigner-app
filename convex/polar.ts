@@ -137,40 +137,111 @@ export const polarWebhook = httpAction(async (ctx, request) => {
 });
 
 async function handleSubscriptionActive(ctx: any, subscription: any) {
-  const customerId = subscription.customerId;
-  const productName = subscription.product.name;
-  const planConfig = PLAN_LIMITS[productName] || { plan: 'Free', limit: 3 };
+  // Validate required properties exist and are of correct type
+  if (!subscription) {
+    console.error('Invalid subscription object provided to handleSubscriptionActive');
+    return;
+  }
+
+  // Check if subscription has required properties
+  if (!subscription.id) {
+    console.error('Subscription missing id property');
+    return;
+  }
+
+  if (!subscription.customerId) {
+    console.error('Subscription missing customerId property');
+    return;
+  }
+
+  // Validate product exists and has name property
+  if (!subscription.product) {
+    console.error('Subscription missing product property');
+    return;
+  }
+
+  // Validate currentPeriodEnd is present and valid if it's supposed to be
+  if (!subscription.currentPeriodEnd) {
+    console.error('Subscription missing currentPeriodEnd property');
+    return;
+  }
+
+  // Validate product name exists and is a string
+  const productName = subscription.product && typeof subscription.product.name === 'string' 
+    ? subscription.product.name 
+    : null;
+  
+  // Use default plan if product name is missing or invalid
+  const planConfig = productName && PLAN_LIMITS[productName] 
+    ? PLAN_LIMITS[productName] 
+    : { plan: 'Free', limit: 3 };
+
+  // Validate currentPeriodEnd can be converted to a Date object
+  let currentPeriodEndDate = null;
+  if (subscription.currentPeriodEnd) {
+    const date = new Date(subscription.currentPeriodEnd);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date format for currentPeriodEnd:', subscription.currentPeriodEnd);
+      return;
+    }
+    currentPeriodEndDate = date.getTime();
+  }
 
   // Extract billing cycle and price ID with proper error handling
   const { billingCycle, priceId } = extractBillingCycle(subscription);
 
   await ctx.runMutation(api.users.updateSubscription, {
-    polarCustomerId: customerId,
+    polarCustomerId: subscription.customerId,
     subscriptionId: subscription.id,
     subscriptionPriceId: priceId,
     status: 'active',
     plan: planConfig.plan,
     billingCycle,
     limit: planConfig.limit,
-    currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
+    currentPeriodEnd: currentPeriodEndDate,
   });
 }
 
 async function handleSubscriptionCanceled(ctx: any, subscription: any) {
-  const customerId = subscription.customerId;
+  // Validate required properties exist and are of correct type
+  if (!subscription) {
+    console.error('Invalid subscription object provided to handleSubscriptionCanceled');
+    return;
+  }
+
+  if (!subscription.id) {
+    console.error('Subscription missing id property');
+    return;
+  }
+
+  if (!subscription.customerId) {
+    console.error('Subscription missing customerId property');
+    return;
+  }
+
+  // Validate currentPeriodEnd if present and convert to timestamp
+  let currentPeriodEndDate = null;
+  if (subscription.currentPeriodEnd) {
+    const date = new Date(subscription.currentPeriodEnd);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date format for currentPeriodEnd:', subscription.currentPeriodEnd);
+      return;
+    }
+    currentPeriodEndDate = date.getTime();
+  }
 
   // For canceled subscriptions, we keep the billing cycle info for reference
   const { billingCycle, priceId } = extractBillingCycle(subscription);
 
   await ctx.runMutation(api.users.updateSubscription, {
-    polarCustomerId: customerId,
+    polarCustomerId: subscription.customerId,
     subscriptionId: subscription.id,
     subscriptionPriceId: priceId,
     status: 'canceled',
     plan: 'Free',
     billingCycle,
     limit: 3,
-    currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : null,
+    currentPeriodEnd: currentPeriodEndDate,
   });
 }
 
