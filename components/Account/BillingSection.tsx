@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAppStore } from '../../stores/appStore';
@@ -24,6 +24,22 @@ const CurrentPlan: React.FC = () => {
   const userData = useQuery(api.users.getUser);
   const syncSubscription = useMutation(api.users.syncSubscription);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastPlan, setLastPlan] = useState<string>('');
+  
+  // Monitor for plan changes and show notification
+  useEffect(() => {
+    if (userData?.subscriptionPlan && userData.subscriptionPlan !== lastPlan && lastPlan !== '') {
+      addToast(`Plan updated to ${userData.subscriptionPlan}!`, 'success');
+    }
+    if (userData?.subscriptionPlan) {
+      setLastPlan(userData.subscriptionPlan);
+    }
+  }, [userData?.subscriptionPlan, lastPlan, addToast]);
+  
+  // Add refresh functionality
+  const handleRefresh = () => {
+    window.location.reload();
+  };
   
   const plan = userData?.subscriptionPlan || 'Free';
   const status = userData?.subscriptionStatus || 'active';
@@ -69,6 +85,13 @@ const CurrentPlan: React.FC = () => {
         {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription'}
       </p>
       <div className="flex gap-2">
+        <button 
+          onClick={handleRefresh}
+          className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          title="Refresh page to check for updates"
+        >
+          🔄 Refresh
+        </button>
         {userData?.polarCustomerId && (
           <button 
             onClick={handleSyncSubscription}
