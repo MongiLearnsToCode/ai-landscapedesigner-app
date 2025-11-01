@@ -1,12 +1,17 @@
-// Test script to verify webhook flow
-import { ConvexHttpClient } from "convex/browser";
+// Test script to verify webhook flow by POSTing to webhook endpoint
 
-const client = new ConvexHttpClient(process.env.VITE_CONVEX_URL!);
+const convexUrl = process.env.VITE_CONVEX_URL;
+if (!convexUrl) {
+  console.error('VITE_CONVEX_URL is required');
+  process.exit(1);
+}
 
 async function testWebhookFlow() {
   console.log('Testing webhook flow...');
   
-  // Simulate order.created event
+  const webhookUrl = `${convexUrl}/polar-webhook`;
+  
+  // Test order.created event
   const orderCreatedEvent = {
     type: 'order.created',
     data: {
@@ -21,7 +26,7 @@ async function testWebhookFlow() {
     }
   };
   
-  // Simulate subscription.active event
+  // Test subscription.active event
   const subscriptionActiveEvent = {
     type: 'subscription.active',
     data: {
@@ -39,13 +44,27 @@ async function testWebhookFlow() {
     }
   };
   
-  console.log('Simulating order.created event...');
-  console.log(JSON.stringify(orderCreatedEvent, null, 2));
+  console.log('Testing order.created event...');
+  const orderResponse = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(orderCreatedEvent)
+  });
+  console.log(`Order event response: ${orderResponse.status}`);
   
-  console.log('Simulating subscription.active event...');
-  console.log(JSON.stringify(subscriptionActiveEvent, null, 2));
+  console.log('Testing subscription.active event...');
+  const subscriptionResponse = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(subscriptionActiveEvent)
+  });
+  console.log(`Subscription event response: ${subscriptionResponse.status}`);
   
-  console.log('Check Convex logs for processing results');
+  if (orderResponse.status === 200 && subscriptionResponse.status === 200) {
+    console.log('✅ Both webhook events processed successfully');
+  } else {
+    console.log('❌ Some webhook events failed');
+  }
 }
 
 testWebhookFlow();
