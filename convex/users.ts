@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Polar } from "@polar-sh/sdk";
+import { PLAN_LIMITS } from "./constants";
 
 // Ensure user exists and get/create user
 export const ensureUser = mutation({
@@ -159,18 +160,24 @@ export const syncSubscription = mutation({
     }
 
     try {
-      // Fetch subscriptions for this customer
-      const subscriptionsResponse = await polar.subscriptions.list({
+      // Fetch subscriptions for this customer - returns async iterator
+      const subscriptionsIterator = await polar.subscriptions.list({
         customerId: user.polarCustomerId,
         active: true,
       });
 
-      console.log('Fetched subscriptions for customer:', user.polarCustomerId, subscriptionsResponse);
+      // Collect subscriptions from first page
+      // The iterator yields SubscriptionsListResponse objects with a result array
+      const subscriptionsList: any[] = [];
+      for await (const page of subscriptionsIterator) {
+        const pageResult = (page as any).result || (page as any).items || [];
+        subscriptionsList.push(...pageResult);
+        break; // Only get first page - should be sufficient for single customer
+      }
 
-      // Handle response - could be array or object with items/data property
-      const subscriptionsList = (subscriptionsResponse as any).items || (subscriptionsResponse as any).data || (subscriptionsResponse as any).result || [];
+      console.log('Fetched subscriptions for customer:', user.polarCustomerId, 'count:', subscriptionsList.length);
       
-      if (!Array.isArray(subscriptionsList) || subscriptionsList.length === 0) {
+      if (subscriptionsList.length === 0) {
         console.log('No active subscriptions found for customer:', user.polarCustomerId);
         return { success: false, message: 'No active subscription found' };
       }
@@ -178,15 +185,8 @@ export const syncSubscription = mutation({
       // Get the first active subscription
       const subscription = subscriptionsList[0];
       
-      // Plan limits mapping
-      const PLAN_LIMITS_SYNC: Record<string, { plan: string; limit: number }> = {
-        Personal: { plan: 'Personal', limit: 50 },
-        Creator: { plan: 'Creator', limit: 200 },
-        Business: { plan: 'Business', limit: 999999 },
-      };
-      
       const productName = subscription.product?.name || 'Free';
-      const planConfig = PLAN_LIMITS_SYNC[productName] || { plan: 'Free', limit: 3 };
+      const planConfig = PLAN_LIMITS[productName] || { plan: 'Free', limit: 3 };
       
       // Extract billing cycle
       const price = subscription.price;

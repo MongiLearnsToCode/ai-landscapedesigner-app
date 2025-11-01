@@ -1,12 +1,6 @@
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
-
-// Plan limits mapping
-const PLAN_LIMITS: Record<string, { plan: string; limit: number }> = {
-  Personal: { plan: 'Personal', limit: 50 },
-  Creator: { plan: 'Creator', limit: 200 },
-  Business: { plan: 'Business', limit: 999999 },
-};
+import { PLAN_LIMITS } from "./constants";
 
 // Helper function to extract billing cycle from subscription price data
 function extractBillingCycle(subscription: any): { billingCycle?: string; priceId?: string } {
@@ -78,14 +72,13 @@ export const polarWebhook = httpAction(async (ctx, request) => {
     // Type assertion to access event properties safely
     const webhookEvent = event as any;
     
-    // Generate unique event ID per webhook delivery
-    // Polar webhooks don't have a unique delivery ID in the payload, so we create one
-    // using event type + resource ID + timestamp to ensure uniqueness across retries
+    // Generate stable event ID for idempotency
+    // Same event type + resource ID = same eventId, allowing Polar retries to be deduplicated
+    // Different event types for same resource get different IDs
     const resourceId = webhookEvent.data?.id || webhookEvent.id || 'unknown';
-    const timestamp = Date.now();
-    const eventId = `${webhookEvent.type}_${resourceId}_${timestamp}`;
+    const eventId = `${webhookEvent.type}_${resourceId}`;
     
-    console.log('Generated unique eventId:', eventId, 'for resource:', resourceId);
+    console.log('Stable eventId:', eventId);
     
     // Check if already processed (idempotency)
     const logResult = await ctx.runMutation(api.webhooks.logWebhookEvent, {
