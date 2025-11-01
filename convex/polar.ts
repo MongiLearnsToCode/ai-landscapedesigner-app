@@ -1,12 +1,6 @@
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
-
-// Plan limits mapping
-const PLAN_LIMITS: Record<string, { plan: string; limit: number }> = {
-  Personal: { plan: 'Personal', limit: 50 },
-  Creator: { plan: 'Creator', limit: 200 },
-  Business: { plan: 'Business', limit: 999999 },
-};
+import { PLAN_LIMITS } from "./constants";
 
 // Helper function to extract billing cycle from subscription price data
 function extractBillingCycle(subscription: any): { billingCycle?: string; priceId?: string } {
@@ -78,10 +72,13 @@ export const polarWebhook = httpAction(async (ctx, request) => {
     // Type assertion to access event properties safely
     const webhookEvent = event as any;
     
-    // Extract event ID - Polar webhooks have id in data object, not at root
-    const eventId = webhookEvent.data?.id || webhookEvent.id || `${webhookEvent.type}_${Date.now()}`;
+    // Generate stable event ID for idempotency
+    // Same event type + resource ID = same eventId, allowing Polar retries to be deduplicated
+    // Different event types for same resource get different IDs
+    const resourceId = webhookEvent.data?.id || webhookEvent.id || 'unknown';
+    const eventId = `${webhookEvent.type}_${resourceId}`;
     
-    console.log('Extracted eventId:', eventId);
+    console.log('Stable eventId:', eventId);
     
     // Check if already processed (idempotency)
     const logResult = await ctx.runMutation(api.webhooks.logWebhookEvent, {

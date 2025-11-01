@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAppStore } from '../../stores/appStore';
 import { useToastStore } from '../../stores/toastStore';
@@ -20,10 +20,31 @@ const SectionCard: React.FC<{ title: string; children: React.ReactNode; footer?:
 
 const CurrentPlan: React.FC = () => {
   const { navigateTo } = useAppStore();
+  const { addToast } = useToastStore();
   const userData = useQuery(api.users.getUser);
+  const syncSubscription = useMutation(api.users.syncSubscription);
+  const [isSyncing, setIsSyncing] = useState(false);
+  
   const plan = userData?.subscriptionPlan || 'Free';
   const status = userData?.subscriptionStatus || 'active';
   const billingCycle = userData?.billingCycle || 'monthly';
+  
+  const handleSyncSubscription = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncSubscription();
+      if (result.success) {
+        addToast(`Subscription synced successfully! Plan: ${result.plan}`, 'success');
+      } else {
+        addToast(result.message || 'No active subscription found', 'info');
+      }
+    } catch (error) {
+      addToast('Failed to sync subscription. Please try again.', 'error');
+      console.error('Sync error:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   
   // Plan pricing based on Polar plans
   const getPlanInfo = (planName: string) => {
@@ -47,12 +68,24 @@ const CurrentPlan: React.FC = () => {
       <p className="text-sm text-slate-600">
         {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription'}
       </p>
-      <button 
-        onClick={() => navigateTo('pricing')}
-        className="px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
-      >
-        {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
-      </button>
+      <div className="flex gap-2">
+        {userData?.polarCustomerId && (
+          <button 
+            onClick={handleSyncSubscription}
+            disabled={isSyncing}
+            className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Sync subscription status from Polar"
+          >
+            {isSyncing ? 'Syncing...' : '🔄 Sync'}
+          </button>
+        )}
+        <button 
+          onClick={() => navigateTo('pricing')}
+          className="px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
+        >
+          {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
+        </button>
+      </div>
     </div>
   );
 
