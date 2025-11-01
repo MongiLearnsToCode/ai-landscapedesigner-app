@@ -78,10 +78,14 @@ export const polarWebhook = httpAction(async (ctx, request) => {
     // Type assertion to access event properties safely
     const webhookEvent = event as any;
     
-    // Extract event ID - Polar webhooks have id in data object, not at root
-    const eventId = webhookEvent.data?.id || webhookEvent.id || `${webhookEvent.type}_${Date.now()}`;
+    // Generate unique event ID per webhook delivery
+    // Polar webhooks don't have a unique delivery ID in the payload, so we create one
+    // using event type + resource ID + timestamp to ensure uniqueness across retries
+    const resourceId = webhookEvent.data?.id || webhookEvent.id || 'unknown';
+    const timestamp = Date.now();
+    const eventId = `${webhookEvent.type}_${resourceId}_${timestamp}`;
     
-    console.log('Extracted eventId:', eventId);
+    console.log('Generated unique eventId:', eventId, 'for resource:', resourceId);
     
     // Check if already processed (idempotency)
     const logResult = await ctx.runMutation(api.webhooks.logWebhookEvent, {

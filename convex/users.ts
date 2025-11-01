@@ -142,6 +142,77 @@ export const getCustomerPortalUrl = query({
   },
 });
 
+// Sync subscription from Polar API (for manual refresh)
+export const syncSubscription = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
+      .unique();
+
+    if (!user || !user.polarCustomerId) {
+      throw new Error("No Polar customer linked to this user");
+    }
+
+    try {
+      // Fetch subscriptions for this customer
+      const subscriptionsResponse = await polar.subscriptions.list({
+        customerId: user.polarCustomerId,
+        active: true,
+      });
+
+      console.log('Fetched subscriptions for customer:', user.polarCustomerId, subscriptionsResponse);
+
+      // Handle response - could be array or object with items/data property
+      const subscriptionsList = (subscriptionsResponse as any).items || (subscriptionsResponse as any).data || (subscriptionsResponse as any).result || [];
+      
+      if (!Array.isArray(subscriptionsList) || subscriptionsList.length === 0) {
+        console.log('No active subscriptions found for customer:', user.polarCustomerId);
+        return { success: false, message: 'No active subscription found' };
+      }
+
+      // Get the first active subscription
+      const subscription = subscriptionsList[0];
+      
+      // Plan limits mapping
+      const PLAN_LIMITS_SYNC: Record<string, { plan: string; limit: number }> = {
+        Personal: { plan: 'Personal', limit: 50 },
+        Creator: { plan: 'Creator', limit: 200 },
+        Business: { plan: 'Business', limit: 999999 },
+      };
+      
+      const productName = subscription.product?.name || 'Free';
+      const planConfig = PLAN_LIMITS_SYNC[productName] || { plan: 'Free', limit: 3 };
+      
+      // Extract billing cycle
+      const price = subscription.price;
+      const cadence = price?.recurringInterval || price?.recurring_interval;
+      const billingCycle = cadence === 'year' ? 'annual' : 'monthly';
+      
+      // Update user subscription
+      await ctx.db.patch(user._id, {
+        subscriptionId: subscription.id,
+        subscriptionPriceId: price?.id,
+        subscriptionStatus: subscription.status,
+        subscriptionPlan: planConfig.plan,
+        billingCycle,
+        monthlyRedesignLimit: planConfig.limit,
+        currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : undefined,
+      });
+
+      console.log('Successfully synced subscription for user:', identity.subject);
+      return { success: true, plan: planConfig.plan };
+    } catch (error) {
+      console.error('Error syncing subscription:', error);
+      throw new Error('Failed to sync subscription from Polar');
+    }
+  },
+});
+
 // Cancel subscription
 export const cancelSubscription = mutation({
   args: {},
