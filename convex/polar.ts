@@ -155,6 +155,8 @@ export const polarWebhook = httpAction(async (ctx, request) => {
 });
 
 async function handleSubscriptionActive(ctx: any, subscription: any, eventType: string) {
+  console.log(`Processing ${eventType} event:`, JSON.stringify(subscription, null, 2));
+  
   // Validate required properties exist and are of correct type
   if (!subscription) {
     console.error(`Invalid subscription object provided to handleSubscriptionActive for event type: ${eventType}`);
@@ -171,6 +173,8 @@ async function handleSubscriptionActive(ctx: any, subscription: any, eventType: 
     console.error(`Subscription missing customerId property for event type: ${eventType}`);
     return;
   }
+
+  console.log(`Processing subscription ${subscription.id} for customer ${subscription.customerId}`);
 
   // Validate product exists and has name property
   if (!subscription.product) {
@@ -196,10 +200,14 @@ async function handleSubscriptionActive(ctx: any, subscription: any, eventType: 
     ? subscription.product.name 
     : null;
   
+  console.log(`Product name: ${productName}`);
+  
   // Use default plan if product name is missing or invalid
   const planConfig = productName && PLAN_LIMITS[productName] 
     ? PLAN_LIMITS[productName] 
     : { plan: 'Free', limit: 3 };
+
+  console.log(`Plan config:`, planConfig);
 
   // Validate currentPeriodEnd can be converted to a Date object
   let currentPeriodEndDate = null;
@@ -214,7 +222,9 @@ async function handleSubscriptionActive(ctx: any, subscription: any, eventType: 
 
   // Extract billing cycle and price ID with proper error handling
   const { billingCycle, priceId } = extractBillingCycle(subscription);
+  console.log(`Billing cycle: ${billingCycle}, Price ID: ${priceId}`);
 
+  console.log('Updating user subscription in database...');
   await ctx.runMutation(api.users.updateSubscription, {
     polarCustomerId: subscription.customerId,
     subscriptionId: subscription.id,
@@ -225,6 +235,7 @@ async function handleSubscriptionActive(ctx: any, subscription: any, eventType: 
     limit: planConfig.limit,
     currentPeriodEnd: currentPeriodEndDate,
   });
+  console.log('Successfully updated user subscription');
 }
 
 async function handleSubscriptionCanceled(ctx: any, subscription: any, eventType: string) {
@@ -275,14 +286,20 @@ async function handleSubscriptionCanceled(ctx: any, subscription: any, eventType
 }
 
 async function handleOrderCreated(ctx: any, order: any) {
+  console.log('Processing order.created event:', JSON.stringify(order, null, 2));
+  
   // Link Polar customer to Clerk user if metadata exists
   if (order.customer?.metadata?.clerk_user_id) {
+    console.log('Found clerk_user_id in order metadata:', order.customer.metadata.clerk_user_id);
+    
     // Validate that order.customerId exists before calling the mutation
     if (order.customerId) {
+      console.log('Linking customer:', order.customerId, 'to user:', order.customer.metadata.clerk_user_id);
       await ctx.runMutation(api.users.linkPolarCustomer, {
         clerkUserId: order.customer.metadata.clerk_user_id,
         polarCustomerId: order.customerId,
       });
+      console.log('Successfully linked customer to user');
     } else {
       console.warn(`Missing order.customerId for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
       // Optionally, we could fallback to order.customer.id if available
@@ -292,9 +309,13 @@ async function handleOrderCreated(ctx: any, order: any) {
           clerkUserId: order.customer.metadata.clerk_user_id,
           polarCustomerId: order.customer.id,
         });
+        console.log('Successfully linked customer to user using fallback ID');
       } else {
         console.error(`No valid customer ID found for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
       }
     }
+  } else {
+    console.warn('No clerk_user_id found in order metadata. Order:', order.id);
+    console.log('Order customer data:', JSON.stringify(order.customer, null, 2));
   }
 }
