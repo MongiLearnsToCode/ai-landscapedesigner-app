@@ -125,8 +125,9 @@ export const polarWebhook = httpAction(async (ctx, request) => {
         // Customer events are informational - handled via order.created
         break;
 
+      case 'checkout.created':
       case 'checkout.updated':
-        console.log('Checkout updated event received:', webhookEvent.data.id);
+        console.log(`Checkout event received: ${webhookEvent.type}`, webhookEvent.data.id);
         // Checkout events are informational - final state handled by order/subscription events
         break;
 
