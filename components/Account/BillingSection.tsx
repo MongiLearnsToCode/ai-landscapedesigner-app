@@ -36,9 +36,22 @@ const CurrentPlan: React.FC = () => {
     }
   }, [userData?.subscriptionPlan, lastPlan, addToast]);
   
-  // Add refresh functionality
-  const handleRefresh = () => {
-    window.location.reload();
+  // Add refresh functionality that actually refreshes the query
+  const handleRefresh = async () => {
+    try {
+      addToast('Refreshing subscription data...', 'info');
+      // Force a sync first, then reload
+      if (userData?.polarCustomerId) {
+        await syncSubscription();
+      }
+      // Small delay then reload page
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Refresh error:', error);
+      window.location.reload();
+    }
   };
   
   const plan = userData?.subscriptionPlan || 'Free';
@@ -87,10 +100,10 @@ const CurrentPlan: React.FC = () => {
       <div className="flex gap-2">
         <button 
           onClick={handleRefresh}
-          className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-          title="Refresh page to check for updates"
+          className="px-4 py-2.5 text-sm font-medium text-white bg-blue-500 border border-blue-600 rounded-lg hover:bg-blue-600 transition-colors"
+          title="Sync and refresh subscription data"
         >
-          🔄 Refresh
+          🔄 Refresh & Sync
         </button>
         {userData?.polarCustomerId && (
           <button 
