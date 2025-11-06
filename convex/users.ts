@@ -36,6 +36,21 @@ export const ensureUser = mutation({
   },
 });
 
+// Get user by Polar customer ID
+export const getUserByPolarCustomer = query({
+  args: {
+    polarCustomerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_polar_customer", (q) =>
+        q.eq("polarCustomerId", args.polarCustomerId)
+      )
+      .unique();
+  },
+});
+
 // Get user profile
 export const getUser = query({
   args: {},

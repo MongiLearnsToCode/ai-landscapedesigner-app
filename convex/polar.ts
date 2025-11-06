@@ -38,9 +38,11 @@ export const polarWebhook = httpAction(async (ctx, request) => {
 
   try {
     // Get webhook secret from environment
+    // In Convex, environment variables are accessed differently
     const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error("POLAR_WEBHOOK_SECRET not configured");
+      console.error("POLAR_WEBHOOK_SECRET not configured in Convex environment");
+      console.log("Available env vars:", Object.keys(process.env).filter(k => k.includes('POLAR')));
       return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -175,6 +177,33 @@ async function handleSubscriptionActive(ctx: any, subscription: any, eventType: 
   }
 
   console.log(`Processing subscription ${subscription.id} for customer ${subscription.customerId}`);
+
+  // Try to find user by customer ID first
+  let user = await ctx.runQuery(api.users.getUserByPolarCustomer, {
+    polarCustomerId: subscription.customerId,
+  });
+
+  // If user not found, try to link using metadata from subscription
+  if (!user && subscription.metadata?.clerk_user_id) {
+    console.log('User not found by customer ID, attempting to link using metadata:', subscription.metadata.clerk_user_id);
+    try {
+      await ctx.runMutation(api.users.linkPolarCustomer, {
+        clerkUserId: subscription.metadata.clerk_user_id,
+        polarCustomerId: subscription.customerId,
+      });
+      // Try to find user again after linking
+      user = await ctx.runQuery(api.users.getUserByPolarCustomer, {
+        polarCustomerId: subscription.customerId,
+      });
+    } catch (error) {
+      console.error('Failed to link customer:', error);
+    }
+  }
+
+  if (!user) {
+    console.error(`User not found for customer ID: ${subscription.customerId}. Skipping subscription update.`);
+    return;
+  }
 
   // Validate product exists and has name property
   if (!subscription.product) {
