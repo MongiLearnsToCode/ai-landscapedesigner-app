@@ -317,34 +317,48 @@ async function handleSubscriptionCanceled(ctx: any, subscription: any, eventType
 async function handleOrderCreated(ctx: any, order: any) {
   console.log('Processing order.created event:', JSON.stringify(order, null, 2));
   
-  // Link Polar customer to Clerk user if metadata exists
-  if (order.customer?.metadata?.clerk_user_id) {
-    console.log('Found clerk_user_id in order metadata:', order.customer.metadata.clerk_user_id);
-    
-    // Validate that order.customerId exists before calling the mutation
-    if (order.customerId) {
-      console.log('Linking customer:', order.customerId, 'to user:', order.customer.metadata.clerk_user_id);
+  // Try to find clerk_user_id in multiple locations
+  let clerkUserId = null;
+  let customerId = null;
+
+  // Check order metadata first
+  if (order.metadata?.clerk_user_id) {
+    clerkUserId = order.metadata.clerk_user_id;
+    console.log('Found clerk_user_id in order metadata:', clerkUserId);
+  }
+  // Check customer metadata as fallback
+  else if (order.customer?.metadata?.clerk_user_id) {
+    clerkUserId = order.customer.metadata.clerk_user_id;
+    console.log('Found clerk_user_id in customer metadata:', clerkUserId);
+  }
+
+  // Get customer ID
+  if (order.customerId) {
+    customerId = order.customerId;
+  } else if (order.customer?.id) {
+    customerId = order.customer.id;
+    console.log('Using fallback customer ID from customer object');
+  }
+
+  if (clerkUserId && customerId) {
+    console.log('Linking customer:', customerId, 'to user:', clerkUserId);
+    try {
       await ctx.runMutation(api.users.linkPolarCustomer, {
-        clerkUserId: order.customer.metadata.clerk_user_id,
-        polarCustomerId: order.customerId,
+        clerkUserId: clerkUserId,
+        polarCustomerId: customerId,
       });
       console.log('Successfully linked customer to user');
-    } else {
-      console.warn(`Missing order.customerId for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
-      // Optionally, we could fallback to order.customer.id if available
-      if (order.customer?.id) {
-        console.log(`Using fallback customer id: ${order.customer.id}`);
-        await ctx.runMutation(api.users.linkPolarCustomer, {
-          clerkUserId: order.customer.metadata.clerk_user_id,
-          polarCustomerId: order.customer.id,
-        });
-        console.log('Successfully linked customer to user using fallback ID');
-      } else {
-        console.error(`No valid customer ID found for order with clerk_user_id: ${order.customer.metadata.clerk_user_id}`);
-      }
+    } catch (error) {
+      console.error('Failed to link customer to user:', error);
     }
   } else {
-    console.warn('No clerk_user_id found in order metadata. Order:', order.id);
-    console.log('Order customer data:', JSON.stringify(order.customer, null, 2));
+    console.warn('Missing required data for customer linking:', {
+      clerkUserId,
+      customerId,
+      hasOrderMetadata: !!order.metadata,
+      hasCustomerMetadata: !!order.customer?.metadata,
+      orderId: order.id
+    });
+    console.log('Full order data for debugging:', JSON.stringify(order, null, 2));
   }
 }
