@@ -8,10 +8,11 @@ console.log('🧪 Testing error sanitization...\n');
 
 // Test cases
 const testCases = [
-  // API key errors should be sanitized (case-insensitive)
+  // Provider credential errors should be sanitized (case-insensitive)
   { input: new Error('API key invalid'), expected: 'Service temporarily unavailable' },
   { input: new Error('Gemini API key not found'), expected: 'Service temporarily unavailable' },
-  { input: new Error('GEMINI_API_KEY is not configured'), expected: 'Service temporarily unavailable' },
+  { input: new Error('GOOGLE_CLOUD_PROJECT is not configured'), expected: 'Service temporarily unavailable' },
+  { input: new Error('Application Default Credentials are unavailable'), expected: 'Service temporarily unavailable' },
   { input: new Error('API KEY INVALID'), expected: 'Service temporarily unavailable' },
 
   // Network errors (case-insensitive)

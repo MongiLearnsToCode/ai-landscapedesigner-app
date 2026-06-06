@@ -1,15 +1,16 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
 import type { Page } from '../stores/appStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useUser } from '@clerk/clerk-react';
-import { createCheckout } from '../services/polarService';
 import { useToastStore } from '../stores/toastStore';
+import { useAction, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 interface PricingPageProps {
   onNavigate: (page: Page) => void;
 }
 
 type BillingCycle = 'monthly' | 'annual';
+type PaidPlan = 'Personal' | 'Creator' | 'Business';
 
 interface PlanCardProps {
   plan: string;
@@ -46,7 +47,7 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
       )}
       <h3 className="text-2xl font-bold text-slate-800">{plan}</h3>
       <p className="mt-2 text-slate-500">{description}</p>
-      
+
       <div className="mt-4 min-h-[90px]">
         <div className="flex items-baseline">
           <span className="text-5xl font-extrabold tracking-tight text-slate-900">{price}</span>
@@ -55,27 +56,26 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         {monthlyBreakdown && <p className="text-slate-500 mt-1">{monthlyBreakdown}</p>}
         {savings && <p className="mt-1 text-sm font-medium text-orange-500">{savings}</p>}
       </div>
-      
+
       <ul className="my-8 space-y-3 text-slate-700 flex-grow">
         {features.map((feature, index) => (
-            <li key={index} className="flex items-start">
-                <Check className="h-5 w-5 text-orange-500 flex-shrink-0 mr-2 mt-0.5" />
-                <span>{feature}</span>
-            </li>
+          <li key={index} className="flex items-start">
+            <Check className="h-5 w-5 text-orange-500 flex-shrink-0 mr-2 mt-0.5" />
+            <span>{feature}</span>
+          </li>
         ))}
       </ul>
-      
-       <button
-         onClick={onClick}
-         disabled={isLoading}
-         className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
-       >
-         {isLoading ? 'Processing...' : cta}
-       </button>
+
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
+      >
+        {isLoading ? 'Processing...' : cta}
+      </button>
     </div>
   );
 });
-
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -85,8 +85,34 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false, isTabletPortrait: false });
 
-  const { user: clerkUser } = useUser();
   const { addToast } = useToastStore();
+  const createCheckout = useAction(api.polar.createCheckout);
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const isAuthenticated = !!currentUser;
+
+  const handleSubscribe = async (plan: PaidPlan, billingCycle: BillingCycle) => {
+    if (!isAuthenticated) {
+      onNavigate('signin');
+      return;
+    }
+
+    setIsCheckingOut(plan);
+    try {
+      const { url } = await createCheckout({
+        plan,
+        billingCycle,
+        successUrl: `${window.location.origin}/success`,
+        returnUrl: `${window.location.origin}/pricing`,
+      });
+
+      window.location.href = url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      addToast('Failed to start checkout. Please try again.', 'error');
+    } finally {
+      setIsCheckingOut(null);
+    }
+  };
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -96,61 +122,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     const canScrollRight = scrollLeft + clientWidth < scrollWidth - buffer;
     setScrollState(prev => ({ ...prev, canScrollLeft, canScrollRight }));
   }, []);
-
-  const smoothScrollBy = (amount: number) => {
-    if (containerRef.current) {
-      containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-    }
-  };
-
-  const handleSubscribe = async (plan: string, billingCycle: BillingCycle) => {
-    if (!clerkUser) {
-      onNavigate('signin');
-      return;
-    }
-
-    setIsCheckingOut(plan);
-    try {
-      const productMap: Record<string, Record<string, string>> = {
-        Personal: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_PERSONAL_ANNUAL,
-        },
-        Creator: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_CREATOR_ANNUAL,
-        },
-        Business: {
-          monthly: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_MONTHLY,
-          annual: import.meta.env.VITE_POLAR_PRODUCT_BUSINESS_ANNUAL,
-        },
-      };
-
-      const productId = productMap[plan]?.[billingCycle];
-
-      // Validate productId exists and is properly configured
-      if (!productId || productId?.startsWith('REPLACE_WITH_REAL') || productId?.startsWith('your_')) {
-        console.error('Product ID not configured for plan:', plan, 'billing:', billingCycle, 'productId:', productId);
-        addToast(`Payment system not configured for ${plan} plan (${billingCycle}). Please contact support.`, 'error');
-        return;
-      }
-
-      const checkout = await createCheckout({
-        productId,
-        successUrl: `${window.location.origin}/success`,
-        metadata: {
-          clerk_user_id: clerkUser.id,
-        },
-      });
-
-      window.location.href = checkout.url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      addToast('Failed to start checkout. Please try again.', 'error');
-    } finally {
-      setIsCheckingOut(null);
-    }
-  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 768px) and (max-width: 1023px) and (orientation: portrait)");
@@ -164,14 +135,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         const card = popularCardRef.current;
         const scrollLeft = card.offsetLeft - (container.offsetWidth / 2) + (card.offsetWidth / 2);
         container.scrollLeft = scrollLeft;
-        
-        // Use a timeout to ensure the scroll position has been updated before checking
         setTimeout(handleScroll, 50);
       }
     };
 
     updateLayout();
-    const timeoutId = setTimeout(updateLayout, 100); // Recalculate after render
+    const timeoutId = setTimeout(updateLayout, 100);
 
     mediaQuery.addEventListener('change', updateLayout);
     window.addEventListener('resize', updateLayout);
@@ -189,7 +158,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       }
     };
   }, [billingCycle, handleScroll]);
-  
+
+  const smoothScrollBy = (amount: number) => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
   const commonFeatures = [
     "All design styles",
     "Image editing tools",
@@ -218,20 +193,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       <style>{`
         @media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
           .tablet-portrait-scroll-container {
-            /* Override Tailwind's md:grid-cols-3 */
-            grid-template-columns: none; 
+            grid-template-columns: none;
             grid-auto-flow: column;
             grid-auto-columns: minmax(320px, 1fr);
             overflow-x: auto;
             scroll-snap-type: x mandatory;
-            padding-top: 2rem; /* Prevents top clipping of scaled popular card */
-            padding-bottom: 3rem; /* Increased padding to prevent shadow clipping at the bottom */
+            padding-top: 2rem;
+            padding-bottom: 3rem;
           }
           .tablet-portrait-scroll-container > * {
             scroll-snap-align: center;
-            width: 100%; /* Ensure cards take up the column width */
+            width: 100%;
           }
-          /* Hide scrollbar for a cleaner look */
           .tablet-portrait-scroll-container::-webkit-scrollbar { display: none; }
           .tablet-portrait-scroll-container { -ms-overflow-style: none; scrollbar-width: none; }
         }
@@ -270,72 +243,72 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <ScrollIndicator direction="left" visible={scrollState.canScrollLeft} />
           <ScrollIndicator direction="right" visible={scrollState.canScrollRight} />
           <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
-             <PlanCard
-                 plan="Personal"
-                 price={billingCycle === 'monthly' ? "$12" : "$120"}
-                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                 monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
-                 savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
-                 description="For casual users or hobbyists."
-                 features={["50 redesigns per month", ...commonFeatures]}
-                 cta="Get Personal"
-                 onClick={() => handleSubscribe('Personal', billingCycle)}
-                 isLoading={isCheckingOut === 'Personal'}
-             />
-             <PlanCard
-                 ref={popularCardRef}
-                 plan="Creator"
-                 price={billingCycle === 'monthly' ? "$29" : "$240"}
-                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                 monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
-                 savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
-                 description="For regular creators & freelancers."
-                 features={["200 redesigns per month", ...commonFeatures]}
-                 cta="Choose Creator"
-                 isPopular={true}
-                 ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
-                 onClick={() => handleSubscribe('Creator', billingCycle)}
-                 isLoading={isCheckingOut === 'Creator'}
-             />
-             <PlanCard
-                 plan="Business"
-                 price={billingCycle === 'monthly' ? "$60" : "$480"}
-                 pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-                 monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
-                 savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
-                 description="For teams, agencies & power users."
-                 features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
-                 cta="Go Business"
-                 onClick={() => handleSubscribe('Business', billingCycle)}
-                 isLoading={isCheckingOut === 'Business'}
-             />
+            <PlanCard
+              plan="Personal"
+              price={billingCycle === 'monthly' ? "$12" : "$120"}
+              pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+              monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
+              savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
+              description="For casual users or hobbyists."
+              features={["50 redesigns per month", ...commonFeatures]}
+              cta="Get Personal"
+              onClick={() => handleSubscribe('Personal', billingCycle)}
+              isLoading={isCheckingOut === 'Personal'}
+            />
+            <PlanCard
+              ref={popularCardRef}
+              plan="Creator"
+              price={billingCycle === 'monthly' ? "$29" : "$240"}
+              pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+              monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
+              savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
+              description="For regular creators & freelancers."
+              features={["200 redesigns per month", ...commonFeatures]}
+              cta="Choose Creator"
+              isPopular={true}
+              ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
+              onClick={() => handleSubscribe('Creator', billingCycle)}
+              isLoading={isCheckingOut === 'Creator'}
+            />
+            <PlanCard
+              plan="Business"
+              price={billingCycle === 'monthly' ? "$60" : "$480"}
+              pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
+              monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
+              savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
+              description="For teams, agencies & power users."
+              features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
+              cta="Go Business"
+              onClick={() => handleSubscribe('Business', billingCycle)}
+              isLoading={isCheckingOut === 'Business'}
+            />
           </div>
         </div>
       </div>
 
       <div className="mt-12 pt-8 text-center border-t border-slate-200/80 max-w-3xl mx-auto">
         <p className="text-lg text-slate-700">
-            Want to try it out first? Get 3 images free →
-            <button
-                onClick={() => onNavigate('main')}
-                className="ml-2 font-semibold text-orange-500 hover:underline"
-            >
-                Start Free
-            </button>
+          Want to try it out first? Get 3 images free →
+          <button
+            onClick={() => onNavigate('main')}
+            className="ml-2 font-semibold text-orange-500 hover:underline"
+          >
+            Start Free
+          </button>
         </p>
       </div>
 
       <div className="mt-8 text-center">
-          <p className="text-xs text-slate-400">
-            * 'Unlimited' is subject to a{' '}
-             <button
-                onClick={() => onNavigate('/fair-use-policy')}
-                className="underline hover:text-slate-600"
-              >
-                fair use policy
-              </button>
-             {' '}to prevent abuse.
-          </p>
+        <p className="text-xs text-slate-400">
+          * 'Unlimited' is subject to a{' '}
+          <button
+            onClick={() => onNavigate('fair-use-policy')}
+            className="underline hover:text-slate-600"
+          >
+            fair use policy
+          </button>
+          {' '}to prevent abuse.
+        </p>
       </div>
     </div>
   );

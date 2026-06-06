@@ -1,34 +1,174 @@
-import { httpAction } from "./_generated/server";
+import { Polar } from "@polar-sh/sdk";
+import { validateEvent, WebhookVerificationError } from "@polar-sh/sdk/webhooks";
+import { v } from "convex/values";
+import { action, httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
+import { auth } from "./auth";
 import { PLAN_LIMITS } from "./constants";
 
-// Helper function to extract billing cycle from subscription price data
-function extractBillingCycle(subscription: any): { billingCycle?: string; priceId?: string } {
-  const price = subscription.prices?.[0];
+type BillingCycle = "monthly" | "annual";
+type Plan = "Personal" | "Creator" | "Business";
 
-  if (!price) {
-    console.warn(`⚠️  Missing price data for subscription ${subscription.id}, customer ${subscription.customerId}`);
-    return { billingCycle: undefined, priceId: undefined };
+const PRODUCT_ENV_KEYS: Record<Plan, Record<BillingCycle, string>> = {
+  Personal: {
+    monthly: "POLAR_PRODUCT_PERSONAL_MONTHLY",
+    annual: "POLAR_PRODUCT_PERSONAL_ANNUAL",
+  },
+  Creator: {
+    monthly: "POLAR_PRODUCT_CREATOR_MONTHLY",
+    annual: "POLAR_PRODUCT_CREATOR_ANNUAL",
+  },
+  Business: {
+    monthly: "POLAR_PRODUCT_BUSINESS_MONTHLY",
+    annual: "POLAR_PRODUCT_BUSINESS_ANNUAL",
+  },
+};
+
+const PRODUCT_PLAN_BY_ENV_KEY = new Map<string, Plan>(
+  Object.entries(PRODUCT_ENV_KEYS).flatMap(([plan, cycles]) =>
+    Object.values(cycles).map((envKey) => [envKey, plan as Plan])
+  )
+);
+
+function getPolarClient() {
+  const accessToken = process.env.POLAR_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error("POLAR_ACCESS_TOKEN is not configured");
   }
 
-  const cadence = price.recurringInterval ?? price.recurring_interval;
-  const billingCycle = (cadence === 'year') ? 'annual' : 'monthly';
-  return { billingCycle, priceId: price.id };
+  return new Polar({
+    accessToken,
+    server: process.env.POLAR_SANDBOX === "true" ? "sandbox" : "production",
+  });
 }
 
-export const polarWebhook = httpAction(async (ctx, request) => {
-  // Convert Headers to plain object for logging and validation
-  const headersObj: Record<string, string> = {};
+function productIdFor(plan: Plan, billingCycle: BillingCycle) {
+  const envKey = PRODUCT_ENV_KEYS[plan][billingCycle];
+  const productId = process.env[envKey];
+
+  if (!productId) {
+    throw new Error(`${envKey} is not configured`);
+  }
+
+  return productId;
+}
+
+function planForProduct(productId?: string, productName?: string): Plan | "Free" {
+  if (productId) {
+    for (const [envKey, plan] of PRODUCT_PLAN_BY_ENV_KEY.entries()) {
+      if (process.env[envKey] === productId) return plan;
+    }
+  }
+
+  if (productName && productName in PLAN_LIMITS) {
+    return productName as Plan;
+  }
+
+  return "Free";
+}
+
+function timestamp(value?: Date | string | number | null) {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.getTime();
+}
+
+function requestHeaders(request: Request) {
+  const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {
-    headersObj[key] = value;
+    headers[key] = value;
   });
+  return headers;
+}
 
-  console.log("Polar webhook received:", {
-    url: request.url,
-    method: request.method,
-    headers: headersObj,
-  });
+function eventIdFor(event: any) {
+  const dataId = event.data?.id ?? "unknown";
+  const eventTimestamp = event.timestamp
+    ? event.timestamp instanceof Date
+      ? event.timestamp.toISOString()
+      : String(event.timestamp)
+    : "no-timestamp";
+  return `polar:${event.type}:${dataId}:${eventTimestamp}`;
+}
 
+function subscriptionUserId(subscription: any) {
+  return subscription.customer?.externalId ?? subscription.externalCustomerId ?? subscription.metadata?.convexUserId;
+}
+
+function orderUserId(order: any) {
+  return order.customer?.externalId ?? order.externalCustomerId ?? order.metadata?.convexUserId;
+}
+
+function subscriptionUpdate(subscription: any) {
+  const plan = planForProduct(subscription.productId, subscription.product?.name);
+  const isActive = subscription.status === "active" || subscription.status === "trialing";
+  const isGraceState = subscription.status === "past_due";
+  const hasAccess = (isActive || isGraceState) && plan !== "Free";
+  const planConfig = hasAccess ? PLAN_LIMITS[plan] : PLAN_LIMITS.Free;
+
+  return {
+    status: subscription.cancelAtPeriodEnd && isActive ? "canceled" : subscription.status,
+    plan: hasAccess ? planConfig.plan : "Free",
+    billingCycle: subscription.recurringInterval === "year" ? "annual" : "monthly",
+    limit: planConfig.limit,
+    subscriptionId: subscription.id,
+    polarCustomerId: subscription.customerId,
+    currentPeriodEnd: timestamp(subscription.currentPeriodEnd),
+  };
+}
+
+export const createCheckout = action({
+  args: {
+    plan: v.union(v.literal("Personal"), v.literal("Creator"), v.literal("Business")),
+    billingCycle: v.union(v.literal("monthly"), v.literal("annual")),
+    successUrl: v.string(),
+    returnUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.runQuery(api.users.getCurrentUser);
+    if (!user) throw new Error("User not found");
+
+    const polar = getPolarClient();
+    const checkout = await polar.checkouts.create({
+      products: [productIdFor(args.plan, args.billingCycle)],
+      externalCustomerId: userId,
+      customerEmail: user.email,
+      customerName: user.name ?? undefined,
+      successUrl: args.successUrl,
+      returnUrl: args.returnUrl,
+      metadata: {
+        convexUserId: userId,
+        plan: args.plan,
+        billingCycle: args.billingCycle,
+      },
+    });
+
+    return { url: checkout.url };
+  },
+});
+
+export const createCustomerPortalSession = action({
+  args: {
+    returnUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const polar = getPolarClient();
+    const session = await polar.customerSessions.create({
+      externalCustomerId: userId,
+      returnUrl: args.returnUrl,
+    });
+
+    return { url: session.customerPortalUrl };
+  },
+});
+
+export const polarWebhook = httpAction(async (ctx, request) => {
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -36,329 +176,106 @@ export const polarWebhook = httpAction(async (ctx, request) => {
     });
   }
 
+  const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error("POLAR_WEBHOOK_SECRET is not configured");
+    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const body = await request.text();
+  let event: any;
+
   try {
-    // Get webhook secret from environment
-    // In Convex, environment variables are accessed differently
-    const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      console.error("POLAR_WEBHOOK_SECRET not configured in Convex environment");
-      console.log("Available env vars:", Object.keys(process.env).filter(k => k.includes('POLAR')));
-      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
-        status: 500,
+    event = validateEvent(body, requestHeaders(request), webhookSecret);
+  } catch (error) {
+    if (error instanceof WebhookVerificationError) {
+      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+        status: 403,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Read request body
-    const body = await request.text();
-    
-    // TODO: Implement Convex-compatible signature verification
-    // The validateEvent function uses Buffer which is not available in Convex runtime
-    // For now, we'll parse the event directly and rely on webhook secret being kept secure
-    console.warn('⚠️  Webhook signature verification temporarily disabled - implement Convex-compatible verification');
-    
-    let event;
-    try {
-      event = JSON.parse(body);
-    } catch (err) {
-      console.error('Failed to parse webhook body:', err);
-      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    console.error("Polar webhook validation error:", error);
+    return new Response(JSON.stringify({ error: "Webhook validation failed" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-    console.log('Polar webhook event received:', event.type);
-    console.log('Full webhook payload structure:', JSON.stringify(event, null, 2));
-
-    // Type assertion to access event properties safely
-    const webhookEvent = event as any;
-    
-    // Generate stable event ID for idempotency
-    // Same event type + resource ID = same eventId, allowing Polar retries to be deduplicated
-    // Different event types for same resource get different IDs
-    const resourceId = webhookEvent.data?.id || webhookEvent.id || 'unknown';
-    const eventId = `${webhookEvent.type}_${resourceId}`;
-    
-    console.log('Stable eventId:', eventId);
-    
-    // Check if already processed (idempotency)
+  try {
+    const eventId = eventIdFor(event);
     const logResult = await ctx.runMutation(api.webhooks.logWebhookEvent, {
-      eventId: eventId,
-      eventType: webhookEvent.type,
-      payload: webhookEvent,
+      eventId,
+      provider: "polar",
+      eventType: event.type,
+      payload: event,
     });
 
     if (logResult.alreadyProcessed) {
-      console.log('Event already processed:', eventId);
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Handle different event types
-    switch (webhookEvent.type) {
-      case 'subscription.created':
-      case 'subscription.updated':
-      case 'subscription.active':
-        await handleSubscriptionActive(ctx, webhookEvent.data, webhookEvent.type);
+    switch (event.type) {
+      case "subscription.created":
+      case "subscription.active":
+      case "subscription.updated":
+      case "subscription.uncanceled":
+      case "subscription.past_due":
+      case "subscription.canceled":
+      case "subscription.revoked":
+        await handleSubscriptionEvent(ctx, event.data);
         break;
-
-      case 'subscription.canceled':
-      case 'subscription.revoked':
-        await handleSubscriptionCanceled(ctx, webhookEvent.data, webhookEvent.type);
+      case "order.created":
+      case "order.paid":
+      case "order.updated":
+        await handleOrderEvent(ctx, event.data);
         break;
-
-      case 'order.created':
-      case 'order.updated':
-        await handleOrderCreated(ctx, webhookEvent.data);
-        break;
-
-      case 'order.paid':
-        console.log('Order paid event received:', webhookEvent.data.id);
-        // Order paid is informational - subscription.active handles the actual activation
-        break;
-
-      case 'customer.created':
-      case 'customer.updated':
-      case 'customer.state_changed':
-        console.log(`Customer event received: ${webhookEvent.type}`, webhookEvent.data.id);
-        // Customer events are informational - handled via order.created
-        break;
-
-      case 'checkout.created':
-      case 'checkout.updated':
-        console.log(`Checkout event received: ${webhookEvent.type}`, webhookEvent.data.id);
-        // Checkout events are informational - final state handled by order/subscription events
-        break;
-
       default:
-        console.log('Unhandled event type:', webhookEvent.type);
+        break;
     }
 
-    // Mark as processed
-    await ctx.runMutation(api.webhooks.markWebhookProcessed, {
-      eventId: eventId,
-    });
+    await ctx.runMutation(api.webhooks.markWebhookProcessed, { eventId });
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    return new Response(JSON.stringify({ error: 'Webhook processing failed' }), {
+    console.error("Polar webhook processing error:", error);
+    return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 });
 
-async function handleSubscriptionActive(ctx: any, subscription: any, eventType: string) {
-  console.log(`Processing ${eventType} event:`, JSON.stringify(subscription, null, 2));
-  
-  // Validate required properties exist and are of correct type
-  if (!subscription) {
-    console.error(`Invalid subscription object provided to handleSubscriptionActive for event type: ${eventType}`);
+async function handleSubscriptionEvent(ctx: any, subscription: any) {
+  const userId = subscriptionUserId(subscription);
+  if (!userId) {
+    console.error("Polar subscription missing external customer id:", subscription.id);
     return;
   }
-
-  // Check if subscription has required properties
-  if (!subscription.id) {
-    console.error(`Subscription missing id property for event type: ${eventType}`);
-    return;
-  }
-
-  if (!subscription.customerId) {
-    console.error(`Subscription missing customerId property for event type: ${eventType}`);
-    return;
-  }
-
-  console.log(`Processing subscription ${subscription.id} for customer ${subscription.customerId}`);
-
-  // Try to find user by customer ID first
-  let user = await ctx.runQuery(api.users.getUserByPolarCustomer, {
-    polarCustomerId: subscription.customerId,
-  });
-
-  // If user not found, try to link using metadata from subscription
-  if (!user && subscription.metadata?.clerk_user_id) {
-    console.log('User not found by customer ID, attempting to link using metadata:', subscription.metadata.clerk_user_id);
-    try {
-      await ctx.runMutation(api.users.linkPolarCustomer, {
-        clerkUserId: subscription.metadata.clerk_user_id,
-        polarCustomerId: subscription.customerId,
-      });
-      // Try to find user again after linking
-      user = await ctx.runQuery(api.users.getUserByPolarCustomer, {
-        polarCustomerId: subscription.customerId,
-      });
-    } catch (error) {
-      console.error('Failed to link customer:', error);
-    }
-  }
-
-  if (!user) {
-    console.error(`User not found for customer ID: ${subscription.customerId}. Skipping subscription update.`);
-    return;
-  }
-
-  // Validate product exists and has name property
-  if (!subscription.product) {
-    console.error(`Subscription missing product property for event type: ${eventType}`);
-    return;
-  }
-
-  // Handle currentPeriodEnd validation based on event type
-  // For subscription.created events, currentPeriodEnd might be missing, so we log a warning and skip setup
-  if (!subscription.currentPeriodEnd) {
-    if (eventType === 'subscription.created') {
-      console.warn(`Missing currentPeriodEnd for subscription.created event (subscriptionId: ${subscription.id}). Skipping subscription setup.`);
-      return; // Skip setting up the subscription for now
-    } else {
-      // For other event types, this is an error
-      console.error(`Missing currentPeriodEnd for event type: ${eventType}, subscriptionId: ${subscription.id}`);
-      return;
-    }
-  }
-
-  // Validate product name exists and is a string
-  const productName = subscription.product && typeof subscription.product.name === 'string' 
-    ? subscription.product.name 
-    : null;
-  
-  console.log(`Product name: ${productName}`);
-  
-  // Use default plan if product name is missing or invalid
-  const planConfig = productName && PLAN_LIMITS[productName] 
-    ? PLAN_LIMITS[productName] 
-    : { plan: 'Free', limit: 3 };
-
-  console.log(`Plan config:`, planConfig);
-
-  // Validate currentPeriodEnd can be converted to a Date object
-  let currentPeriodEndDate = null;
-  if (subscription.currentPeriodEnd) {
-    const date = new Date(subscription.currentPeriodEnd);
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date format for currentPeriodEnd:', subscription.currentPeriodEnd);
-      return;
-    }
-    currentPeriodEndDate = date.getTime();
-  }
-
-  // Extract billing cycle and price ID with proper error handling
-  const { billingCycle, priceId } = extractBillingCycle(subscription);
-  console.log(`Billing cycle: ${billingCycle}, Price ID: ${priceId}`);
-
-  console.log('Updating user subscription in database...');
-  await ctx.runMutation(api.users.updateSubscription, {
-    polarCustomerId: subscription.customerId,
-    subscriptionId: subscription.id,
-    subscriptionPriceId: priceId,
-    status: 'active',
-    plan: planConfig.plan,
-    billingCycle,
-    limit: planConfig.limit,
-    currentPeriodEnd: currentPeriodEndDate,
-  });
-  console.log('Successfully updated user subscription');
-}
-
-async function handleSubscriptionCanceled(ctx: any, subscription: any, eventType: string) {
-  // Validate required properties exist and are of correct type
-  if (!subscription) {
-    console.error(`Invalid subscription object provided to handleSubscriptionCanceled for event type: ${eventType}`);
-    return;
-  }
-
-  if (!subscription.id) {
-    console.error(`Subscription missing id property for event type: ${eventType}`);
-    return;
-  }
-
-  if (!subscription.customerId) {
-    console.error(`Subscription missing customerId property for event type: ${eventType}`);
-    return;
-  }
-
-  // For canceled subscriptions, currentPeriodEnd might not be required or might be missing in some events
-  // We'll allow the function to continue but handle the missing value gracefully
-  let currentPeriodEndDate = null;
-  if (subscription.currentPeriodEnd) {
-    const date = new Date(subscription.currentPeriodEnd);
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date format for currentPeriodEnd:', subscription.currentPeriodEnd);
-      return;
-    }
-    currentPeriodEndDate = date.getTime();
-  } else {
-    // Log a warning when currentPeriodEnd is missing for cancellation events
-    console.warn(`Missing currentPeriodEnd for cancellation event (event type: ${eventType}, subscriptionId: ${subscription.id})`);
-  }
-
-  // For canceled subscriptions, we keep the billing cycle info for reference
-  const { billingCycle, priceId } = extractBillingCycle(subscription);
 
   await ctx.runMutation(api.users.updateSubscription, {
-    polarCustomerId: subscription.customerId,
-    subscriptionId: subscription.id,
-    subscriptionPriceId: priceId,
-    status: 'canceled',
-    plan: 'Free',
-    billingCycle,
-    limit: 3,
-    currentPeriodEnd: currentPeriodEndDate,
+    userId,
+    ...subscriptionUpdate(subscription),
   });
 }
 
-async function handleOrderCreated(ctx: any, order: any) {
-  console.log('Processing order.created event:', JSON.stringify(order, null, 2));
-  
-  // Try to find clerk_user_id in multiple locations
-  let clerkUserId = null;
-  let customerId = null;
+async function handleOrderEvent(ctx: any, order: any) {
+  const userId = orderUserId(order);
+  const customerId = order.customerId ?? order.customer?.id;
 
-  // Check order metadata first
-  if (order.metadata?.clerk_user_id) {
-    clerkUserId = order.metadata.clerk_user_id;
-    console.log('Found clerk_user_id in order metadata:', clerkUserId);
-  }
-  // Check customer metadata as fallback
-  else if (order.customer?.metadata?.clerk_user_id) {
-    clerkUserId = order.customer.metadata.clerk_user_id;
-    console.log('Found clerk_user_id in customer metadata:', clerkUserId);
-  }
+  if (!userId || !customerId) return;
 
-  // Get customer ID
-  if (order.customerId) {
-    customerId = order.customerId;
-  } else if (order.customer?.id) {
-    customerId = order.customer.id;
-    console.log('Using fallback customer ID from customer object');
-  }
-
-  if (clerkUserId && customerId) {
-    console.log('Linking customer:', customerId, 'to user:', clerkUserId);
-    try {
-      await ctx.runMutation(api.users.linkPolarCustomer, {
-        clerkUserId: clerkUserId,
-        polarCustomerId: customerId,
-      });
-      console.log('Successfully linked customer to user');
-    } catch (error) {
-      console.error('Failed to link customer to user:', error);
-    }
-  } else {
-    console.warn('Missing required data for customer linking:', {
-      clerkUserId,
-      customerId,
-      hasOrderMetadata: !!order.metadata,
-      hasCustomerMetadata: !!order.customer?.metadata,
-      orderId: order.id
-    });
-    console.log('Full order data for debugging:', JSON.stringify(order, null, 2));
-  }
+  await ctx.runMutation(api.users.linkPolarCustomer, {
+    userId,
+    polarCustomerId: customerId,
+  });
 }

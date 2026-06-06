@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAppStore } from '../../stores/appStore';
 import { useToastStore } from '../../stores/toastStore';
@@ -21,11 +21,11 @@ const SectionCard: React.FC<{ title: string; children: React.ReactNode; footer?:
 const CurrentPlan: React.FC = () => {
   const { navigateTo } = useAppStore();
   const { addToast } = useToastStore();
-  const userData = useQuery(api.users.getUser);
-  const syncSubscription = useMutation(api.users.syncSubscription);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const userData = useQuery(api.users.getCurrentUser);
+  const createCustomerPortalSession = useAction(api.polar.createCustomerPortalSession);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [lastPlan, setLastPlan] = useState<string>('');
-  
+
   // Monitor for plan changes and show notification
   useEffect(() => {
     if (userData?.subscriptionPlan && userData.subscriptionPlan !== lastPlan && lastPlan !== '') {
@@ -35,46 +35,30 @@ const CurrentPlan: React.FC = () => {
       setLastPlan(userData.subscriptionPlan);
     }
   }, [userData?.subscriptionPlan, lastPlan, addToast]);
-  
-  // Add refresh functionality that actually refreshes the query
-  const handleRefresh = async () => {
+
+  const handleManageSubscription = async () => {
+    if (plan === 'Free') {
+      navigateTo('pricing');
+      return;
+    }
+
+    setIsOpeningPortal(true);
     try {
-      addToast('Refreshing subscription data...', 'info');
-      // Force a sync first, then reload
-      if (userData?.polarCustomerId) {
-        await syncSubscription();
-      }
-      // Small delay then reload page
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      const { url } = await createCustomerPortalSession({
+        returnUrl: window.location.href,
+      });
+      window.location.href = url;
     } catch (error) {
-      console.error('Refresh error:', error);
-      window.location.reload();
+      console.error('Customer portal error:', error);
+      addToast('Unable to open billing portal. Please try again.', 'error');
+      setIsOpeningPortal(false);
     }
   };
-  
+
   const plan = userData?.subscriptionPlan || 'Free';
   const status = userData?.subscriptionStatus || 'active';
   const billingCycle = userData?.billingCycle || 'monthly';
-  
-  const handleSyncSubscription = async () => {
-    setIsSyncing(true);
-    try {
-      const result = await syncSubscription();
-      if (result.success) {
-        addToast(`Subscription synced successfully! Plan: ${result.plan}`, 'success');
-      } else {
-        addToast(result.message || 'No active subscription found', 'info');
-      }
-    } catch (error) {
-      addToast('Failed to sync subscription. Please try again.', 'error');
-      console.error('Sync error:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-  
+
   // Plan pricing based on Polar plans
   const getPlanInfo = (planName: string) => {
     switch (planName) {
@@ -88,7 +72,7 @@ const CurrentPlan: React.FC = () => {
         return { price: 0, description: 'Our basic free-forever plan' };
     }
   };
-  
+
   const planInfo = getPlanInfo(plan);
   const price = billingCycle === 'annual' ? Math.floor(planInfo.price * 10) : planInfo.price;
 
@@ -98,29 +82,21 @@ const CurrentPlan: React.FC = () => {
         {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription'}
       </p>
       <div className="flex gap-2">
-        <button 
-          onClick={handleRefresh}
-          className="px-4 py-2.5 text-sm font-medium text-white bg-blue-500 border border-blue-600 rounded-lg hover:bg-blue-600 transition-colors"
-          title="Sync and refresh subscription data"
-        >
-          🔄 Refresh & Sync
-        </button>
-        {userData?.polarCustomerId && (
-          <button 
-            onClick={handleSyncSubscription}
-            disabled={isSyncing}
-            className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Sync subscription status from Polar"
-          >
-            {isSyncing ? 'Syncing...' : '🔄 Sync'}
-          </button>
-        )}
-        <button 
+        <button
           onClick={() => navigateTo('pricing')}
           className="px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
         >
           {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
         </button>
+        {plan !== 'Free' && (
+          <button
+            onClick={handleManageSubscription}
+            disabled={isOpeningPortal}
+            className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isOpeningPortal ? 'Opening...' : 'Manage Billing'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -132,8 +108,8 @@ const CurrentPlan: React.FC = () => {
           <div className="flex items-center gap-2">
             <p className="text-xl font-bold text-slate-800">{plan} Plan</p>
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              status === 'active' 
-                ? 'bg-green-100 text-green-800' 
+              status === 'active'
+                ? 'bg-green-100 text-green-800'
                 : 'bg-red-100 text-red-800'
             }`}>
               {status}

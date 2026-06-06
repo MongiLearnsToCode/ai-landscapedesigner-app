@@ -6,13 +6,17 @@ export const generateFingerprint = (): string => {
   ctx!.font = '14px Arial';
   ctx!.fillText('Device fingerprint', 2, 2);
   
+  const deviceMemory = 'deviceMemory' in navigator && typeof navigator.deviceMemory === 'number'
+    ? navigator.deviceMemory
+    : 0;
+
   const fingerprint = [
     navigator.userAgent,
     navigator.language,
     screen.width + 'x' + screen.height,
     new Date().getTimezoneOffset(),
     navigator.hardwareConcurrency || 0,
-    navigator.deviceMemory || 0,
+    deviceMemory,
     canvas.toDataURL()
   ].join('|');
   

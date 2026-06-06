@@ -1,31 +1,41 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  ...authTables,
   users: defineTable({
-    clerkUserId: v.string(),
-    email: v.optional(v.string()),
+    // User profile fields (extends Convex Auth's auth accounts)
     name: v.optional(v.string()),
-    // Legacy field - to be migrated (temporary for production deployment)
-    isPremium: v.optional(v.boolean()),
-    // Subscription tracking
+    image: v.optional(v.string()),
+    email: v.string(),
+    emailVerified: v.optional(v.boolean()),
+
+    // Polar billing integration
     polarCustomerId: v.optional(v.string()),
-    subscriptionStatus: v.optional(v.string()), // active, canceled, past_due
-    subscriptionPlan: v.optional(v.string()), // Personal, Creator, Business, Free
-    billingCycle: v.optional(v.string()), // monthly, annual
-    subscriptionId: v.optional(v.string()), // Polar subscription ID
-    subscriptionPriceId: v.optional(v.string()),
-    currentPeriodEnd: v.optional(v.number()), // timestamp
+
+    // Subscription tracking
+    subscriptionStatus: v.optional(v.string()), // active, canceled, past_due, trialing, expired
+    subscriptionPlan: v.optional(v.string()),   // Personal, Creator, Business, Free
+    billingCycle: v.optional(v.string()),       // monthly, annual
+    subscriptionId: v.optional(v.string()),
+
+    // Entitlement tracking
+    expirationDate: v.optional(v.number()),     // Timestamp
+    currentPeriodEnd: v.optional(v.number()),   // Timestamp
+
     // Monthly limits
     monthlyRedesignLimit: v.optional(v.number()),
     redesignsUsedThisMonth: v.optional(v.number()),
-    currentMonthStart: v.optional(v.number()), // timestamp
+    currentMonthStart: v.optional(v.number()),  // timestamp
+    // Deprecated: isPremium from old schema
+    isPremium: v.optional(v.boolean()),
   })
-    .index("by_clerk_id", ["clerkUserId"])
+    .index("by_email", ["email"])
     .index("by_polar_customer", ["polarCustomerId"]),
 
   redesigns: defineTable({
-    clerkUserId: v.string(),
+    userId: v.optional(v.id("users")),
     redesignId: v.string(),
     originalImageUrl: v.string(),
     redesignedImageUrl: v.string(),
@@ -35,13 +45,14 @@ export default defineSchema({
     isPinned: v.optional(v.boolean()),
     createdAt: v.optional(v.number()), // timestamp
   })
-    .index("by_user", ["clerkUserId"])
+    .index("by_user", ["userId"])
     .index("by_redesign_id", ["redesignId"])
-    .index("by_user_and_date", ["clerkUserId", "createdAt"]),
+    .index("by_user_and_date", ["userId", "createdAt"]),
 
   // Webhook events log (for debugging and idempotency)
   webhookEvents: defineTable({
-    eventId: v.string(), // Polar event ID
+    eventId: v.string(), // External event ID
+    provider: v.optional(v.string()),
     eventType: v.string(),
     processed: v.boolean(),
     processedAt: v.optional(v.number()),

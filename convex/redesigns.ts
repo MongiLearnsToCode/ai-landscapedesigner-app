@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { auth } from "./auth";
 
 // Helper to reset monthly counter if needed
 const checkAndResetMonthlyUsage = async (ctx: any, user: any) => {
@@ -22,12 +23,12 @@ const checkAndResetMonthlyUsage = async (ctx: any, user: any) => {
 export const getHistory = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
 
     return await ctx.db
       .query("redesigns")
-      .withIndex("by_user", (q) => q.eq("clerkUserId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
   },
@@ -37,8 +38,8 @@ export const getHistory = query({
 export const checkLimit = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) {
       return {
         used: 0,
         limit: 3,
@@ -48,10 +49,7 @@ export const checkLimit = query({
       };
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
+    const user = await ctx.db.get(userId);
 
     if (!user) {
       return {
@@ -96,14 +94,11 @@ export const saveRedesign = mutation({
     climateZone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
 
     // Get user
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
+    const user = await ctx.db.get(userId);
 
     if (!user) throw new Error("User not found");
 
@@ -123,7 +118,7 @@ export const saveRedesign = mutation({
     // Save redesign
     const id = await ctx.db.insert("redesigns", {
       ...args,
-      clerkUserId: identity.subject,
+      userId,
       isPinned: false,
       createdAt: Date.now(),
     });
@@ -143,8 +138,8 @@ export const saveRedesign = mutation({
 export const togglePin = mutation({
   args: { redesignId: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
 
     const redesign = await ctx.db
       .query("redesigns")
@@ -152,7 +147,7 @@ export const togglePin = mutation({
       .unique();
 
     if (!redesign) throw new Error("Not found");
-    if (redesign.clerkUserId !== identity.subject)
+    if (redesign.userId !== userId)
       throw new Error("Not authorized");
 
     await ctx.db.patch(redesign._id, {
@@ -165,8 +160,8 @@ export const togglePin = mutation({
 export const deleteRedesign = mutation({
   args: { redesignId: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
 
     const redesign = await ctx.db
       .query("redesigns")
@@ -174,7 +169,7 @@ export const deleteRedesign = mutation({
       .unique();
 
     if (!redesign) throw new Error("Not found");
-    if (redesign.clerkUserId !== identity.subject)
+    if (redesign.userId !== userId)
       throw new Error("Not authorized");
 
     await ctx.db.delete(redesign._id);

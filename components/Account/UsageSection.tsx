@@ -18,7 +18,7 @@ const SectionCard: React.FC<{ title: string; children: React.ReactNode; footer?:
 );
 
 export const UsageSection: React.FC = () => {
-  const userData = useQuery(api.users.getUser);
+  const userData = useQuery(api.users.getCurrentUser);
 
   const used = userData?.redesignsUsedThisMonth || 0;
   const limit = userData?.monthlyRedesignLimit || 3;

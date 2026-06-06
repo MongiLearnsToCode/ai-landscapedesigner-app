@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Modal } from './components/Modal';
@@ -22,27 +22,31 @@ import { useAppStore, type Page, pathToPage } from './stores/appStore';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from './convex/_generated/api';
 import { processConvexHistory } from './src/utils/historyUtils';
+import type { User } from './types';
 
 const AuthInitializer: React.FC = () => {
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useAuthActions();
   const { setUser, setAuthenticated, navigateTo, page } = useAppStore();
   const navigate = useNavigate();
   const ensureUser = useMutation(api.users.ensureUser);
+  const userQuery = useQuery(api.users.getCurrentUser);
+  const isLoading = userQuery === undefined;
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (isLoading) return;
 
-    if (isSignedIn && clerkUser) {
-
-      const user = {
-        id: clerkUser.id,
-        name: clerkUser.fullName || clerkUser.firstName || 'User',
-        email: clerkUser.primaryEmailAddress?.emailAddress || '',
-        avatarUrl: clerkUser.imageUrl || `https://i.pravatar.cc/150?u=${clerkUser.id}`,
+    if (userQuery) {
+      const user: User = {
+        id: userQuery._id,
+        name: userQuery.name || userQuery.email?.split('@')[0] || 'User',
+        email: userQuery.email || '',
+        avatarUrl: userQuery.image || `https://i.pravatar.cc/150?u=${userQuery.email}`,
         subscription: {
-          plan: 'Free' as const,
-          status: 'active' as const,
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          plan: (userQuery.subscriptionPlan as User['subscription']['plan']) || 'Free',
+          status: (userQuery.subscriptionStatus as User['subscription']['status']) || 'active',
+          nextBillingDate: userQuery.expirationDate 
+            ? new Date(userQuery.expirationDate).toISOString().split('T')[0]
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         },
       };
 
@@ -52,29 +56,25 @@ const AuthInitializer: React.FC = () => {
       setUser(null);
       setAuthenticated(false);
     }
-  }, [isLoaded, isSignedIn, clerkUser, setUser, setAuthenticated]);
+  }, [isLoading, userQuery, setUser, setAuthenticated]);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && clerkUser) {
-      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
-      const name = clerkUser.fullName || clerkUser.firstName || 'User';
+    if (userQuery) {
       ensureUser({
-        email,
-        name,
+        email: userQuery.email || '',
+        name: userQuery.name || '',
       });
 
-      // Navigate to main page after successful sign-in
       if (page === 'signin' || page === 'signup') {
         navigate('/', { replace: true });
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, page, navigate, ensureUser]);
+  }, [userQuery, page, navigate, ensureUser]);
 
   return null;
 };
 
 const PageContent: React.FC = () => {
-  const { user: clerkUser } = useUser();
   const { page, isModalOpen, modalImage, closeModal, navigateTo, isAuthenticated, user } = useAppStore();
 
   // Convex hooks
@@ -115,27 +115,19 @@ const PageContent: React.FC = () => {
   };
 
   const viewFromHistory = (item: any) => {
-    // History items cannot be redesigned since we don't have the original base64
     const fullItem = {
       ...item,
       originalImage: {
         name: 'Original Image',
         type: 'image/jpeg',
-        base64: '', // Empty - cannot be used for redesign
+        base64: '',
         url: item.originalImageUrl
       },
       redesignedImage: item.redesignedImageUrl,
-      fromHistory: true // Flag to prevent redesign attempts
+      fromHistory: true
     };
     useAppStore.getState().loadItem(fullItem);
   };
-
-  // Hash change effect
-
-
-
-
-
 
   useEffect(() => {
     const baseTitle = 'AI Landscape Designer';
@@ -146,8 +138,6 @@ const PageContent: React.FC = () => {
 
     document.title = `${baseTitle} | ${pageTitle}`;
   }, [page]);
-
-
 
   return (
     <div className="min-h-screen text-slate-800 font-sans p-2 sm:p-4 lg:p-6 xl:p-8 flex flex-col">

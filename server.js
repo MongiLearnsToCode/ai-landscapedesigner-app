@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
+import { handleGeminiRequest } from './server/geminiActions.js';
 
 // Load environment variables
 dotenv.config();
@@ -11,7 +12,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 
 
 
@@ -229,6 +230,11 @@ const sendAutoReplyEmail = async (formData) => {
     console.error('❌ Error sending auto-reply email:', error);
   }
 };
+
+app.post('/api/gemini', async (req, res) => {
+  const result = await handleGeminiRequest(req.body);
+  res.status(result.status).json(result.body);
+});
 
 
 

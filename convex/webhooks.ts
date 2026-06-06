@@ -5,6 +5,7 @@ import { mutation } from "./_generated/server";
 export const logWebhookEvent = mutation({
   args: {
     eventId: v.string(),
+    provider: v.string(),
     eventType: v.string(),
     payload: v.any(),
   },
@@ -22,6 +23,7 @@ export const logWebhookEvent = mutation({
     // Log event
     await ctx.db.insert("webhookEvents", {
       eventId: args.eventId,
+      provider: args.provider,
       eventType: args.eventType,
       payload: args.payload,
       processed: false,

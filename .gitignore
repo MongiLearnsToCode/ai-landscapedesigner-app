@@ -17,6 +17,7 @@ dist-ssr
 .env.local
 .env.*.local
 server/.env
+.gcp/
 
 # Build artifacts
 public/sitemap.xml
@@ -31,3 +32,4 @@ public/sitemap.xml
 *.njsproj
 *.sln
 *.sw?
+.vercel

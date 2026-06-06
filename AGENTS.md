@@ -4,8 +4,6 @@
 - `npm run dev` - Start development server (client + API)
 - `npm run build` - Build for production (includes sitemap generation)
 - `npm run test` - Run single test file: `tsx services/errorUtils.test.ts`
-- `npm run db:generate` - Generate Drizzle database migrations
-- `npm run db:migrate` - Run database migrations
 
 ## Code Style Guidelines
 
@@ -38,9 +36,8 @@
 - Orange accent color (#orange-500) for primary actions
 
 ### Database
-- Use Drizzle ORM with PostgreSQL
-- Migrations in `drizzle/` directory
-- Schema in `db/schema.ts`
+- Use Convex as the application backend and persistence layer
+- Schema and server functions live in `convex/`
 
 ### Testing
 - Single test file: `services/errorUtils.test.ts`

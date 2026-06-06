@@ -13,7 +13,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { sanitizeError } from '../services/errorUtils';
 import { DensitySelector } from '../components/DensitySelector';
 
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
 import { processConvexHistory } from '../src/utils/historyUtils';
@@ -80,7 +80,7 @@ const getInitialState = (): DesignerState => {
 };
 
 export const DesignerPage: React.FC = () => {
-  const { itemToLoad, onItemLoaded, isAuthenticated, navigateTo, page } = useAppStore(
+  const { itemToLoad, onItemLoaded, isAuthenticated: storeIsAuthenticated, navigateTo, page } = useAppStore(
     useShallow((state) => ({
       itemToLoad: state.itemToLoad,
       onItemLoaded: state.onItemLoaded,
@@ -93,8 +93,8 @@ export const DesignerPage: React.FC = () => {
   const { addToast } = useToastStore(
     useShallow((state) => ({ addToast: state.addToast }))
   );
-  const { user: clerkUser } = useUser();
-  const { isSignedIn } = useAuth();
+  const { signOut } = useAuthActions();
+  const user = useQuery(api.users.getCurrentUser);
 
   // Convex hooks
   const saveRedesignMutation = useMutation(api.redesigns.saveRedesign);
@@ -104,8 +104,8 @@ export const DesignerPage: React.FC = () => {
   // Process Convex history to match HydratedHistoryItem
   const processedHistory = processConvexHistory(convexHistory);
 
-  // Use Clerk authentication status directly for faster resolution
-  const authenticated = isSignedIn ?? false;
+  // Use Convex authentication status
+  const authenticated = !!user;
 
 
 

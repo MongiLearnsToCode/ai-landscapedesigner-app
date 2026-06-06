@@ -4,7 +4,7 @@ import type { HydratedHistoryItem } from '../../types';
 export interface ConvexRedesign {
   _id: string;
   _creationTime: number;
-  clerkUserId: string;
+  userId?: string;
   redesignId: string;
   originalImageUrl: string;
   redesignedImageUrl: string;

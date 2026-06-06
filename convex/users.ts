@@ -1,30 +1,65 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Polar } from "@polar-sh/sdk";
-import { PLAN_LIMITS } from "./constants";
+import { auth } from "./auth";
 
-// Ensure user exists and get/create user
+// Get current user profile
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+
+    return await ctx.db.get(userId);
+  },
+});
+
+// Get user by email
+export const getUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+  },
+});
+
+// Get user by Polar customer ID
+export const getUserByPolarCustomer = query({
+  args: { polarCustomerId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_polar_customer", (q) => q.eq("polarCustomerId", args.polarCustomerId))
+      .unique();
+  },
+});
+
+// Ensure user exists (called after sign up)
 export const ensureUser = mutation({
   args: {
     email: v.string(),
-    name: v.string(),
+    name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
 
-    const existing = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (existing) {
-      return existing._id;
+    // Check if user already exists
+    const existingUser = await ctx.db.get(userId);
+    if (existingUser) {
+      // Update if email/name changed
+      if (existingUser.email !== args.email || existingUser.name !== args.name) {
+        await ctx.db.patch(userId, {
+          email: args.email,
+          name: args.name || existingUser.name,
+        });
+      }
+      return existingUser._id;
     }
 
-    // Create new user with free tier defaults
-    return await ctx.db.insert("users", {
-      clerkUserId: identity.subject,
+    // Create new user document
+    const newUserId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
       subscriptionStatus: "active",
@@ -33,226 +68,74 @@ export const ensureUser = mutation({
       redesignsUsedThisMonth: 0,
       currentMonthStart: Date.now(),
     });
+
+    return newUserId;
   },
 });
 
-// Get user by Polar customer ID
-export const getUserByPolarCustomer = query({
-  args: {
-    polarCustomerId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_polar_customer", (q) =>
-        q.eq("polarCustomerId", args.polarCustomerId)
-      )
-      .unique();
-  },
-});
-
-// Get user profile
-export const getUser = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    return user;
-  },
-});
-
-// Update subscription from webhook
-export const updateSubscription = mutation({
-  args: {
-    polarCustomerId: v.string(),
-    subscriptionId: v.string(),
-    subscriptionPriceId: v.optional(v.string()),
-    status: v.string(),
-    plan: v.string(),
-    billingCycle: v.optional(v.string()),
-    limit: v.number(),
-    currentPeriodEnd: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_polar_customer", (q) =>
-        q.eq("polarCustomerId", args.polarCustomerId)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found for customer ID");
-    }
-
-    await ctx.db.patch(user._id, {
-      subscriptionId: args.subscriptionId,
-      subscriptionPriceId: args.subscriptionPriceId,
-      subscriptionStatus: args.status,
-      subscriptionPlan: args.plan,
-      billingCycle: args.billingCycle,
-      monthlyRedesignLimit: args.limit,
-      currentPeriodEnd: args.currentPeriodEnd,
-    });
-  },
-});
-
-// Link Polar customer ID
+// Link Polar customer ID to a Convex Auth user
 export const linkPolarCustomer = mutation({
   args: {
-    clerkUserId: v.string(),
+    userId: v.id("users"),
     polarCustomerId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", args.clerkUserId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
-
-    await ctx.db.patch(user._id, {
+    await ctx.db.patch(args.userId, {
       polarCustomerId: args.polarCustomerId,
     });
   },
 });
 
-// Initialize Polar client
-const polar = new Polar({
-  accessToken: process.env.POLAR_ACCESS_TOKEN!,
-  server: process.env.POLAR_SANDBOX === 'true' ? 'sandbox' : 'production',
-});
-
-// Get customer portal URL (for managing subscription externally)
-export const getCustomerPortalUrl = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!user || !user.polarCustomerId) {
-      return null;
-    }
-
-    try {
-      const session = await polar.customerSessions.create({
-        customerId: user.polarCustomerId,
-      });
-
-      return session.customerPortalUrl;
-    } catch (error) {
-      console.error('Error creating customer portal session:', error);
-      return null;
-    }
+// Update subscription from Polar webhook
+export const updateSubscription = mutation({
+  args: {
+    userId: v.id("users"),
+    polarCustomerId: v.optional(v.string()),
+    status: v.string(),
+    plan: v.string(),
+    billingCycle: v.optional(v.string()),
+    limit: v.number(),
+    currentPeriodEnd: v.optional(v.number()),
+    subscriptionId: v.optional(v.string()),
   },
-});
-
-// Sync subscription from Polar API (for manual refresh)
-export const syncSubscription = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!user || !user.polarCustomerId) {
-      throw new Error("No Polar customer linked to this user");
-    }
-
-    try {
-      // Fetch subscriptions for this customer - returns async iterator
-      const subscriptionsIterator = await polar.subscriptions.list({
-        customerId: user.polarCustomerId,
-        active: true,
-      });
-
-      // Collect subscriptions from first page
-      // The iterator yields SubscriptionsListResponse objects with a result array
-      const subscriptionsList: any[] = [];
-      for await (const page of subscriptionsIterator) {
-        const pageResult = (page as any).result || (page as any).items || [];
-        subscriptionsList.push(...pageResult);
-        break; // Only get first page - should be sufficient for single customer
-      }
-
-      console.log('Fetched subscriptions for customer:', user.polarCustomerId, 'count:', subscriptionsList.length);
-      
-      if (subscriptionsList.length === 0) {
-        console.log('No active subscriptions found for customer:', user.polarCustomerId);
-        return { success: false, message: 'No active subscription found' };
-      }
-
-      // Get the first active subscription
-      const subscription = subscriptionsList[0];
-      
-      const productName = subscription.product?.name || 'Free';
-      const planConfig = PLAN_LIMITS[productName] || { plan: 'Free', limit: 3 };
-      
-      // Extract billing cycle
-      const price = subscription.price;
-      const cadence = price?.recurringInterval || price?.recurring_interval;
-      const billingCycle = cadence === 'year' ? 'annual' : 'monthly';
-      
-      // Update user subscription
-      await ctx.db.patch(user._id, {
-        subscriptionId: subscription.id,
-        subscriptionPriceId: price?.id,
-        subscriptionStatus: subscription.status,
-        subscriptionPlan: planConfig.plan,
-        billingCycle,
-        monthlyRedesignLimit: planConfig.limit,
-        currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).getTime() : undefined,
-      });
-
-      console.log('Successfully synced subscription for user:', identity.subject);
-      return { success: true, plan: planConfig.plan };
-    } catch (error) {
-      console.error('Error syncing subscription:', error);
-      throw new Error('Failed to sync subscription from Polar');
-    }
-  },
-});
-
-// Cancel subscription
-export const cancelSubscription = mutation({
-  args: {},
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkUserId", identity.subject))
-      .unique();
-
-    if (!user || !user.subscriptionId) {
-      throw new Error("No active subscription found");
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      console.error("User not found for subscription update:", args.userId);
+      throw new Error("User not found");
     }
 
-    try {
-      // For now, we'll use the customer portal for cancellation
-      // This is a simplified implementation - in production you'd call the Polar API directly
-      console.log('Cancel subscription requested for user:', identity.subject, 'subscription:', user.subscriptionId);
-      // The webhook will handle updating the database when the user cancels via portal
-      return { success: true, usePortal: true };
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-      throw new Error('Failed to cancel subscription');
+    await ctx.db.patch(args.userId, {
+      polarCustomerId: args.polarCustomerId ?? user.polarCustomerId,
+      subscriptionStatus: args.status,
+      subscriptionPlan: args.plan,
+      billingCycle: args.billingCycle,
+      monthlyRedesignLimit: args.limit,
+      currentPeriodEnd: args.currentPeriodEnd,
+      expirationDate: args.currentPeriodEnd,
+      subscriptionId: args.subscriptionId,
+    });
+  },
+});
+
+// Initialize user defaults
+export const initializeUser = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.subscriptionPlan === undefined) {
+      await ctx.db.patch(userId, {
+        subscriptionStatus: "active",
+        subscriptionPlan: "Free",
+        monthlyRedesignLimit: 3,
+        redesignsUsedThisMonth: 0,
+        currentMonthStart: Date.now(),
+      });
     }
   },
 });

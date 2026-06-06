@@ -1,31 +1,18 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
-import { ConvexProviderWithClerk } from 'convex/react-clerk';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { ConvexReactClient } from 'convex/react';
-import './styles.css'; // Import Tailwind CSS and custom styles
+import './styles.css';
 import App from './App';
 
-const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const convexUrl = import.meta.env.VITE_CONVEX_URL;
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
-if (!publishableKey) {
-  throw new Error("Missing Clerk Publishable Key")
-}
-
-if (!convexUrl) {
-  throw new Error("Missing Convex URL")
-}
-
-const convex = new ConvexReactClient(convexUrl);
-
-function ConvexClerkWrapper({ children }: { children: React.ReactNode }) {
+function ConvexAuthWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+    <ConvexAuthProvider client={convex}>
       {children}
-    </ConvexProviderWithClerk>
+    </ConvexAuthProvider>
   );
 }
 
@@ -38,16 +25,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <ClerkProvider
-        publishableKey={publishableKey}
-        routing="path"
-        signInUrl="/signin"
-        signUpUrl="/signup"
-      >
-        <ConvexClerkWrapper>
-          <App />
-        </ConvexClerkWrapper>
-      </ClerkProvider>
+      <ConvexAuthWrapper>
+        <App />
+      </ConvexAuthWrapper>
     </BrowserRouter>
   </React.StrictMode>
 );
