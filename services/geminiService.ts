@@ -81,10 +81,15 @@ export const getElementImage = async (elementName: string, description?: string)
   return result.imageUrl;
 };
 
-export const getElementInfo = async (elementName: string, climateZone?: string): Promise<string> => {
+export const getElementInfo = async (
+  elementName: string,
+  climateZone?: string,
+  detailLevel: 'brief' | 'long' = 'brief'
+): Promise<string> => {
   const result = await callGeminiApi<{ text: string }>('getElementInfo', {
     elementName,
     climateZone,
+    detailLevel,
   });
 
   return result.text;

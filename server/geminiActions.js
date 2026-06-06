@@ -311,7 +311,7 @@ const redesignOutdoorSpace = async (payload) => {
 };
 
 const getElementImage = async (payload) => {
-  const elementName = assertString(payload.elementName, 'elementName', 120);
+  const elementName = assertString(payload.elementName, 'elementName', 240);
   const description = assertOptionalString(payload.description, 'description', 500);
   const prompt = description
     ? `Photorealistic image of a single "${elementName}" (${description}), isolated on a plain white background. No text, watermarks, or other objects.`
@@ -338,13 +338,20 @@ const getElementImage = async (payload) => {
 const getElementInfo = async (payload) => {
   const elementName = assertString(payload.elementName, 'elementName', 120);
   const climateZone = assertOptionalString(payload.climateZone, 'climateZone', 120);
+  const detailLevel = assertOptionalString(payload.detailLevel, 'detailLevel', 20) || 'brief';
+  if (!['brief', 'long'].includes(detailLevel)) {
+    throw new Error('detailLevel is invalid');
+  }
   const climateInstruction = climateZone
     ? ` Tailor the description to the '${climateZone}' climate, noting suitability and any adaptations needed.`
     : '';
+  const formatInstruction = detailLevel === 'long'
+    ? 'Write two concise homeowner-friendly paragraphs. The first should explain what it is and how it contributes to the design. The second should cover practical placement, maintenance, size, conditions, and climate considerations. Avoid markdown.'
+    : 'Format as one concise paragraph.';
 
   const response = await getAiClient().models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: `Provide a brief, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions, and one design tip.${climateInstruction} Format as one concise paragraph.`,
+    contents: `Provide a ${detailLevel === 'long' ? 'detailed' : 'brief'}, user-friendly description for a "${elementName}" for a homeowner's landscape design catalog. Include its typical size, ideal conditions, and design guidance.${climateInstruction} ${formatInstruction}`,
   });
 
   return { text: response.text || '' };
