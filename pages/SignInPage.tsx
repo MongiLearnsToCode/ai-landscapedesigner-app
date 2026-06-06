@@ -16,7 +16,7 @@ export const SignInPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await signIn('password', { email, password });
+      await signIn('password', { email, password, flow: 'signIn' });
       navigate('/');
       addToast('Welcome back!', 'success');
     } catch (error) {
