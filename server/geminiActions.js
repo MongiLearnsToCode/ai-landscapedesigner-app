@@ -266,12 +266,13 @@ const redesignOutdoorSpace = async (payload) => {
 
   const response = await getAiClient().models.generateContent({
     model: GEMINI_IMAGE_MODEL,
-    contents: {
+    contents: [{
+      role: 'user',
       parts: [
         { inlineData: { data: base64, mimeType } },
         { text: getPrompt(styles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity) },
       ],
-    },
+    }],
     config: {
       responseModalities: [Modality.IMAGE, Modality.TEXT],
     },
@@ -396,7 +397,8 @@ const validateRedesign = async (payload) => {
 
   const response = await getAiClient().models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: {
+    contents: [{
+      role: 'user',
       parts: [
         { text: 'Original image:' },
         { inlineData: { data: original.base64, mimeType: original.mimeType } },
@@ -406,7 +408,7 @@ const validateRedesign = async (payload) => {
           text: `Validate whether this landscape redesign preserves the original property, matches styles ${styleNames.join(', ')}, follows structural rules with allowStructuralChanges=${allowStructuralChanges}, respects climate ${climateZone || 'general'}, matches density ${redesignDensity}, and is a true modification of the original. Respond only with the requested JSON.`,
         },
       ],
-    },
+    }],
     config: {
       responseMimeType: 'application/json',
       responseSchema: {
