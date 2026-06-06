@@ -19,7 +19,7 @@ const LANDSCAPING_STYLE_NAMES = {
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const ALLOWED_DENSITIES = new Set(['minimal', 'default', 'lush']);
-const MAX_BASE64_LENGTH = 16 * 1024 * 1024;
+const MAX_BASE64_LENGTH = 24 * 1024 * 1024;
 const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GOOGLE_CREDENTIALS_PATH = join('/tmp', 'google-application-credentials.json');
 
@@ -92,7 +92,8 @@ const assertBoolean = (value, field) => {
 };
 
 const assertImage = (base64, mimeType, base64Field, mimeTypeField) => {
-  const image = assertString(base64, base64Field, MAX_BASE64_LENGTH);
+  const rawImage = assertString(base64, base64Field, MAX_BASE64_LENGTH);
+  const image = rawImage.includes(',') ? rawImage.split(',').pop().replace(/\s/g, '') : rawImage.replace(/\s/g, '');
   const type = assertString(mimeType, mimeTypeField, 64).toLowerCase();
 
   if (!ALLOWED_MIME_TYPES.has(type)) {
@@ -491,6 +492,12 @@ export const handleGeminiRequest = async (body) => {
 
     if (status === 500) {
       console.error('Gemini API error:', error);
+    } else {
+      console.warn('Gemini request rejected:', {
+        action: typeof body?.action === 'string' ? body.action : 'unknown',
+        error: message,
+        payloadFields: body?.payload && typeof body.payload === 'object' ? Object.keys(body.payload) : [],
+      });
     }
 
     return {

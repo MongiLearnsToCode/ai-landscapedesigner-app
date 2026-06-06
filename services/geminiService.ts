@@ -39,6 +39,10 @@ const callGeminiApi = async <T>(action: GeminiAction, payload: Record<string, un
 
     return result as T;
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || '');
+    if (/required|invalid|unsupported|unknown/i.test(message)) {
+      throw new Error(message);
+    }
     throw new Error(sanitizeError(error));
   }
 };
