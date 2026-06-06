@@ -63,6 +63,8 @@ const AuthInitializer: React.FC = () => {
       ensureUser({
         email: userQuery.email || '',
         name: userQuery.name || '',
+      }).catch((error) => {
+        console.error('Failed to initialize user profile', error);
       });
 
       if (page === 'signin' || page === 'signup') {

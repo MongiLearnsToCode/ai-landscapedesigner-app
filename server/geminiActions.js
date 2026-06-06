@@ -1,4 +1,6 @@
 import { GoogleGenAI, Modality, Type } from '@google/genai';
+import { existsSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const LANDSCAPING_STYLE_NAMES = {
   modern: 'Modern',
@@ -19,8 +21,28 @@ const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'im
 const ALLOWED_DENSITIES = new Set(['minimal', 'default', 'lush']);
 const MAX_BASE64_LENGTH = 16 * 1024 * 1024;
 const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
+const GOOGLE_CREDENTIALS_PATH = join('/tmp', 'google-application-credentials.json');
+
+const configureGoogleCredentials = () => {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) return;
+
+  const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const base64Json = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64;
+  const credentials = rawJson || (base64Json ? Buffer.from(base64Json, 'base64').toString('utf8') : '');
+
+  if (!credentials) return;
+
+  if (!existsSync(GOOGLE_CREDENTIALS_PATH)) {
+    JSON.parse(credentials);
+    writeFileSync(GOOGLE_CREDENTIALS_PATH, credentials, { mode: 0o600 });
+  }
+
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = GOOGLE_CREDENTIALS_PATH;
+};
 
 const getVertexConfig = () => {
+  configureGoogleCredentials();
+
   const project = process.env.GOOGLE_CLOUD_PROJECT;
   const location = process.env.GOOGLE_CLOUD_LOCATION;
 

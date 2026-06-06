@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToastStore } from '../stores/toastStore';
-import { useMutation } from 'convex/react';
-import { api } from '../convex/_generated/api';
 
 export const SignUpPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -13,7 +11,6 @@ export const SignUpPage: React.FC = () => {
   const { signIn } = useAuthActions();
   const navigate = useNavigate();
   const { addToast } = useToastStore();
-  const ensureUser = useMutation(api.users.ensureUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,10 +19,7 @@ export const SignUpPage: React.FC = () => {
     try {
       // Create account with Convex Auth
       await signIn('password', { email, password, name, flow: 'signUp' });
-      
-      // Ensure user document exists in users table
-      await ensureUser({ email, name });
-      
+
       navigate('/');
       addToast('Account created successfully!', 'success');
     } catch (error) {

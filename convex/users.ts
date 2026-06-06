@@ -48,11 +48,33 @@ export const ensureUser = mutation({
     // Check if user already exists
     const existingUser = await ctx.db.get(userId);
     if (existingUser) {
-      // Update if email/name changed
-      if (existingUser.email !== args.email || existingUser.name !== args.name) {
+      const patch: Record<string, string | number | undefined> = {};
+
+      if (existingUser.email !== args.email) {
+        patch.email = args.email;
+      }
+      if (args.name && existingUser.name !== args.name) {
+        patch.name = args.name;
+      }
+      if (existingUser.subscriptionStatus === undefined) {
+        patch.subscriptionStatus = "active";
+      }
+      if (existingUser.subscriptionPlan === undefined) {
+        patch.subscriptionPlan = "Free";
+      }
+      if (existingUser.monthlyRedesignLimit === undefined) {
+        patch.monthlyRedesignLimit = 3;
+      }
+      if (existingUser.redesignsUsedThisMonth === undefined) {
+        patch.redesignsUsedThisMonth = 0;
+      }
+      if (existingUser.currentMonthStart === undefined) {
+        patch.currentMonthStart = Date.now();
+      }
+
+      if (Object.keys(patch).length > 0) {
         await ctx.db.patch(userId, {
-          email: args.email,
-          name: args.name || existingUser.name,
+          ...patch,
         });
       }
       return existingUser._id;
