@@ -61,13 +61,21 @@ export const uploadImageToCloudinary = async (
     throw new Error('Cloudinary upload preset is not configured');
   }
 
+  const base64 = imageFile.base64?.trim();
+  if (!base64) {
+    throw new Error('Image payload is empty');
+  }
+
   // Convert base64 to blob
-  const binaryString = atob(imageFile.base64);
+  const binaryString = atob(base64.includes(',') ? base64.split(',').pop() || '' : base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   const blob = new Blob([bytes], { type: imageFile.type });
+  if (blob.size === 0) {
+    throw new Error('Image payload is empty');
+  }
 
   const formData = new FormData();
   formData.append('file', blob, imageFile.name);

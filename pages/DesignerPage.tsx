@@ -363,7 +363,11 @@ export const DesignerPage: React.FC = () => {
           if (validation.overallPass) {
             // Upload images to Cloudinary
             const [originalUpload, redesignedUpload] = await Promise.all([
-              uploadImageToCloudinary(originalImage),
+              uploadImageToCloudinary({
+                ...originalImage,
+                base64: imageBase64,
+                type: imageType,
+              }),
               uploadImageToCloudinary({
                 base64: result.base64ImageBytes,
                 type: result.mimeType,
