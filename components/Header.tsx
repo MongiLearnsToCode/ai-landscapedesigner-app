@@ -18,6 +18,8 @@ export const Header: React.FC = () => {
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const plan = user?.subscription.plan || 'Free';
+  const isPaidPlan = plan !== 'Free';
 
   const openMobileMenu = () => {
     setIsMobileMenuMounted(true);
@@ -73,6 +75,18 @@ export const Header: React.FC = () => {
     );
   };
 
+  const PlanBadge: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
+    <span
+      className={`inline-flex items-center rounded-full border font-semibold ${
+        isPaidPlan
+          ? 'border-orange-200 bg-orange-50 text-orange-700'
+          : 'border-slate-200 bg-slate-50 text-slate-600'
+      } ${compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'}`}
+    >
+      {plan}
+    </span>
+  );
+
   return (
     <>
       <header className="px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4 border-b border-slate-200/80">
@@ -113,11 +127,16 @@ export const Header: React.FC = () => {
                 </button>
                 <div className="flex items-center space-x-2">
                   <div className="hidden sm:flex items-center space-x-2 mr-2">
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.name}
-                      className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
-                    />
+                    <div className="relative">
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.name}
+                        className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
+                      />
+                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                        <PlanBadge compact />
+                      </span>
+                    </div>
                     <span className="text-sm font-medium text-slate-700">{user.name}</span>
                   </div>
                   <button
@@ -204,7 +223,10 @@ export const Header: React.FC = () => {
                     className="h-10 w-10 rounded-full ring-2 ring-orange-500/20"
                   />
                   <div>
-                    <p className="font-semibold text-slate-800">{user.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-800">{user.name}</p>
+                      <PlanBadge />
+                    </div>
                     <p className="text-sm text-slate-500">{user.email}</p>
                   </div>
                 </div>
