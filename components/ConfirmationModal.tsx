@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { AlertTriangle } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   isConfirming?: boolean;
+  requiredConfirmationText?: string;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -22,9 +23,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isConfirming = false,
+  requiredConfirmationText,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [confirmationText, setConfirmationText] = useState('');
+  const isConfirmationMatched = !requiredConfirmationText || confirmationText === requiredConfirmationText;
   useFocusTrap(modalRef, isOpen);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setConfirmationText('');
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -73,11 +83,32 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 </div>
             </div>
         </div>
+        {requiredConfirmationText && (
+          <div className="mt-5">
+            <label htmlFor="confirmation-text" className="block text-sm font-medium text-slate-700">
+              Type <span className="font-bold text-slate-900">{requiredConfirmationText}</span> to confirm
+            </label>
+            <input
+              id="confirmation-text"
+              type="text"
+              value={confirmationText}
+              onChange={(event) => setConfirmationText(event.target.value)}
+              disabled={isConfirming}
+              autoComplete="off"
+              spellCheck={false}
+              className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+              aria-describedby="confirmation-text-help"
+            />
+            <p id="confirmation-text-help" className="mt-2 text-xs text-slate-500">
+              This extra step prevents accidental permanent deletion.
+            </p>
+          </div>
+        )}
         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
           <button
             type="button"
             className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300 sm:w-auto sm:text-sm transition-colors"
-            disabled={isConfirming}
+            disabled={isConfirming || !isConfirmationMatched}
             onClick={onConfirm}
           >
             {confirmText}

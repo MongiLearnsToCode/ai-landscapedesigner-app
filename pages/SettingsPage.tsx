@@ -92,6 +92,7 @@ export const SettingsPage: React.FC = () => {
         confirmText={isDeletingAccount ? 'Deleting…' : 'Delete Account'}
         cancelText="Keep Account"
         isConfirming={isDeletingAccount}
+        requiredConfirmationText="DELETE"
       />
     </>
   );
