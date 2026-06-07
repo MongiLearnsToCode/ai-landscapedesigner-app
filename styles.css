@@ -7,6 +7,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #F0F1F5;
+  overflow-x: hidden;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
 }
 
 /* Ensure buttons and links have pointer cursor */
@@ -39,4 +48,15 @@ svg {
 svg:not([width]):not([height]):not([style*="width"]):not([style*="height"]) {
   width: 1em;
   height: 1em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

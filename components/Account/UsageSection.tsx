@@ -32,10 +32,10 @@ export const UsageSection: React.FC = () => {
       <div className="space-y-4">
         <div>
           <div className="flex justify-between items-center mb-1">
-            <h4 className="font-semibold text-slate-700">Monthly Summaries</h4>
+            <h4 className="font-semibold text-slate-700">Monthly Redesigns</h4>
             <p className="text-sm text-slate-500">{displayedUsed} of {limit} used</p>
           </div>
-          <div className="w-full bg-slate-200 rounded-full h-2.5">
+	          <div className="w-full bg-slate-200 rounded-full h-2.5" role="progressbar" aria-label="Monthly redesign usage" aria-valuenow={displayedUsed} aria-valuemin={0} aria-valuemax={limit}>
             <div 
               className="bg-orange-500 h-2.5 rounded-full"
               style={{ width: `${percentage}%` }}
@@ -43,7 +43,7 @@ export const UsageSection: React.FC = () => {
           </div>
         </div>
         <p className="text-sm text-slate-600">
-          You have <span className="font-bold">{summariesLeft} summaries</span> left. Your usage will reset on the 1st of next month.
+	          You have <span className="font-bold">{summariesLeft} redesign{summariesLeft !== 1 ? 's' : ''}</span> left. Your usage will reset on the 1st of next month.
         </p>
       </div>
     </SectionCard>

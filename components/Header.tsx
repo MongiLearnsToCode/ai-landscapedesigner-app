@@ -1,8 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Leaf, Menu, X, Cog, LogOut, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Leaf, Menu, X, Cog, LogOut } from 'lucide-react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useAppStore, type Page } from '../stores/appStore';
 import { useShallow } from 'zustand/react/shallow';
+
+const pagePath: Record<Page, string> = {
+  main: '/',
+  history: '/history',
+  pricing: '/pricing',
+  contact: '/contact',
+  terms: '/terms',
+  privacy: '/privacy',
+  signin: '/signin',
+  signup: '/signup',
+  settings: '/settings',
+  'reset-password': '/reset-password',
+  'fair-use-policy': '/fair-use-policy',
+  success: '/success',
+};
+
+const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export const Header: React.FC = () => {
   const { navigateTo, page, isAuthenticated, user, logout } = useAppStore(
@@ -33,6 +51,53 @@ export const Header: React.FC = () => {
     setTimeout(() => setIsMobileMenuMounted(false), 300);
   };
 
+  useEffect(() => {
+    if (!isMobileMenuMounted) return;
+
+    const previousActiveElement = document.activeElement as HTMLElement | null;
+    const focusFirstMenuControl = () => {
+      const focusableElements = Array.from(
+        mobileMenuRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS) || []
+      );
+      focusableElements[0]?.focus();
+    };
+
+    const focusTimer = window.setTimeout(focusFirstMenuControl, 50);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMobileMenu();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = Array.from(
+        mobileMenuRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS) || []
+      );
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      previousActiveElement?.focus();
+    };
+  }, [isMobileMenuMounted]);
+
   const handleSignOut = async () => {
     await signOut();
     logout();
@@ -42,36 +107,38 @@ export const Header: React.FC = () => {
   const NavLink: React.FC<{ targetPage: Page; children: React.ReactNode }> = ({ targetPage, children }) => {
     const isActive = page === targetPage;
     return (
-      <button
-        onClick={() => navigateTo(targetPage)}
+      <Link
+        to={pagePath[targetPage]}
         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           isActive
             ? 'text-slate-900'
             : 'text-slate-500 hover:text-slate-900'
         }`}
+        aria-current={isActive ? 'page' : undefined}
       >
         {children}
-      </button>
+      </Link>
     );
   };
 
   const MobileNavLink: React.FC<{ targetPage: Page; children: React.ReactNode }> = ({ targetPage, children }) => {
     const isActive = page === targetPage;
     const handleNavigate = () => {
-      navigateTo(targetPage);
       closeMobileMenu();
     };
     return (
-      <button
+      <Link
+        to={pagePath[targetPage]}
         onClick={handleNavigate}
         className={`w-full text-left px-4 py-3 text-lg font-semibold rounded-lg transition-colors ${
           isActive
             ? 'bg-orange-50 text-orange-600'
             : 'text-slate-700 hover:bg-slate-100'
         }`}
+        aria-current={isActive ? 'page' : undefined}
       >
         {children}
-      </button>
+      </Link>
     );
   };
 
@@ -92,20 +159,19 @@ export const Header: React.FC = () => {
       <header className="px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4 border-b border-slate-200/80">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 sm:space-x-6 lg:space-x-8">
-            <div
+            <Link
+              to="/"
               className="flex items-center space-x-2 cursor-pointer"
-              onClick={() => navigateTo('main')}
-              role="button"
               aria-label="Go to homepage"
             >
-              <Leaf className="h-6 w-6 sm:h-7 sm:w-7 text-orange-500" />
+              <Leaf className="h-6 w-6 sm:h-7 sm:w-7 text-orange-500" aria-hidden="true" />
               <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-wide portrait:sm:hidden">
                 AI Landscape Designer
               </h1>
               <h1 className="text-base font-bold text-slate-800 tracking-wide hidden portrait:sm:block">
                 AI Landscape
               </h1>
-            </div>
+            </Link>
             <nav className="hidden md:flex items-center space-x-2">
               <NavLink targetPage="main">Home</NavLink>
               {isAuthenticated && <NavLink targetPage="history">Projects</NavLink>}
@@ -117,14 +183,14 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => navigateTo('settings')}
+                <Link
+                  to="/settings"
                   className="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
                   title="Account Settings"
                 >
                   <Cog className="h-4 w-4" />
                   <span>Settings</span>
-                </button>
+                </Link>
                 <div className="flex items-center space-x-2">
                   <div className="hidden sm:flex items-center space-x-2 mr-2">
                     <img
@@ -149,18 +215,18 @@ export const Header: React.FC = () => {
               </div>
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
-                <button
-                  onClick={() => navigateTo('signin')}
+                <Link
+                  to="/signin"
                   className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100/80 transition-colors"
                 >
                   Sign In
-                </button>
-                <button
-                  onClick={() => navigateTo('signup')}
+                </Link>
+                <Link
+                  to="/signup"
                   className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-sm"
                 >
                   Sign Up Free
-                </button>
+                </Link>
               </div>
             )}
             <div className="flex md:hidden">
@@ -184,6 +250,7 @@ export const Header: React.FC = () => {
           onClick={closeMobileMenu}
           role="dialog"
           aria-modal="true"
+          aria-labelledby="mobile-navigation-title"
         >
           <div
             ref={mobileMenuRef}
@@ -194,8 +261,8 @@ export const Header: React.FC = () => {
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-200/80">
               <div className="flex items-center space-x-2">
-                <Leaf className="h-6 w-6 text-orange-500" />
-                <h2 className="font-bold text-slate-800">Menu</h2>
+                <Leaf className="h-6 w-6 text-orange-500" aria-hidden="true" />
+                <h2 id="mobile-navigation-title" className="font-bold text-slate-800">Menu</h2>
               </div>
               <button
                 onClick={closeMobileMenu}
@@ -237,19 +304,21 @@ export const Header: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="p-4 space-y-3 border-t border-slate-200/80">
-                <button
-                  onClick={() => { navigateTo('signin'); closeMobileMenu(); }}
-                  className="w-full h-11 text-center font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 rounded-lg transition-colors"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => { navigateTo('signup'); closeMobileMenu(); }}
-                  className="w-full h-11 text-center font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm"
-                >
-                  Sign Up Free
-                </button>
+	              <div className="p-4 space-y-3 border-t border-slate-200/80">
+	                <Link
+	                  to="/signin"
+	                  onClick={closeMobileMenu}
+	                  className="flex w-full h-11 items-center justify-center text-center font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 rounded-lg transition-colors"
+	                >
+	                  Sign In
+	                </Link>
+	                <Link
+	                  to="/signup"
+	                  onClick={closeMobileMenu}
+	                  className="flex w-full h-11 items-center justify-center text-center font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm"
+	                >
+	                  Sign Up Free
+	                </Link>
               </div>
             )}
           </div>

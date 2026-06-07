@@ -113,11 +113,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
             : 'border-0'
           }`
         }
-        onClick={() => !preview && fileInputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
-        aria-label="Upload an image of your outdoor space"
+	        onClick={() => !preview && fileInputRef.current?.click()}
+	        role={!preview ? 'button' : undefined}
+	        tabIndex={!preview ? 0 : undefined}
+	        onKeyDown={(e) => { if (!preview && (e.key === 'Enter' || e.key === ' ')) fileInputRef.current?.click() }}
+	        aria-label={!preview ? 'Upload an image of your outdoor space' : undefined}
       >
         <input
           type="file"
@@ -135,15 +135,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, ini
          ) : (
            <>
               <div className="relative w-full rounded-xl overflow-hidden">
-                <img src={preview} alt="Preview" className="w-full h-auto block" />
+	                <img src={preview} alt="Preview" decoding="async" className="w-full h-auto block" />
 
                 {/* Desktop hover overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity rounded-xl gap-2 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto hidden lg:flex">
-                    <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+	                    <button onClick={(e) => { e.stopPropagation(); openModal(preview); }} className="bg-white/90 hover:bg-white text-slate-800 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="View larger image">
                       <Eye className="h-4 w-4 mr-1.5" />
                       Larger
                     </button>
-                   <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center">
+	                   <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }} className="bg-white/90 hover:bg-white text-red-600 font-semibold px-3 py-2 rounded-lg text-sm shadow-md transition-all duration-200 flex items-center" aria-label="Remove image">
                      <X className="h-4 w-4 mr-1.5" />
                      Remove
                    </button>

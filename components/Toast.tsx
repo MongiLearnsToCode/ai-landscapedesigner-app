@@ -8,9 +8,9 @@ interface ToastProps {
 }
 
 const ICONS: Record<ToastMessage['type'], React.ReactNode> = {
-    success: <CheckCircle className="h-6 w-6 text-green-500" />,
-    error: <XCircle className="h-6 w-6 text-red-500" />,
-    info: <Info className="h-6 w-6 text-sky-500" />,
+    success: <CheckCircle className="h-6 w-6 text-green-500" aria-hidden="true" />,
+    error: <XCircle className="h-6 w-6 text-red-500" aria-hidden="true" />,
+    info: <Info className="h-6 w-6 text-sky-500" aria-hidden="true" />,
 };
 
 const TYPE_CLASSES = {
@@ -37,7 +37,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   
   return (
     <div
-      role="alert"
+      role={toast.type === 'error' ? 'alert' : 'status'}
       onClick={handleDismiss} // Make the entire toast clickable to dismiss
       className={`
         w-full max-w-sm rounded-xl shadow-lg p-4 bg-white/80 backdrop-blur-sm border flex items-center ring-1 ring-black/5 cursor-pointer
@@ -47,7 +47,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       `}
     >
       <div className="flex-shrink-0">{ICONS[toast.type]}</div>
-      <div className="ml-3 text-sm font-medium text-slate-800">{toast.message}</div>
+      <div className="ml-3 text-sm font-medium text-slate-800 break-words">{toast.message}</div>
       <button 
         onClick={(e) => {
           e.stopPropagation(); // Prevent parent onClick from firing too

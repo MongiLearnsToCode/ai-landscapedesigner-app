@@ -30,7 +30,7 @@ interface SectionProps {
 
 const Section = React.memo<SectionProps>(function Section({ title, children }) {
   return (
-    <div>
+	        <div aria-live="polite">
       <h2 className="text-base font-semibold text-slate-800 mb-4">{title}</h2>
       {children}
     </div>
@@ -307,7 +307,7 @@ export const DesignerPage: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        addToast("Loading image from history...", "info");
+        addToast("Loading image from history…", "info");
 
         const response = await fetch(originalImage.url);
         if (!response.ok) {
@@ -494,7 +494,7 @@ export const DesignerPage: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  {redesignedImage ? 'Refining...' : 'Redesigning...'}
+	                  {redesignedImage ? 'Refining…' : 'Redesigning…'}
                 </>
               ) : (
                 !authenticated ? 'Sign up or sign in to get free designs' :
@@ -507,8 +507,8 @@ export const DesignerPage: React.FC = () => {
               </p>
             )}
         </div>
-         {error && (
-          <div className="text-red-600 text-sm mt-2 text-center">
+	         {error && (
+	          <div className="text-red-600 text-sm mt-2 text-center" role="alert">
             <p>{error.message}</p>
             {error.suggestion === 'style' && (
               <div className="mt-2 flex justify-center gap-2">

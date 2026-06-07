@@ -56,7 +56,7 @@ const ReplacementSuggestions: React.FC<{
       {isLoading ? (
         <div className="flex items-center justify-center p-2">
           <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
-          <span className="ml-2 text-sm text-slate-500">Getting ideas...</span>
+          <span className="ml-2 text-sm text-slate-500">Getting ideas…</span>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2 mb-2">
@@ -68,11 +68,12 @@ const ReplacementSuggestions: React.FC<{
         </div>
       )}
       <form onSubmit={handleCustomSubmit} className="flex gap-2">
-        <input
-          type="text"
+	        <input
+	          aria-label={`Custom replacement for ${itemName}`}
+	          type="text"
           value={customValue}
           onChange={(e) => setCustomValue(e.target.value)}
-          placeholder="Or type a custom replacement"
+	          placeholder="Or type a custom replacement…"
           className="flex-grow w-full h-8 px-2 py-1 text-xs text-slate-800 bg-white border border-slate-300 rounded-md outline-none transition-all duration-200 focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
         />
         <button type="submit" className="h-8 px-3 text-xs font-semibold bg-slate-800 text-white rounded-md hover:bg-slate-900 transition-colors">
@@ -102,7 +103,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
   const [itemToReplace, setItemToReplace] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  useFocusTrap(modalRef);
+  useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
@@ -177,8 +178,8 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
       return (
         <div key={originalName} className="p-2 bg-red-50 border-l-4 border-red-300 rounded-r-md flex justify-between items-center">
           <p className="text-sm text-red-700 line-through">{originalName}</p>
-          <button onClick={handleUndo} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Undo Delete">
-            <RotateCw className="h-3 w-3" />
+	          <button onClick={handleUndo} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Undo Delete" aria-label={`Undo deleting ${originalName}`}>
+	            <RotateCw className="h-3 w-3" aria-hidden="true" />
           </button>
         </div>
       );
@@ -192,8 +193,8 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
               <p className="text-sm text-slate-500 line-through">{originalName}</p>
               <p className="text-sm font-semibold text-slate-800">→ {replacement.to}</p>
             </div>
-            <button onClick={handleUndo} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Undo Replacement">
-              <RotateCw className="h-3 w-3" />
+	            <button onClick={handleUndo} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Undo Replacement" aria-label={`Undo replacing ${originalName}`}>
+	              <RotateCw className="h-3 w-3" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -205,11 +206,11 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
         <div className="flex justify-between items-center">
           <p className="text-sm font-medium text-slate-800">{originalName}</p>
           <div className="flex items-center space-x-1">
-            <button onClick={() => setItemToReplace(originalName)} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-200" title="Replace">
-              <Replace className="h-4 w-4" />
+            <button onClick={() => setItemToReplace(originalName)} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-200" title="Replace" aria-label={`Replace ${originalName}`}>
+              <Replace className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button onClick={() => setDeletions([...deletions, originalName])} className="p-1.5 rounded-md text-slate-500 hover:bg-red-100 hover:text-red-600" title="Delete">
-              <Trash2 className="h-4 w-4" />
+            <button onClick={() => setDeletions([...deletions, originalName])} className="p-1.5 rounded-md text-slate-500 hover:bg-red-100 hover:text-red-600" title="Delete" aria-label={`Delete ${originalName}`}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -236,13 +237,13 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
         <header className="flex-shrink-0 flex justify-between items-center p-4 border-b border-slate-200/80">
           <h2 id="customization-modal-title" className="text-xl font-bold text-slate-800 flex items-center"><Wand className="h-5 w-5 mr-2 text-orange-500" />Customize Design</h2>
           <button onClick={onClose} className="text-slate-500 rounded-full h-8 w-8 flex items-center justify-center hover:bg-slate-100/80 transition-colors" aria-label="Close editor">
-            <X className="w-5 w-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </header>
 
         <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
           <div className="relative h-full w-full bg-slate-50 flex items-center justify-center p-4 overflow-hidden">
-            <img src={imageUrl} alt="Customization preview" className="max-w-full max-h-full object-contain rounded-lg" />
+            <img src={imageUrl} alt="Customization preview" decoding="async" className="max-w-full max-h-full object-contain rounded-lg" />
           </div>
           <div className="h-full overflow-y-auto p-6 space-y-6">
             <section>
@@ -253,22 +254,24 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
             </section>
             <section>
               <h3 className="text-base font-semibold text-slate-800 mb-3">Add New Elements</h3>
-                <div className="space-y-2">
-                    <input 
-                        type="text" 
-                        value={newAdditionName} 
-                        onChange={(e) => setNewAdditionName(e.target.value)} 
-                        placeholder="Element name (e.g., Bird bath)" 
-                        className="w-full h-10 px-3 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200" 
-                    />
-                    <textarea 
-                        value={newAdditionDesc} 
-                        onChange={(e) => setNewAdditionDesc(e.target.value)} 
-                        placeholder="Optional: Add a brief description (e.g., 'made of stone, classical style')" 
-                        rows={2} 
-                        className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200" 
-                    />
-                    <button onClick={handleAddAddition} className="w-full h-10 px-4 bg-slate-800 text-white font-semibold rounded-lg text-sm hover:bg-slate-900 transition-colors flex items-center justify-center">
+              <div className="space-y-2">
+                <input
+                  aria-label="Element name"
+                  type="text"
+                  value={newAdditionName}
+                  onChange={(e) => setNewAdditionName(e.target.value)}
+                  placeholder="Element name, e.g., Bird bath"
+                  className="w-full h-10 px-3 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                />
+                <textarea
+                  aria-label="Element description"
+                  value={newAdditionDesc}
+                  onChange={(e) => setNewAdditionDesc(e.target.value)}
+                  placeholder="Optional: Add a brief description, e.g., made of stone, classical style"
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm text-slate-800 bg-slate-100/80 border border-transparent rounded-lg outline-none transition-all duration-200 focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                />
+                <button onClick={handleAddAddition} className="w-full h-10 px-4 bg-slate-800 text-white font-semibold rounded-lg text-sm hover:bg-slate-900 transition-colors flex items-center justify-center">
                         <Plus className="h-4 w-4 mr-1.5" /> Add Element
                     </button>
                 </div>
@@ -280,8 +283,8 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, 
                             <p className="text-sm text-green-800 font-medium">{addition.name}</p>
                             {addition.description && <p className="text-xs text-green-700 italic">"{addition.description}"</p>}
                         </div>
-                      <button onClick={() => handleRemoveAddition(addition.name)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Remove Addition">
-                        <Trash2 className="h-3 w-3" />
+                      <button onClick={() => handleRemoveAddition(addition.name)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200" title="Remove Addition" aria-label={`Remove ${addition.name}`}>
+                        <Trash2 className="h-3 w-3" aria-hidden="true" />
                       </button>
                     </div>
                   ))}

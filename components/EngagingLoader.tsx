@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Orbit } from 'lucide-react';
 
 const LOADING_MESSAGES = [
-  "Warming up the digital wheelbarrow...",
-  "Consulting with garden gnomes for layout approval...",
-  "Planting the virtual seeds of creativity...",
-  "Unrolling the fresh sod... careful, it's pixel-perfect.",
+  "Preparing the design workspace…",
+  "Checking the layout and sightlines…",
+  "Planting the virtual seeds of creativity…",
+  "Unrolling the fresh sod… careful, it's pixel-perfect.",
   "Choosing the perfect patio furniture. Wicker or teak?",
-  "Building a pergola... just need the digital Allen key.",
-  "Watering the new plants with 1s and 0s...",
-  "Shhh... the AI is concentrating on the fine details.",
-  "Negotiating with squirrels about bird feeder placement...",
-  "Finding the sunniest spot for the sunflowers...",
-  "Polishing the final design for the grand reveal!",
+  "Building a pergola… just need the digital Allen key.",
+  "Balancing plant density and open space…",
+  "The AI is concentrating on the fine details…",
+  "Checking feature placement and scale…",
+  "Finding the sunniest spot for the sunflowers…",
+  "Polishing the final design for the reveal…",
 ];
 
 export const EngagingLoader: React.FC = () => {
@@ -35,7 +35,7 @@ export const EngagingLoader: React.FC = () => {
         <div className="absolute inset-2 rounded-full bg-white"></div>
         <Orbit className="absolute inset-4 h-8 w-8 text-slate-500 animate-spin" style={{ animationDuration: '3s' }}/>
       </div>
-      <h3 className="mt-6 text-xl font-medium text-slate-800">Redesigning in Progress...</h3>
+      <h3 className="mt-6 text-xl font-medium text-slate-800">Redesigning in Progress…</h3>
       <div className="mt-2 text-slate-500 h-10 flex items-center justify-center">
          <p key={message} className="animate-fade-in">
             {message}

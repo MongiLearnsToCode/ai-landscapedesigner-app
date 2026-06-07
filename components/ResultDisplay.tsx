@@ -38,7 +38,7 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            addToast("Download complete!", "success");
+            addToast("Download complete.", "success");
         } catch (error) {
             console.error('Download failed:', error);
             addToast("Download failed. Please try again.", "error");
@@ -113,7 +113,7 @@ const ImageCard: React.FC<{ title: string; imageUrl: string; catalog: DesignCata
                 <h3 className="text-lg font-bold text-slate-800">{title}</h3>
             </div>
              <div className="relative group w-full rounded-xl overflow-hidden bg-slate-100">
-                 <img src={imageUrl} alt={title} className="w-full h-auto block" />
+	                 <img src={imageUrl} alt={title} decoding="async" className="w-full h-auto block" />
 
                  {/* Desktop hover overlay */}
                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 sm:gap-4 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex-wrap rounded-xl hidden lg:flex">
@@ -174,7 +174,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex items-center justify-center min-h-[400px] w-full xl:min-h-0 xl:h-full">
         <div className="text-center">
           <div className="animate-spin mx-auto h-8 w-8 border-4 border-slate-200 border-t-slate-600 rounded-full mb-4"></div>
-          <h3 className="text-lg font-semibold text-slate-700">Loading your recent designs...</h3>
+          <h3 className="text-lg font-semibold text-slate-700">Loading your recent designs…</h3>
         </div>
       </div>
     );

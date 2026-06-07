@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CreditCard, BarChart2, LogOut, SlidersHorizontal } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 
@@ -14,8 +15,20 @@ interface AccountLayoutProps {
 }
 
 export const AccountLayout: React.FC<AccountLayoutProps> = ({ children }) => {
-  const [activeSection, setActiveSection] = useState('settings');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get('section') || 'settings';
+  const initialSection = navItems.some((item) => item.id === requestedSection) ? requestedSection : 'settings';
+  const [activeSection, setActiveSection] = useState(initialSection);
   const { logout } = useAppStore();
+
+  useEffect(() => {
+    setActiveSection(initialSection);
+  }, [initialSection]);
+
+  const handleSectionChange = (sectionId: string) => {
+    setActiveSection(sectionId);
+    setSearchParams(sectionId === 'settings' ? {} : { section: sectionId });
+  };
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -31,15 +44,16 @@ export const AccountLayout: React.FC<AccountLayoutProps> = ({ children }) => {
           <aside className="md:col-span-1">
             <nav className="space-y-1">
               {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === item.id
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
+	                <button
+	                  key={item.id}
+	                  onClick={() => handleSectionChange(item.id)}
+	                  className={`w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+	                    activeSection === item.id
+	                      ? 'bg-orange-100 text-orange-600'
+	                      : 'text-slate-600 hover:bg-slate-100'
+	                  }`}
+	                  aria-current={activeSection === item.id ? 'page' : undefined}
+	                >
                   <item.icon className="h-5 w-5 mr-3" />
                   <span>{item.label}</span>
                 </button>

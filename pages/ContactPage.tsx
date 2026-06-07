@@ -6,9 +6,13 @@ import type { ContactFormData } from '../services/contactService';
 export const ContactPage: React.FC = () => {
   const { addToast } = useToastStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFormError('');
+    setFormSuccess('');
     setIsSubmitting(true);
 
     try {
@@ -36,11 +40,15 @@ export const ContactPage: React.FC = () => {
          throw new Error(result.error || 'Failed to send message');
        }
 
-       addToast(result.message || 'Thank you for your message! We\'ll get back to you soon.', 'success');
+       const successMessage = result.message || 'Thank you for your message! We\'ll get back to you soon.';
+	       setFormSuccess(successMessage);
+	       addToast(successMessage, 'success');
       form.reset();
     } catch (error) {
       console.error('Contact form submission error:', error);
-      addToast('Failed to send message. Please try again or contact us directly.', 'error');
+      const message = 'Failed to send message. Please try again or contact us directly.';
+      setFormError(message);
+      addToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,18 +105,27 @@ export const ContactPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className={labelClasses}>Full Name</label>
-              <input type="text" name="name" id="name" required className={inputClasses} placeholder="John Doe" />
-            </div>
-            <div>
-              <label htmlFor="email" className={labelClasses}>Email Address</label>
-              <input type="email" name="email" id="email" required className={inputClasses} placeholder="you@example.com" />
-            </div>
-            <div>
-              <label htmlFor="message" className={labelClasses}>Message</label>
-              <textarea name="message" id="message" rows={4} required className={`${inputClasses} h-auto`} placeholder="Your message..."></textarea>
-            </div>
-            <div>
-               <button
+	              <input type="text" name="name" id="name" autoComplete="name" required className={inputClasses} placeholder="John Doe" aria-invalid={formError ? true : undefined} aria-describedby={formError ? 'contact-form-status' : undefined} />
+	            </div>
+	            <div>
+	              <label htmlFor="email" className={labelClasses}>Email Address</label>
+	              <input type="email" name="email" id="email" autoComplete="email" spellCheck={false} required className={inputClasses} placeholder="you@example.com" aria-invalid={formError ? true : undefined} aria-describedby={formError ? 'contact-form-status' : undefined} />
+	            </div>
+	            <div>
+	              <label htmlFor="message" className={labelClasses}>Message</label>
+	              <textarea name="message" id="message" rows={4} autoComplete="off" required className={`${inputClasses} h-auto`} placeholder="Your message…" aria-invalid={formError ? true : undefined} aria-describedby={formError || formSuccess ? 'contact-form-status' : undefined}></textarea>
+	            </div>
+	            <div>
+	               {(formError || formSuccess) && (
+	                 <p
+	                   id="contact-form-status"
+	                   className={`mb-3 text-sm font-medium ${formError ? 'text-red-600' : 'text-green-700'}`}
+	                   role={formError ? 'alert' : 'status'}
+	                 >
+	                   {formError || formSuccess}
+	                 </p>
+	               )}
+	               <button
                  type="submit"
                  disabled={isSubmitting}
                  className="w-full h-11 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-orange-400 disabled:cursor-not-allowed"
@@ -119,7 +136,7 @@ export const ContactPage: React.FC = () => {
                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                      </svg>
-                     Sending...
+	                     Sending…
                    </>
                  ) : (
                    'Send Message'

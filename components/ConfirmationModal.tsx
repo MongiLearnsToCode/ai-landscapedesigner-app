@@ -22,7 +22,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelText = 'Cancel',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(modalRef);
+  useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {

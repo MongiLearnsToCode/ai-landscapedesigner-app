@@ -11,16 +11,16 @@ import { SettingsSection } from '../components/Account/SettingsSection';
 export const SettingsPage: React.FC = () => {
   const { user, logout } = useAppStore();
   const { addToast } = useToastStore();
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
 
   if (!user) {
     return null; // Should be redirected by App.tsx logic
   }
 
-  const handleConfirmDelete = () => {
-    setIsDeleteModalOpen(false);
+  const handleConfirmSignOut = () => {
+    setIsSignOutModalOpen(false);
     logout(); // This handles state reset and navigation
-    addToast('Your account has been successfully deleted.', 'info');
+    addToast('You have been signed out.', 'info');
   };
 
   const renderSection = (activeSection: string) => {
@@ -30,7 +30,7 @@ export const SettingsPage: React.FC = () => {
       case 'usage':
         return <UsageSection />;
       case 'settings':
-        return <SettingsSection onDelete={() => setIsDeleteModalOpen(true)} />;
+        return <SettingsSection onSignOut={() => setIsSignOutModalOpen(true)} />;
       default:
         return <BillingSection />;
     }
@@ -43,12 +43,12 @@ export const SettingsPage: React.FC = () => {
       </AccountLayout>
       
       <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        title="Confirm Account Deletion"
-        message="Are you absolutely sure you want to delete your account? All of your projects and personal data will be permanently removed. This action cannot be undone."
-        confirmText="Yes, Delete My Account"
+        isOpen={isSignOutModalOpen}
+        onClose={() => setIsSignOutModalOpen(false)}
+        onConfirm={handleConfirmSignOut}
+        title="Confirm Sign Out"
+        message="You will leave your account area and return to the home page. Your projects and account data will remain available when you sign in again."
+        confirmText="Sign Out"
         cancelText="Cancel"
       />
     </>

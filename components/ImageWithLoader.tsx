@@ -45,6 +45,8 @@ export const ImageWithLoader: React.FC<ImageWithLoaderProps> = ({ src, alt, lazy
         <img
           src={src}
           alt={alt}
+          loading={lazy ? 'lazy' : 'eager'}
+          decoding="async"
           className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
           onLoad={() => setIsLoading(false)}
           onError={() => setIsLoading(false)} // Also stop loading on error

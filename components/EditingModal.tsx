@@ -73,7 +73,7 @@ export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, ima
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
-  useFocusTrap(modalRef);
+  useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -142,12 +142,12 @@ export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, ima
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
-    addToast('Applying edits...', 'info');
+    addToast('Applying edits…', 'info');
     try {
       const { rotation, brightness, contrast } = currentEdits;
       const editedImageUrl = await applyEditsAndGetDataUrl(imageUrl, rotation, brightness, contrast);
       onSave(editedImageUrl);
-      addToast('Edits saved successfully!', 'success');
+      addToast('Edits saved.', 'success');
       onClose();
     } catch (error) {
       console.error(error);
@@ -202,7 +202,7 @@ export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, ima
         </header>
 
         <div className="flex-grow flex items-center justify-center p-8 bg-slate-50 min-h-[300px]">
-            <img src={imageUrl} alt="Editing preview" style={imageStyle} className="transition-all duration-200" />
+	            <img src={imageUrl} alt="Editing preview" decoding="async" style={imageStyle} className="transition-all duration-200" />
         </div>
         
         <div className="p-6 bg-white border-t border-slate-200/80">
@@ -271,7 +271,7 @@ export const EditingModal: React.FC<EditingModalProps> = ({ isOpen, onClose, ima
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Saving...
+                            Saving…
                         </>
                     ) : 'Save & Close'}
                  </button>

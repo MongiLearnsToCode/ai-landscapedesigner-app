@@ -1,4 +1,5 @@
 import React, { useState, forwardRef, useRef, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import type { Page } from '../stores/appStore';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
@@ -88,7 +89,7 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         disabled={isLoading || isCurrentPlan}
         className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
       >
-        {isLoading ? 'Processing...' : cta}
+        {isLoading ? 'Processing…' : cta}
       </button>
     </div>
   );
@@ -279,10 +280,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       <div className="flex justify-center items-center my-10">
         <span className={`px-4 py-2 font-medium transition ${billingCycle === 'monthly' ? 'text-slate-800' : 'text-slate-500'}`}>Monthly</span>
         <button
-          onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
-          className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 ${billingCycle === 'annual' ? 'bg-orange-500' : 'bg-slate-300'}`}
-          aria-label={`Switch to ${billingCycle === 'monthly' ? 'annual' : 'monthly'} billing`}
-        >
+	          onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
+	          className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 ${billingCycle === 'annual' ? 'bg-orange-500' : 'bg-slate-300'}`}
+	          role="switch"
+	          aria-checked={billingCycle === 'annual'}
+	          aria-label={`Switch to ${billingCycle === 'monthly' ? 'annual' : 'monthly'} billing`}
+	        >
           <span
             className={`${
               billingCycle === 'annual' ? 'translate-x-6' : 'translate-x-1'
@@ -349,24 +352,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       <div className="mt-12 pt-8 text-center border-t border-slate-200/80 max-w-3xl mx-auto">
         <p className="text-lg text-slate-700">
           Want to try it out first? Get 3 images free →
-          <button
-            onClick={() => onNavigate('main')}
-            className="ml-2 font-semibold text-orange-500 hover:underline"
-          >
-            Start Free
-          </button>
+	          <Link
+	            to="/"
+	            className="ml-2 font-semibold text-orange-500 hover:underline"
+	          >
+	            Start Free
+	          </Link>
         </p>
       </div>
 
       <div className="mt-8 text-center">
         <p className="text-xs text-slate-400">
           * 'Unlimited' is subject to a{' '}
-          <button
-            onClick={() => onNavigate('fair-use-policy')}
-            className="underline hover:text-slate-600"
-          >
-            fair use policy
-          </button>
+	          <Link
+	            to="/fair-use-policy"
+	            className="underline hover:text-slate-600"
+	          >
+	            fair use policy
+	          </Link>
           {' '}to prevent abuse.
         </p>
       </div>

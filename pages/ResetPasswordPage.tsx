@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useAppStore } from '../stores/appStore';
 import { useToastStore } from '../stores/toastStore';
@@ -12,9 +13,11 @@ export const ResetPasswordPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const requestReset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError('');
     setIsSubmitting(true);
 
     try {
@@ -23,7 +26,9 @@ export const ResetPasswordPage: React.FC = () => {
       addToast('If an account exists for this email, a reset code has been sent.', 'success');
     } catch (error) {
       console.error('Password reset request failed:', error);
-      addToast('Unable to start password reset. Please try again.', 'error');
+      const message = 'Unable to start password reset. Check the email address and try again.';
+      setFormError(message);
+      addToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -31,6 +36,7 @@ export const ResetPasswordPage: React.FC = () => {
 
   const verifyReset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError('');
     setIsSubmitting(true);
 
     try {
@@ -44,7 +50,9 @@ export const ResetPasswordPage: React.FC = () => {
       navigateTo('main');
     } catch (error) {
       console.error('Password reset verification failed:', error);
-      addToast('Invalid reset code or password. Please try again.', 'error');
+      const message = 'Invalid reset code or password. Check the code and use at least 8 characters.';
+      setFormError(message);
+      addToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -73,22 +81,30 @@ export const ResetPasswordPage: React.FC = () => {
               name="email"
               type="email"
               autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+	              required
+	              value={email}
+	              onChange={(event) => setEmail(event.target.value)}
+	              spellCheck={false}
+	              aria-invalid={formError ? true : undefined}
+	              aria-describedby={formError ? 'reset-error' : undefined}
               className={inputClasses}
               placeholder="you@example.com"
             />
           </div>
 
-          <button
+	          <button
             type="submit"
             disabled={isSubmitting}
             className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Sending...' : 'Send Reset Code'}
-          </button>
-        </form>
+	            {isSubmitting ? 'Sending…' : 'Send Reset Code'}
+	          </button>
+	          {formError && (
+	            <p id="reset-error" className="text-sm font-medium text-red-600" role="alert">
+	              {formError}
+	            </p>
+	          )}
+	        </form>
       ) : (
         <form onSubmit={verifyReset} className="mt-8 space-y-6">
           <div>
@@ -98,8 +114,11 @@ export const ResetPasswordPage: React.FC = () => {
               name="code"
               type="text"
               required
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
+	              value={code}
+	              onChange={(event) => setCode(event.target.value)}
+	              spellCheck={false}
+	              aria-invalid={formError ? true : undefined}
+	              aria-describedby={formError ? 'reset-error' : undefined}
               className={inputClasses}
               placeholder="Enter code"
             />
@@ -114,11 +133,13 @@ export const ResetPasswordPage: React.FC = () => {
               autoComplete="new-password"
               required
               minLength={8}
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              className={inputClasses}
-              placeholder="••••••••"
-            />
+	              value={newPassword}
+	              onChange={(event) => setNewPassword(event.target.value)}
+	              className={inputClasses}
+	              placeholder="••••••••"
+	              aria-invalid={formError ? true : undefined}
+	              aria-describedby={formError ? 'reset-error' : undefined}
+	            />
           </div>
 
           <button
@@ -126,19 +147,23 @@ export const ResetPasswordPage: React.FC = () => {
             disabled={isSubmitting}
             className="w-full h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
+	            {isSubmitting ? 'Resetting…' : 'Reset Password'}
+	          </button>
+	          {formError && (
+	            <p id="reset-error" className="text-sm font-medium text-red-600" role="alert">
+	              {formError}
+	            </p>
+	          )}
+	        </form>
       )}
 
       <div className="mt-6 text-center">
-        <button
-          type="button"
-          onClick={() => navigateTo('signin')}
+        <Link
+          to="/signin"
           className="text-sm font-medium text-orange-500 hover:text-orange-600"
         >
           Back to Sign In
-        </button>
+        </Link>
       </div>
     </div>
   );

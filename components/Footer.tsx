@@ -1,8 +1,7 @@
 import React from 'react';
-import { useAppStore } from '../stores/appStore';
+import { Link } from 'react-router-dom';
 
 export const Footer: React.FC = () => {
-  const { navigateTo } = useAppStore();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -11,18 +10,18 @@ export const Footer: React.FC = () => {
         &copy; {currentYear} AI Landscape Designer. All rights reserved.
       </p>
       <div className="flex justify-center space-x-4">
-        <button 
-          onClick={() => navigateTo('terms')} 
+        <Link
+          to="/terms"
           className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           Terms of Service
-        </button>
-        <button 
-          onClick={() => navigateTo('privacy')} 
+        </Link>
+        <Link
+          to="/privacy"
           className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           Privacy Policy
-        </button>
+        </Link>
       </div>
     </footer>
   );

@@ -50,18 +50,18 @@ export const Modal: React.FC<ModalProps> = ({ imageUrl, onClose }) => {
                 <div className="w-full h-full border-4 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
             </div>
         )}
-        <img
-          src={imageUrl}
-          alt="Enlarged view"
+	        <img
+	          src={imageUrl}
+	          alt="Enlarged view"
+	          decoding="async"
           className={`block max-w-full max-h-full object-contain rounded-lg lg:rounded-xl lg:shadow-2xl transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
           onLoad={() => setIsLoading(false)}
         />
-        <button
-          onClick={onClose}
-          className={`absolute top-3 right-3 bg-black/40 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-black/60 transition-colors focus:outline-none focus:ring-2 focus:ring-white z-10 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-          aria-label="Close"
-          disabled={isLoading}
-        >
+	        <button
+	          onClick={onClose}
+	          className="absolute top-3 right-3 bg-black/40 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-black/60 transition-colors focus:outline-none focus:ring-2 focus:ring-white z-10"
+	          aria-label="Close"
+	        >
           <X className="w-5 h-5" />
         </button>
       </div>

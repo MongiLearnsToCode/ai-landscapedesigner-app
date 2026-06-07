@@ -8,12 +8,14 @@ export const SignUpPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const { signIn } = useAuthActions();
   const navigate = useNavigate();
   const { addToast } = useToastStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     setIsLoading(true);
     
     try {
@@ -21,10 +23,12 @@ export const SignUpPage: React.FC = () => {
       await signIn('password', { email, password, name, flow: 'signUp' });
 
       navigate('/');
-      addToast('Account created successfully!', 'success');
+      addToast('Account created.', 'success');
     } catch (error) {
       console.error('Sign up error:', error);
-      addToast('Failed to create account. Email may already be in use.', 'error');
+      const message = 'Unable to create this account. Try signing in, or use a different email address.';
+      setFormError(message);
+      addToast(message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +76,12 @@ export const SignUpPage: React.FC = () => {
               name="email"
               type="email"
               autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+	              required
+	              value={email}
+	              onChange={(e) => setEmail(e.target.value)}
+	              spellCheck={false}
+	              aria-invalid={formError ? true : undefined}
+	              aria-describedby={formError ? 'signup-error' : undefined}
               className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-500 text-slate-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
               placeholder="you@example.com"
             />
@@ -90,22 +97,29 @@ export const SignUpPage: React.FC = () => {
               type="password"
               autoComplete="new-password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
+	              value={password}
+	              onChange={(e) => setPassword(e.target.value)}
+	              minLength={8}
+	              aria-invalid={formError ? true : undefined}
+	              aria-describedby={formError ? 'signup-error password-help' : 'password-help'}
               className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-500 text-slate-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
               placeholder="••••••••"
             />
-            <p className="mt-1 text-xs text-slate-500">Must be at least 8 characters</p>
-          </div>
+	            <p id="password-help" className="mt-1 text-xs text-slate-500">Must be at least 8 characters</p>
+	          </div>
 
-          <div>
-            <button
+	          <div>
+	            {formError && (
+	              <p id="signup-error" className="mb-3 text-sm font-medium text-red-600" role="alert">
+	                {formError}
+	              </p>
+	            )}
+	            <button
               type="submit"
               disabled={isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Creating account...' : 'Sign up'}
+              {isLoading ? 'Creating account…' : 'Sign up'}
             </button>
           </div>
         </form>

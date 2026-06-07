@@ -76,7 +76,7 @@ const ExpandedDetailView: React.FC<{
     return (
       <div className="p-4 flex items-center justify-center text-slate-500">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        <span>Loading details...</span>
+        <span>Loading details…</span>
       </div>
     );
   }
@@ -89,7 +89,7 @@ const ExpandedDetailView: React.FC<{
     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
       <div className="md:col-span-1">
         {detail.imageUrl ? (
-          <img src={detail.imageUrl} alt={item.name} className="rounded-lg object-cover w-full aspect-square bg-slate-100" />
+	          <img src={detail.imageUrl} alt={item.name} loading="lazy" decoding="async" className="rounded-lg object-cover w-full aspect-square bg-slate-100" />
         ) : (
           <div className="rounded-lg w-full aspect-square bg-slate-200 animate-pulse" />
         )}

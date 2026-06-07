@@ -1,10 +1,8 @@
 import React from 'react';
-import { useAppStore } from '../stores/appStore';
+import { Link } from 'react-router-dom';
 import { CheckCircle, LayoutDashboard, Cog } from 'lucide-react';
 
 export const SuccessPage: React.FC = () => {
-  const { navigateTo } = useAppStore();
-
   return (
     <div className="w-full max-w-2xl mx-auto my-auto text-center flex flex-col items-center justify-center p-4">
       <style>{`
@@ -35,20 +33,20 @@ export const SuccessPage: React.FC = () => {
        </p>
 
       <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-200">
-        <button
-          onClick={() => navigateTo('main')}
-          className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-        >
-          <LayoutDashboard className="h-5 w-5" />
-          <span>Go to Dashboard</span>
-        </button>
-        <button
-          onClick={() => navigateTo('settings')}
-          className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-6 rounded-lg transition-colors"
-        >
-          <Cog className="h-5 w-5" />
-          <span>App Settings</span>
-        </button>
+	        <Link
+	          to="/"
+	          className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+	        >
+	          <LayoutDashboard className="h-5 w-5" />
+	          <span>Go to Dashboard</span>
+	        </Link>
+	        <Link
+	          to="/settings"
+	          className="w-full sm:w-auto h-11 flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-6 rounded-lg transition-colors"
+	        >
+	          <Cog className="h-5 w-5" />
+	          <span>App Settings</span>
+	        </Link>
       </div>
     </div>
   );

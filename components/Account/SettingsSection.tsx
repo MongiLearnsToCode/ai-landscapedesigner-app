@@ -52,7 +52,7 @@ const SaveButton: React.FC<{ isSaving: boolean; children: React.ReactNode }> = (
     className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
   >
     <Save className="h-4 w-4" />
-    {isSaving ? 'Saving...' : children}
+    {isSaving ? 'Saving…' : children}
   </button>
 );
 
@@ -63,6 +63,8 @@ const ProfileSettings: React.FC = () => {
   const [name, setName] = useState('');
   const [image, setImage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     if (!user) return;
@@ -72,16 +74,23 @@ const ProfileSettings: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setStatusMessage('');
     setIsSaving(true);
     try {
       await updateProfile({
         name,
         image: image.trim() || undefined,
       });
-      addToast('Profile updated.', 'success');
+      const message = 'Profile updated.';
+      setStatusType('success');
+      setStatusMessage(message);
+      addToast(message, 'success');
     } catch (error) {
       console.error('Profile update failed:', error);
-      addToast(error instanceof Error ? error.message : 'Failed to update profile.', 'error');
+      const message = error instanceof Error ? error.message : 'Failed to update profile.';
+      setStatusType('error');
+      setStatusMessage(message);
+      addToast(message, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -107,9 +116,11 @@ const ProfileSettings: React.FC = () => {
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={80}
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                required
-              />
+	                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+	                required
+	                aria-invalid={statusType === 'error' && statusMessage ? true : undefined}
+	                aria-describedby={statusMessage ? 'profile-status' : undefined}
+	              />
             </div>
             <div>
               <label htmlFor="profile-image" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -120,9 +131,11 @@ const ProfileSettings: React.FC = () => {
                 type="url"
                 value={image}
                 onChange={(event) => setImage(event.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              />
+	                placeholder="https://example.com/avatar.jpg"
+	                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+	                aria-invalid={statusType === 'error' && statusMessage ? true : undefined}
+	                aria-describedby={statusMessage ? 'profile-status' : undefined}
+	              />
             </div>
             <div>
               <p className="text-sm font-medium text-slate-700">Email</p>
@@ -130,7 +143,12 @@ const ProfileSettings: React.FC = () => {
             </div>
           </div>
         </div>
-        <SaveButton isSaving={isSaving}>Save Profile</SaveButton>
+	        {statusMessage && (
+	          <p id="profile-status" className={`text-sm font-medium ${statusType === 'error' ? 'text-red-600' : 'text-green-700'}`} role={statusType === 'error' ? 'alert' : 'status'}>
+	            {statusMessage}
+	          </p>
+	        )}
+	        <SaveButton isSaving={isSaving}>Save Profile</SaveButton>
       </form>
     </SectionCard>
   );
@@ -158,6 +176,8 @@ const PreferenceSettings: React.FC = () => {
   const [defaultAllowStructuralChanges, setDefaultAllowStructuralChanges] = useState(false);
   const [defaultLockAspectRatio, setDefaultLockAspectRatio] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     if (!user) return;
@@ -181,6 +201,7 @@ const PreferenceSettings: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setStatusMessage('');
     setIsSaving(true);
     try {
       await updatePreferences({
@@ -193,10 +214,16 @@ const PreferenceSettings: React.FC = () => {
         defaultLockAspectRatio,
       });
       localStorage.removeItem('designerSession');
-      addToast('Preferences updated.', 'success');
+      const message = 'Preferences updated.';
+      setStatusType('success');
+      setStatusMessage(message);
+      addToast(message, 'success');
     } catch (error) {
       console.error('Preferences update failed:', error);
-      addToast(error instanceof Error ? error.message : 'Failed to update preferences.', 'error');
+      const message = error instanceof Error ? error.message : 'Failed to update preferences.';
+      setStatusType('error');
+      setStatusMessage(message);
+      addToast(message, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -304,42 +331,47 @@ const PreferenceSettings: React.FC = () => {
           </label>
         </div>
 
-        <SaveButton isSaving={isSaving}>Save Preferences</SaveButton>
+	        {statusMessage && (
+	          <p className={`text-sm font-medium ${statusType === 'error' ? 'text-red-600' : 'text-green-700'}`} role={statusType === 'error' ? 'alert' : 'status'}>
+	            {statusMessage}
+	          </p>
+	        )}
+	        <SaveButton isSaving={isSaving}>Save Preferences</SaveButton>
       </form>
     </SectionCard>
   );
 };
 
-const DangerZone: React.FC<{ onDelete: () => void }> = ({ onDelete }) => (
+const AccountAccess: React.FC<{ onSignOut: () => void }> = ({ onSignOut }) => (
   <div className="bg-white rounded-lg shadow-md mt-8">
     <div className="p-6 border-b border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-800">Danger Zone</h3>
+      <h3 className="text-lg font-semibold text-slate-800">Account Access</h3>
     </div>
     <div className="p-6">
-      <div className="bg-red-50 p-4 rounded-lg border border-red-200/80 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+      <div className="bg-slate-50 p-4 rounded-lg border border-slate-200/80 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h4 className="font-semibold text-red-800">Delete Your Account</h4>
-          <p className="mt-1 text-sm text-red-700">
-            Once you delete your account, there is no going back. Please be certain.
+          <h4 className="font-semibold text-slate-800">Sign Out</h4>
+          <p className="mt-1 text-sm text-slate-600">
+            End this session without changing your projects, profile, or subscription.
           </p>
         </div>
         <button
-          onClick={onDelete}
-          className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
+          onClick={onSignOut}
+          className="px-4 py-2 text-sm font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors whitespace-nowrap"
         >
-          Delete Account
+          Sign Out
         </button>
       </div>
     </div>
   </div>
 );
 
-export const SettingsSection: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
+export const SettingsSection: React.FC<{ onSignOut: () => void }> = ({ onSignOut }) => {
   return (
     <div className="space-y-8">
       <ProfileSettings />
       <PreferenceSettings />
-      <DangerZone onDelete={onDelete} />
+      <AccountAccess onSignOut={onSignOut} />
     </div>
   );
 };

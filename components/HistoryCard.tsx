@@ -52,6 +52,13 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
   const handleCardClick = () => {
     isSelectionMode ? onToggleSelection(item.id) : onView(item);
   };
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
 
   const cardStateClasses = isSelectionMode
     ? `ring-2 ${isSelected ? 'ring-orange-500 bg-orange-50' : 'ring-transparent hover:ring-slate-300'}`
@@ -59,10 +66,15 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
 
   if (viewMode === 'grid') {
     return (
-      <div 
-        className={`bg-white rounded-2xl border border-slate-200/80 transition-all duration-300 flex flex-col group overflow-hidden cursor-pointer ${cardStateClasses}`}
-        onClick={handleCardClick}
-      >
+      <div
+	        className={`bg-white rounded-2xl border border-slate-200/80 transition-all duration-300 flex flex-col group overflow-hidden cursor-pointer ${cardStateClasses}`}
+	        onClick={handleCardClick}
+	        onKeyDown={handleCardKeyDown}
+	        tabIndex={0}
+	        role="button"
+	        aria-label={`${isSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'} project: ${styleNames}`}
+	        aria-pressed={isSelectionMode ? isSelected : undefined}
+	      >
         <div className="relative w-full aspect-video bg-slate-100">
           {isSelectionMode && (
             <div className="absolute top-3 left-3 z-10 bg-white/50 p-1 rounded-md">
@@ -125,7 +137,15 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
     
   // List View
   return (
-    <div className={`bg-white p-3 rounded-2xl border border-slate-200/80 transition-all duration-300 flex items-center space-x-4 cursor-pointer ${cardStateClasses}`} onClick={handleCardClick}>
+    <div
+      className={`bg-white p-3 rounded-2xl border border-slate-200/80 transition-all duration-300 flex items-center space-x-4 cursor-pointer group ${cardStateClasses}`}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`${isSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'} project: ${styleNames}`}
+      aria-pressed={isSelectionMode ? isSelected : undefined}
+    >
       {isSelectionMode && <div className="flex-shrink-0"><input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-slate-400 text-orange-600 focus:ring-orange-500 pointer-events-none"/></div>}
       <div className="relative w-32 h-20 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
         {imageUrl ? <ImageWithLoader src={imageUrl} alt={styleNames} lazy={true}/> : <div className="w-full h-full bg-slate-100 animate-pulse"></div>}

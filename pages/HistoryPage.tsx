@@ -18,6 +18,7 @@ interface HistoryPageProps {
 
 type SortOption = 'default' | 'date-desc' | 'date-asc' | 'name-asc';
 type DateFilterOption = 'all' | '7d' | '30d';
+const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface FilterPanelProps {
   searchQuery: string;
@@ -34,7 +35,7 @@ const FilterPanel = memo<FilterPanelProps>(({ searchQuery, setSearchQuery, selec
   <div className="space-y-6">
     <div>
       <label htmlFor="search-projects" className="block text-sm font-medium text-slate-700 mb-1.5">Search</label>
-      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><input type="text" id="search-projects" placeholder="Keywords..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-slate-100/80 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 h-10"/></div>
+      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><input type="text" id="search-projects" placeholder="Keywords…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-slate-100/80 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 h-10"/></div>
     </div>
     <div>
       <h4 className="text-sm font-medium text-slate-700 mb-2">Date Created</h4>
@@ -54,6 +55,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
 
   const [unpinModalState, setUnpinModalState] = useState({ isOpen: false, itemId: null as string | null });
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false });
+  const [deleteItemModalState, setDeleteItemModalState] = useState({ isOpen: false, itemId: null as string | null });
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
@@ -64,8 +66,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
    const [selectedStyles, setSelectedStyles] = useState<LandscapingStyle[]>([]);
    const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-   const sortDropdownRef = useRef<HTMLDivElement>(null);
-   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+	   const sortDropdownRef = useRef<HTMLDivElement>(null);
+	   const filterDrawerRef = useRef<HTMLDivElement>(null);
+	   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
    useEffect(() => {
      const handleClickOutside = (event: MouseEvent) => {
@@ -75,7 +78,55 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
      };
      document.addEventListener('mousedown', handleClickOutside);
      return () => document.removeEventListener('mousedown', handleClickOutside);
-   }, []);
+	   }, []);
+
+	   useEffect(() => {
+	     if (!isFilterPanelOpen) return;
+
+	     const previousActiveElement = document.activeElement as HTMLElement | null;
+	     document.body.style.overflow = 'hidden';
+
+	     const focusTimer = window.setTimeout(() => {
+	       const focusableElements = Array.from(
+	         filterDrawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS) || []
+	       );
+	       focusableElements[0]?.focus();
+	     }, 50);
+
+	     const handleKeyDown = (event: KeyboardEvent) => {
+	       if (event.key === 'Escape') {
+	         setIsFilterPanelOpen(false);
+	         return;
+	       }
+
+	       if (event.key !== 'Tab') return;
+
+	       const focusableElements = Array.from(
+	         filterDrawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS) || []
+	       );
+	       if (focusableElements.length === 0) return;
+
+	       const firstElement = focusableElements[0];
+	       const lastElement = focusableElements[focusableElements.length - 1];
+
+	       if (event.shiftKey && document.activeElement === firstElement) {
+	         event.preventDefault();
+	         lastElement.focus();
+	       } else if (!event.shiftKey && document.activeElement === lastElement) {
+	         event.preventDefault();
+	         firstElement.focus();
+	       }
+	     };
+
+	     window.addEventListener('keydown', handleKeyDown);
+
+	     return () => {
+	       window.clearTimeout(focusTimer);
+	       window.removeEventListener('keydown', handleKeyDown);
+	       document.body.style.overflow = '';
+	       previousActiveElement?.focus();
+	     };
+	   }, [isFilterPanelOpen]);
 
 
 
@@ -146,12 +197,17 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
   const handleToggleItemSelection = (id: string) => {
     setSelectedItemIds(prev => prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]);
   };
-  const handleConfirmDeleteSelected = async () => {
-    await onDeleteMultiple(selectedItemIds);
-    setDeleteModalState({ isOpen: false });
-    setIsSelectionMode(false);
-    setSelectedItemIds([]);
-  };
+	  const handleConfirmDeleteSelected = async () => {
+	    await onDeleteMultiple(selectedItemIds);
+	    setDeleteModalState({ isOpen: false });
+	    setIsSelectionMode(false);
+	    setSelectedItemIds([]);
+	  };
+	  const handleAttemptDeleteItem = (id: string) => setDeleteItemModalState({ isOpen: true, itemId: id });
+	  const handleConfirmDeleteItem = () => {
+	    if (deleteItemModalState.itemId) onDelete(deleteItemModalState.itemId);
+	    setDeleteItemModalState({ isOpen: false, itemId: null });
+	  };
 
   const handleStyleToggle = useCallback((styleId: LandscapingStyle) => {
     setSelectedStyles(prev => prev.includes(styleId) ? prev.filter(s => s !== styleId) : [...prev, styleId]);
@@ -192,13 +248,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
         <main className="lg:col-span-3">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3 p-3 bg-white rounded-2xl shadow-sm border border-slate-200/80">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button onClick={() => setIsFilterPanelOpen(true)} className="lg:hidden p-2 bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200"><Filter className="h-5 w-5" /></button>
+              <button onClick={() => setIsFilterPanelOpen(true)} className="lg:hidden p-2 bg-slate-100 rounded-md text-slate-600 hover:bg-slate-200" aria-label="Open filters"><Filter className="h-5 w-5" /></button>
               <button onClick={handleToggleSelectionMode} className="h-9 px-4 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0">{isSelectionMode ? 'Cancel' : 'Select'}</button>
               <p className="text-sm text-slate-500 hidden sm:block">{filteredAndSortedItems.length} project{filteredAndSortedItems.length !== 1 && 's'}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative" ref={sortDropdownRef}>
-                <button onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)} className="h-9 px-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2"><ChevronsUpDown className="h-4 w-4 text-slate-500" /><span>Sort</span></button>
+                <button onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)} className="h-9 px-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2" aria-haspopup="menu" aria-expanded={isSortDropdownOpen}><ChevronsUpDown className="h-4 w-4 text-slate-500" /><span>Sort</span></button>
                 {isSortDropdownOpen && <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200/80 p-1 z-10">{[{id: 'default', label: 'Default'}, {id: 'date-desc', label: 'Date (Newest)'}, {id: 'date-asc', label: 'Date (Oldest)'}, {id: 'name-asc', label: 'Name (A-Z)'}].map(o => <button key={o.id} onClick={() => { setSortOption(o.id as SortOption); setIsSortDropdownOpen(false); }} className={`w-full text-left px-3 py-2 text-sm rounded-md ${sortOption === o.id ? 'font-semibold text-slate-900 bg-slate-100' : 'text-slate-700 hover:bg-slate-100'}`}>{o.label}</button>)}</div>}
               </div>
               <div className="flex items-center gap-1 p-1 bg-slate-200/80 rounded-lg">
@@ -219,21 +275,21 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80">
               <div className="animate-spin mx-auto h-16 w-16 border-4 border-slate-200 border-t-orange-500 rounded-full"></div>
               <h3 className="mt-4 text-xl font-medium text-slate-700">Loading Projects</h3>
-              <p className="mt-1 text-sm text-slate-500">Fetching your design history...</p>
+              <p className="mt-1 text-sm text-slate-500">Fetching your design history…</p>
             </div>
           ) : historyItems.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80"><SlidersHorizontal className="mx-auto h-16 w-16 text-slate-300" strokeWidth={1} /><h3 className="mt-4 text-xl font-medium text-slate-700">No Projects Yet</h3><p className="mt-1 text-sm text-slate-500">Create a new design, and it will show up here!</p></div>
           ) : filteredAndSortedItems.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200/80"><Search className="mx-auto h-16 w-16 text-slate-300" strokeWidth={1} /><h3 className="mt-4 text-xl font-medium text-slate-700">No Projects Found</h3><p className="mt-1 text-sm text-slate-500">Your search and filter criteria did not match any projects.</p></div>
           ) : (
-            <div className={containerClasses}>{filteredAndSortedItems.map(item => <HistoryCard key={item.id} item={item} onView={onView} onPin={onPin} onAttemptUnpin={handleAttemptUnpin} onDelete={onDelete} isSelectionMode={isSelectionMode} isSelected={selectedItemIds.includes(item.id)} onToggleSelection={handleToggleItemSelection} viewMode={viewMode}/>)}</div>
+	            <div className={containerClasses}>{filteredAndSortedItems.map(item => <HistoryCard key={item.id} item={item} onView={onView} onPin={onPin} onAttemptUnpin={handleAttemptUnpin} onDelete={handleAttemptDeleteItem} isSelectionMode={isSelectionMode} isSelected={selectedItemIds.includes(item.id)} onToggleSelection={handleToggleItemSelection} viewMode={viewMode}/>)}</div>
           )}
         </main>
       </div>
       
-      <div className={`fixed inset-0 bg-slate-900/40 z-40 lg:hidden transition-opacity duration-300 ${isFilterPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsFilterPanelOpen(false)}>
-        <div className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg z-50 w-80 p-6 transition-transform duration-300 ease-in-out ${isFilterPanelOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={e => e.stopPropagation()}>
-           <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold">Filter & Sort</h3><button onClick={() => setIsFilterPanelOpen(false)} className="p-1 rounded-full hover:bg-slate-100"><X className="h-5 w-5 text-slate-600" /></button></div>
+	      <div className={`fixed inset-0 bg-slate-900/40 z-40 lg:hidden transition-opacity duration-300 ${isFilterPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsFilterPanelOpen(false)} role="dialog" aria-modal="true" aria-labelledby="history-filter-title">
+	        <div ref={filterDrawerRef} className={`fixed top-0 left-0 bottom-0 bg-white shadow-lg z-50 w-[min(20rem,calc(100vw-2rem))] p-6 transition-transform duration-300 ease-in-out ${isFilterPanelOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={e => e.stopPropagation()}>
+	           <div className="flex justify-between items-center mb-6"><h3 id="history-filter-title" className="text-lg font-bold">Filter & Sort</h3><button onClick={() => setIsFilterPanelOpen(false)} className="p-1 rounded-full hover:bg-slate-100" aria-label="Close filters"><X className="h-5 w-5 text-slate-600" /></button></div>
            <FilterPanel
              searchQuery={searchQuery}
              setSearchQuery={setSearchQuery}
@@ -247,8 +303,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ historyItems, onView, 
         </div>
       </div>
 
-      <ConfirmationModal isOpen={unpinModalState.isOpen} onClose={() => setUnpinModalState({ isOpen: false, itemId: null })} onConfirm={handleConfirmUnpin} title="Confirm Unpin" message="Are you sure? Unpinned items are automatically deleted after 7 days." confirmText="Unpin" />
-      <ConfirmationModal isOpen={deleteModalState.isOpen} onClose={() => setDeleteModalState({ isOpen: false })} onConfirm={handleConfirmDeleteSelected} title={`Delete ${selectedItemIds.length} Project${selectedItemIds.length > 1 ? 's' : ''}`} message={`Are you sure you want to permanently delete the selected project${selectedItemIds.length > 1 ? 's' : ''}? This action cannot be undone.`} confirmText="Delete" />
+	      <ConfirmationModal isOpen={unpinModalState.isOpen} onClose={() => setUnpinModalState({ isOpen: false, itemId: null })} onConfirm={handleConfirmUnpin} title="Confirm Unpin" message="Are you sure? Unpinned items are automatically deleted after 7 days." confirmText="Unpin" />
+	      <ConfirmationModal isOpen={deleteModalState.isOpen} onClose={() => setDeleteModalState({ isOpen: false })} onConfirm={handleConfirmDeleteSelected} title={`Delete ${selectedItemIds.length} Project${selectedItemIds.length > 1 ? 's' : ''}`} message={`Are you sure you want to permanently delete the selected project${selectedItemIds.length > 1 ? 's' : ''}? This action cannot be undone.`} confirmText="Delete" />
+	      <ConfirmationModal isOpen={deleteItemModalState.isOpen} onClose={() => setDeleteItemModalState({ isOpen: false, itemId: null })} onConfirm={handleConfirmDeleteItem} title="Delete Project" message="Are you sure you want to permanently delete this project? This action cannot be undone." confirmText="Delete" />
     </div>
   );
 };

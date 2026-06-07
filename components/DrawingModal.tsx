@@ -34,8 +34,9 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
   const [paths, setPaths] = useState<Path[]>([]);
   const [canvasSize, setCanvasSize] = useState({ width: 16, height: 9 });
   const [cursorProps, setCursorProps] = useState<CursorProps | null>(null);
+  const [keyboardPoint, setKeyboardPoint] = useState({ x: 8, y: 4.5 });
 
-  useFocusTrap(modalRef);
+  useFocusTrap(modalRef, isOpen);
 
   const drawAllPaths = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -91,6 +92,7 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       setCanvasSize({ width: img.naturalWidth, height: img.naturalHeight });
+      setKeyboardPoint({ x: img.naturalWidth / 2, y: img.naturalHeight / 2 });
       setPaths([]);
     };
     img.src = backgroundImageUrl;
@@ -183,13 +185,36 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
     }
     onClose();
   };
+
+  const addPointAt = (x: number, y: number) => {
+    const newPath: Path = { points: [{ x, y }], color: brushColor, size: brushSize };
+    setPaths(prev => [...prev, newPath]);
+  };
+
+  const handleKeyboardDraw = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = Math.max(canvasSize.width, canvasSize.height) * (event.shiftKey ? 0.05 : 0.02);
+    const nextPoint = { ...keyboardPoint };
+
+    if (event.key === 'ArrowUp') nextPoint.y = Math.max(0, keyboardPoint.y - step);
+    else if (event.key === 'ArrowDown') nextPoint.y = Math.min(canvasSize.height, keyboardPoint.y + step);
+    else if (event.key === 'ArrowLeft') nextPoint.x = Math.max(0, keyboardPoint.x - step);
+    else if (event.key === 'ArrowRight') nextPoint.x = Math.min(canvasSize.width, keyboardPoint.x + step);
+    else if (event.key === 'Enter' || event.key === ' ') addPointAt(keyboardPoint.x, keyboardPoint.y);
+    else return;
+
+    event.preventDefault();
+    if (nextPoint.x !== keyboardPoint.x || nextPoint.y !== keyboardPoint.y) {
+      setKeyboardPoint(nextPoint);
+    }
+  };
   
   if (!isOpen) return null;
 
   const ToolButton = ({ label, icon, color }: { label: string, icon: React.ReactNode, color: string }) => (
-    <button
-        onClick={() => setBrushColor(color)}
-        className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+	    <button
+	        onClick={() => setBrushColor(color)}
+	        aria-pressed={brushColor === color}
+	        className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
             brushColor === color ? `bg-slate-800 text-white border-transparent` : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
         }`}
     >
@@ -215,7 +240,7 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
                     <ToolButton label="Driveway" icon={<Car size={16}/>} color={DRIVEWAY_COLOR} />
                     <ToolButton label="Pathway" icon={<Milestone size={16}/>} color={PATHWAY_COLOR} />
                 </div>
-                <div className="mt-2 text-xs text-slate-500 text-center">Click to select a tool to draw with.</div>
+                <div className="mt-2 text-xs text-slate-500 text-center">Select a tool, then draw with a pointer or use the keyboard canvas controls.</div>
             </div>
             <div>
                 <label htmlFor="brushSize" className="block text-sm font-semibold text-slate-700 mb-2">Brush Size</label>
@@ -238,7 +263,7 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
           </div>
           <div className="flex-grow bg-slate-100 flex items-center justify-center p-4 relative min-h-0 min-w-0">
             <div
-              className="relative max-w-full max-h-full touch-none"
+              className="relative max-w-full max-h-full touch-none group"
               style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
               onMouseDown={startDrawing}
               onMouseMove={handleMouseMove}
@@ -247,13 +272,18 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
+              onKeyDown={handleKeyboardDraw}
+              tabIndex={0}
+              role="application"
+              aria-label="Drawing surface"
+              aria-describedby="drawing-keyboard-help"
             >
-                <img src={backgroundImageUrl} alt="Background for drawing" className="block w-full h-full pointer-events-none select-none rounded-md" />
+                <img src={backgroundImageUrl} alt="Background for drawing" decoding="async" className="block w-full h-full pointer-events-none select-none rounded-md" />
                 <canvas
                     ref={canvasRef}
                     className="absolute inset-0 w-full h-full"
                 />
-                 {cursorProps && (
+	                 {cursorProps && (
                   <div
                     className="absolute pointer-events-none rounded-full bg-black/30 border-2 border-white/80"
                     style={{
@@ -264,7 +294,17 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                )}
+	                )}
+	                <div
+	                  className="absolute pointer-events-none rounded-full border-2 border-orange-500 bg-orange-500/20 opacity-0 group-focus-within:opacity-100"
+	                  style={{
+	                    left: `${(keyboardPoint.x / canvasSize.width) * 100}%`,
+	                    top: `${(keyboardPoint.y / canvasSize.height) * 100}%`,
+	                    width: `${Math.max(12, brushSize * 0.35)}px`,
+	                    height: `${Math.max(12, brushSize * 0.35)}px`,
+	                    transform: 'translate(-50%, -50%)',
+	                  }}
+	                />
             </div>
           </div>
         </div>
@@ -274,6 +314,9 @@ export const DrawingModal: React.FC<DrawingModalProps> = ({ isOpen, onClose, onS
             {paths.length > 0 ? 'Save Layout' : 'Close'}
           </button>
         </footer>
+        <p id="drawing-keyboard-help" className="sr-only">
+          Use arrow keys to move the drawing marker. Press Space or Enter to place a mark. Hold Shift with arrow keys to move faster.
+        </p>
       </div>
        <style>{`
         .touch-none {
