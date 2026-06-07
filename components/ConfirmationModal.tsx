@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { AlertTriangle } from 'lucide-react';
 
@@ -47,6 +48,17 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (isConfirming) return;
@@ -65,9 +77,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     return null;
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/45 p-4 sm:p-6"
       onClick={isConfirming ? undefined : onClose}
       role="dialog"
       aria-modal="true"
@@ -76,7 +88,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     >
       <div
         ref={modalRef}
-        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md p-6"
+        className="relative my-auto max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/10 sm:max-h-[calc(100vh-3rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sm:flex sm:items-start">
@@ -138,6 +150,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
