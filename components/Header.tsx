@@ -127,17 +127,17 @@ export const Header: React.FC = () => {
                 </button>
                 <div className="flex items-center space-x-2">
                   <div className="hidden sm:flex items-center space-x-2 mr-2">
-                    <div className="relative">
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.name}
-                        className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
-                      />
-                      <span className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
+                    />
+                    <div className="flex flex-col leading-none">
+                      <span className="text-sm font-medium text-slate-700">{user.name}</span>
+                      <span className="mt-1">
                         <PlanBadge compact />
                       </span>
                     </div>
-                    <span className="text-sm font-medium text-slate-700">{user.name}</span>
                   </div>
                   <button
                     onClick={handleSignOut}
