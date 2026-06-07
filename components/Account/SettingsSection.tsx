@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Save, Trash2 } from 'lucide-react';
+import { Camera, Save, Trash2, Upload, X } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import { LANDSCAPING_STYLES } from '../../constants';
 import type { LandscapingStyle, RedesignDensity } from '../../types';
 import { useToastStore } from '../../stores/toastStore';
+import { uploadImage } from '../../services/api';
+
+const AVATAR_MAX_FILE_SIZE_MB = 5;
+const AVATAR_MAX_FILE_SIZE_BYTES = AVATAR_MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const DENSITY_OPTIONS: { id: RedesignDensity; name: string }[] = [
   { id: 'minimal', name: 'Minimal' },
@@ -60,27 +64,93 @@ const ProfileSettings: React.FC = () => {
   const user = useQuery(api.users.getCurrentUser);
   const updateProfile = useMutation(api.users.updateProfile);
   const { addToast } = useToastStore();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [image, setImage] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState<'success' | 'error'>('success');
+  const fallbackAvatar = `https://i.pravatar.cc/150?u=${user?.email || 'user'}`;
+  const avatarSrc = avatarPreview || image || fallbackAvatar;
+  const hasCustomAvatar = Boolean(avatarPreview || image);
 
   useEffect(() => {
     if (!user) return;
     setName(user.name || '');
     setImage(user.image || '');
+    setAvatarFile(null);
+    setAvatarPreview('');
   }, [user]);
+
+  const showAvatarError = (message: string) => {
+    setStatusType('error');
+    setStatusMessage(message);
+    addToast(message, 'error');
+  };
+
+  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showAvatarError('Choose a PNG, JPG, or WEBP image.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > AVATAR_MAX_FILE_SIZE_BYTES) {
+      showAvatarError(`Choose an image smaller than ${AVATAR_MAX_FILE_SIZE_MB}MB.`);
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarFile(file);
+      setAvatarPreview(typeof reader.result === 'string' ? reader.result : '');
+      setStatusMessage('');
+    };
+    reader.onerror = () => {
+      showAvatarError('Could not preview that image. Try another file.');
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview('');
+    setImage('');
+    setStatusMessage('');
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatusMessage('');
     setIsSaving(true);
     try {
+      let profileImage = image.trim() || undefined;
+
+      if (avatarFile) {
+        const uploadResult = await uploadImage(avatarFile);
+        profileImage = uploadResult.storagePath;
+      }
+
       await updateProfile({
         name,
-        image: image.trim() || undefined,
+        image: profileImage,
       });
+      setImage(profileImage || '');
+      setAvatarFile(null);
+      setAvatarPreview('');
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
       const message = 'Profile updated.';
       setStatusType('success');
       setStatusMessage(message);
@@ -99,12 +169,51 @@ const ProfileSettings: React.FC = () => {
   return (
     <SectionCard title="Profile">
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[96px_1fr] sm:items-start">
-          <img
-            src={image || `https://i.pravatar.cc/150?u=${user?.email || 'user'}`}
-            alt={name || 'Profile'}
-            className="h-24 w-24 rounded-full border border-slate-200 object-cover bg-slate-100"
-          />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[128px_1fr] sm:items-start">
+          <div className="space-y-3">
+            <div className="relative h-24 w-24">
+              <img
+                src={avatarSrc}
+                alt={name ? `${name} profile photo` : 'Profile photo'}
+                className="h-24 w-24 rounded-full border border-slate-200 bg-slate-100 object-cover"
+              />
+              <span className="absolute bottom-1 right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-800 text-white shadow-sm">
+                <Camera className="h-4 w-4" aria-hidden="true" />
+              </span>
+            </div>
+            <input
+              ref={avatarInputRef}
+              id="profile-avatar-file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="sr-only"
+              onChange={handleAvatarFileChange}
+              aria-describedby="profile-avatar-help"
+            />
+            <div className="flex flex-wrap gap-2 sm:block sm:space-y-2">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              >
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                Upload Photo
+              </button>
+              {hasCustomAvatar && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  Remove
+                </button>
+              )}
+            </div>
+            <p id="profile-avatar-help" className="text-xs leading-5 text-slate-500">
+              PNG, JPG, or WEBP up to {AVATAR_MAX_FILE_SIZE_MB}MB.
+            </p>
+          </div>
           <div className="space-y-4">
             <div>
               <label htmlFor="profile-name" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -116,26 +225,11 @@ const ProfileSettings: React.FC = () => {
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={80}
-	                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-	                required
-	                aria-invalid={statusType === 'error' && statusMessage ? true : undefined}
-	                aria-describedby={statusMessage ? 'profile-status' : undefined}
-	              />
-            </div>
-            <div>
-              <label htmlFor="profile-image" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Avatar URL
-              </label>
-              <input
-                id="profile-image"
-                type="url"
-                value={image}
-                onChange={(event) => setImage(event.target.value)}
-	                placeholder="https://example.com/avatar.jpg"
-	                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-	                aria-invalid={statusType === 'error' && statusMessage ? true : undefined}
-	                aria-describedby={statusMessage ? 'profile-status' : undefined}
-	              />
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                required
+                aria-invalid={statusType === 'error' && statusMessage ? true : undefined}
+                aria-describedby={statusMessage ? 'profile-status' : undefined}
+              />
             </div>
             <div>
               <p className="text-sm font-medium text-slate-700">Email</p>
@@ -143,12 +237,12 @@ const ProfileSettings: React.FC = () => {
             </div>
           </div>
         </div>
-	        {statusMessage && (
-	          <p id="profile-status" className={`text-sm font-medium ${statusType === 'error' ? 'text-red-600' : 'text-green-700'}`} role={statusType === 'error' ? 'alert' : 'status'}>
-	            {statusMessage}
-	          </p>
-	        )}
-	        <SaveButton isSaving={isSaving}>Save Profile</SaveButton>
+        {statusMessage && (
+          <p id="profile-status" className={`text-sm font-medium ${statusType === 'error' ? 'text-red-600' : 'text-green-700'}`} role={statusType === 'error' ? 'alert' : 'status'}>
+            {statusMessage}
+          </p>
+        )}
+        <SaveButton isSaving={isSaving}>Save Profile</SaveButton>
       </form>
     </SectionCard>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Menu, X, Cog, LogOut } from 'lucide-react';
+import { BarChart3, ChevronDown, CreditCard, FolderOpen, Leaf, LogOut, Menu, SlidersHorizontal, X } from 'lucide-react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useAppStore, type Page } from '../stores/appStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -35,7 +35,9 @@ export const Header: React.FC = () => {
   const { signOut } = useAuthActions();
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const plan = user?.subscription.plan || 'Free';
   const isPaidPlan = plan !== 'Free';
 
@@ -98,6 +100,30 @@ export const Header: React.FC = () => {
     };
   }, [isMobileMenuMounted]);
 
+  useEffect(() => {
+    if (!isAccountMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAccountMenuOpen]);
+
   const handleSignOut = async () => {
     await signOut();
     logout();
@@ -154,6 +180,21 @@ export const Header: React.FC = () => {
     </span>
   );
 
+  const AccountMenuLink: React.FC<{ to: string; icon: React.ReactNode; children: React.ReactNode; onClick?: () => void }> = ({ to, icon, children, onClick }) => (
+    <Link
+      to={to}
+      role="menuitem"
+      onClick={() => {
+        setIsAccountMenuOpen(false);
+        onClick?.();
+      }}
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950"
+    >
+      {icon}
+      <span>{children}</span>
+    </Link>
+  );
+
   return (
     <>
       <header className="px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4 border-b border-slate-200/80">
@@ -183,34 +224,75 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
-                <Link
-                  to="/settings"
-                  className="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
-                  title="Account Settings"
-                >
-                  <Cog className="h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-                <div className="flex items-center space-x-2">
-                  <div className="hidden sm:flex items-center space-x-2 mr-2">
+                <div className="relative hidden sm:block" ref={accountMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsAccountMenuOpen((value) => !value)}
+                    className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    aria-haspopup="menu"
+                    aria-expanded={isAccountMenuOpen}
+                    aria-label="Open account menu"
+                  >
                     <img
                       src={user.avatarUrl}
-                      alt={user.name}
-                      className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
+                      alt=""
+                      className="h-9 w-9 rounded-full object-cover ring-2 ring-orange-500/20"
                     />
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-700">{user.name}</span>
+                    <span className="flex max-w-[12rem] items-center gap-2">
+                      <span className="truncate text-sm font-medium text-slate-700">{user.name}</span>
                       <PlanBadge compact />
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="p-2 text-slate-600 hover:text-red-600 transition-colors"
-                    aria-label="Sign out"
-                    title="Sign out"
-                  >
-                    <LogOut className="h-5 w-5" />
+                    </span>
+                    <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                    <span className="sr-only">Open account menu</span>
                   </button>
+                  {isAccountMenuOpen && (
+                    <div
+                      className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl ring-1 ring-black/5"
+                      role="menu"
+                    >
+                      <div className="border-b border-slate-100 px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={user.avatarUrl}
+                            alt=""
+                            className="h-10 w-10 rounded-full object-cover ring-2 ring-orange-500/20"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
+                            <p className="truncate text-xs text-slate-500">{user.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="py-2">
+                        <AccountMenuLink to="/settings" icon={<SlidersHorizontal className="h-4 w-4" aria-hidden="true" />}>
+                          Profile & Customizations
+                        </AccountMenuLink>
+                        <AccountMenuLink to="/settings?section=billing" icon={<CreditCard className="h-4 w-4" aria-hidden="true" />}>
+                          Billing
+                        </AccountMenuLink>
+                        <AccountMenuLink to="/settings?section=usage" icon={<BarChart3 className="h-4 w-4" aria-hidden="true" />}>
+                          Usage
+                        </AccountMenuLink>
+                        <AccountMenuLink to="/history" icon={<FolderOpen className="h-4 w-4" aria-hidden="true" />}>
+                          Projects
+                        </AccountMenuLink>
+                      </div>
+                      <div className="border-t border-slate-100 pt-2">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsAccountMenuOpen(false);
+                            handleSignOut();
+                          }}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          <LogOut className="h-4 w-4" aria-hidden="true" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -277,15 +359,14 @@ export const Header: React.FC = () => {
               {isAuthenticated && <MobileNavLink targetPage="history">Projects</MobileNavLink>}
               <MobileNavLink targetPage="pricing">Pricing</MobileNavLink>
               <MobileNavLink targetPage="contact">Contact</MobileNavLink>
-              {isAuthenticated && <MobileNavLink targetPage="settings">Settings</MobileNavLink>}
             </nav>
             {isAuthenticated && user ? (
               <div className="p-4 border-t border-slate-200/80">
                 <div className="flex items-center space-x-3 mb-4">
                   <img
                     src={user.avatarUrl}
-                    alt={user.name}
-                    className="h-10 w-10 rounded-full ring-2 ring-orange-500/20"
+                    alt=""
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-orange-500/20"
                   />
                   <div>
                     <div className="flex items-center gap-2">
@@ -294,6 +375,20 @@ export const Header: React.FC = () => {
                     </div>
                     <p className="text-sm text-slate-500">{user.email}</p>
                   </div>
+                </div>
+                <div className="mb-4 grid grid-cols-1 gap-2">
+                  <Link to="/settings" onClick={closeMobileMenu} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                    <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                    Profile & Customizations
+                  </Link>
+                  <Link to="/settings?section=billing" onClick={closeMobileMenu} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    Billing
+                  </Link>
+                  <Link to="/settings?section=usage" onClick={closeMobileMenu} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                    <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                    Usage
+                  </Link>
                 </div>
                 <button
                   onClick={() => { handleSignOut(); closeMobileMenu(); }}
