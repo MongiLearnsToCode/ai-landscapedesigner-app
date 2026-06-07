@@ -1,5 +1,5 @@
 import { Polar } from "@polar-sh/sdk";
-import { validateEvent, WebhookVerificationError } from "@polar-sh/sdk/webhooks";
+import { Webhook, WebhookVerificationError } from "standardwebhooks";
 import { v } from "convex/values";
 import { action, httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
@@ -84,6 +84,14 @@ function requestHeaders(request: Request) {
   return headers;
 }
 
+function base64Encode(value: string) {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(value)));
+}
+
+function validatePolarEvent(body: string, headers: Record<string, string>, secret: string) {
+  return new Webhook(base64Encode(secret)).verify(body, headers);
+}
+
 function eventIdFor(event: any) {
   const dataId = event.data?.id ?? "unknown";
   const eventTimestamp = event.timestamp
@@ -95,11 +103,19 @@ function eventIdFor(event: any) {
 }
 
 function subscriptionUserId(subscription: any) {
-  return subscription.customer?.externalId ?? subscription.externalCustomerId ?? subscription.metadata?.convexUserId;
+  return subscription.customer?.external_id
+    ?? subscription.customer?.externalId
+    ?? subscription.external_customer_id
+    ?? subscription.externalCustomerId
+    ?? subscription.metadata?.convexUserId;
 }
 
 function orderUserId(order: any) {
-  return order.customer?.externalId ?? order.externalCustomerId ?? order.metadata?.convexUserId;
+  return order.customer?.external_id
+    ?? order.customer?.externalId
+    ?? order.external_customer_id
+    ?? order.externalCustomerId
+    ?? order.metadata?.convexUserId;
 }
 
 function polarErrorDetails(error: unknown) {
@@ -112,22 +128,29 @@ function polarErrorDetails(error: unknown) {
 }
 
 function subscriptionUpdate(subscription: any) {
+  const productId = subscription.product_id ?? subscription.productId;
+  const productName = subscription.product?.name;
+  const recurringInterval = subscription.recurring_interval ?? subscription.recurringInterval;
+  const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd;
+  const currentPeriodEnd = subscription.current_period_end ?? subscription.currentPeriodEnd;
+  const customerId = subscription.customer_id ?? subscription.customerId;
+
   const plan = subscription.product?.metadata?.plan && subscription.product.metadata.plan in PLAN_LIMITS
     ? subscription.product.metadata.plan as Plan
-    : planForProduct(subscription.productId, subscription.product?.name);
+    : planForProduct(productId, productName);
   const isActive = subscription.status === "active" || subscription.status === "trialing";
   const isGraceState = subscription.status === "past_due";
   const hasAccess = (isActive || isGraceState) && plan !== "Free";
   const planConfig = hasAccess ? PLAN_LIMITS[plan] : PLAN_LIMITS.Free;
 
   return {
-    status: subscription.cancelAtPeriodEnd && isActive ? "canceled" : subscription.status,
+    status: cancelAtPeriodEnd && isActive ? "canceled" : subscription.status,
     plan: hasAccess ? planConfig.plan : "Free",
-    billingCycle: subscription.recurringInterval === "year" ? "annual" : "monthly",
+    billingCycle: recurringInterval === "year" ? "annual" : "monthly",
     limit: planConfig.limit,
     subscriptionId: subscription.id,
-    polarCustomerId: subscription.customerId,
-    currentPeriodEnd: timestamp(subscription.currentPeriodEnd),
+    polarCustomerId: customerId,
+    currentPeriodEnd: timestamp(currentPeriodEnd),
   };
 }
 
@@ -214,7 +237,7 @@ export const polarWebhook = httpAction(async (ctx, request) => {
   let event: any;
 
   try {
-    event = validateEvent(body, requestHeaders(request), webhookSecret);
+    event = validatePolarEvent(body, requestHeaders(request), webhookSecret);
   } catch (error) {
     if (error instanceof WebhookVerificationError) {
       return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
@@ -295,7 +318,7 @@ async function handleSubscriptionEvent(ctx: any, subscription: any) {
 
 async function handleOrderEvent(ctx: any, order: any) {
   const userId = orderUserId(order);
-  const customerId = order.customerId ?? order.customer?.id;
+  const customerId = order.customer_id ?? order.customerId ?? order.customer?.id;
 
   if (!userId || !customerId) return;
 
