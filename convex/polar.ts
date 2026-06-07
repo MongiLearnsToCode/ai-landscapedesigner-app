@@ -154,6 +154,32 @@ function subscriptionUpdate(subscription: any) {
   };
 }
 
+function subscriptionPriority(subscription: any) {
+  const status = subscription.status;
+  if (status === "active" || status === "trialing") return 0;
+  if (status === "past_due") return 1;
+  if (subscription.cancel_at_period_end || subscription.cancelAtPeriodEnd) return 2;
+  return 3;
+}
+
+function subscriptionDateValue(subscription: any) {
+  return timestamp(
+    subscription.modified_at
+      ?? subscription.modifiedAt
+      ?? subscription.started_at
+      ?? subscription.startedAt
+      ?? subscription.created_at
+      ?? subscription.createdAt
+  ) ?? 0;
+}
+
+function latestCustomerSubscription(subscriptions: any[]) {
+  return [...subscriptions].sort((a, b) => {
+    const priority = subscriptionPriority(a) - subscriptionPriority(b);
+    return priority === 0 ? subscriptionDateValue(b) - subscriptionDateValue(a) : priority;
+  })[0];
+}
+
 export const createCheckout = action({
   args: {
     plan: v.union(v.literal("Personal"), v.literal("Creator"), v.literal("Business")),
@@ -195,6 +221,43 @@ export const createCheckout = action({
     }
 
     return { url: checkout.url };
+  },
+});
+
+export const syncCustomerSubscription = action({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const polar = getPolarClient();
+    const page = await polar.subscriptions.list({
+      externalCustomerId: userId,
+      limit: 10,
+      sorting: ["-started_at"],
+    });
+    const subscriptions = page.result.items;
+    const subscription = latestCustomerSubscription(subscriptions);
+
+    if (!subscription) {
+      await ctx.runMutation(api.users.updateSubscription, {
+        userId,
+        status: "active",
+        plan: "Free",
+        billingCycle: "monthly",
+        limit: PLAN_LIMITS.Free.limit,
+      });
+
+      return { synced: true, plan: "Free", status: "active" };
+    }
+
+    const update = subscriptionUpdate(subscription);
+    await ctx.runMutation(api.users.updateSubscription, {
+      userId,
+      ...update,
+    });
+
+    return { synced: true, plan: update.plan, status: update.status };
   },
 });
 

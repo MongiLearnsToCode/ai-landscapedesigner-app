@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAppStore } from '../../stores/appStore';
@@ -24,8 +24,11 @@ const CurrentPlan: React.FC = () => {
   const { addToast } = useToastStore();
   const userData = useQuery(api.users.getCurrentUser);
   const createCustomerPortalSession = useAction(api.polar.createCustomerPortalSession);
+  const syncCustomerSubscription = useAction(api.polar.syncCustomerSubscription);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+  const [isSyncingBilling, setIsSyncingBilling] = useState(false);
   const [lastPlan, setLastPlan] = useState<string>('');
+  const hasSyncedPortalReturn = useRef(false);
 
   // Monitor for plan changes and show notification
   useEffect(() => {
@@ -36,6 +39,53 @@ const CurrentPlan: React.FC = () => {
       setLastPlan(userData.subscriptionPlan);
     }
   }, [userData?.subscriptionPlan, lastPlan, addToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncPortalReturn = async () => {
+      const shouldSync = window.sessionStorage.getItem('polarBillingPortalReturn') === 'true';
+      if (!shouldSync || hasSyncedPortalReturn.current) return;
+
+      hasSyncedPortalReturn.current = true;
+      setIsSyncingBilling(true);
+
+      try {
+        await syncCustomerSubscription();
+        if (!cancelled) {
+          addToast('Billing details updated.', 'success');
+        }
+      } catch (error) {
+        console.error('Billing sync error:', error);
+        hasSyncedPortalReturn.current = false;
+        if (!cancelled) {
+          addToast('Unable to refresh billing details. Please try again.', 'error');
+        }
+      } finally {
+        window.sessionStorage.removeItem('polarBillingPortalReturn');
+        if (!cancelled) {
+          setIsSyncingBilling(false);
+        }
+      }
+    };
+
+    void syncPortalReturn();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncPortalReturn();
+      }
+    };
+
+    window.addEventListener('focus', syncPortalReturn);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', syncPortalReturn);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [syncCustomerSubscription, addToast]);
 
   const handleManageSubscription = async () => {
     if (plan === 'Free') {
@@ -48,6 +98,7 @@ const CurrentPlan: React.FC = () => {
       const { url } = await createCustomerPortalSession({
         returnUrl: window.location.href,
       });
+      window.sessionStorage.setItem('polarBillingPortalReturn', 'true');
       window.location.href = url;
     } catch (error) {
       console.error('Customer portal error:', error);
@@ -89,10 +140,10 @@ const CurrentPlan: React.FC = () => {
         {plan !== 'Free' && (
           <button
             onClick={handleManageSubscription}
-            disabled={isOpeningPortal}
+            disabled={isOpeningPortal || isSyncingBilling}
             className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isOpeningPortal ? 'Opening...' : 'Manage Billing'}
+            {isOpeningPortal ? 'Opening...' : isSyncingBilling ? 'Syncing...' : 'Manage Billing'}
           </button>
         )}
       </div>
