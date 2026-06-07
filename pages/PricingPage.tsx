@@ -30,14 +30,19 @@ interface PlanCardProps {
   ribbonText?: string;
   onClick?: () => void;
   isLoading?: boolean;
+  isCurrentPlan?: boolean;
 }
 
-const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onClick, isLoading }, ref) => {
-  const cardClasses = isPopular
+const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, pricePer, monthlyBreakdown, savings, description, features, cta, isPopular, ribbonText, onClick, isLoading, isCurrentPlan }, ref) => {
+  const cardClasses = isCurrentPlan
+    ? 'border-orange-500 border-2 shadow-lg'
+    : isPopular
     ? 'border-orange-500 border-2 transform md:scale-105 shadow-lg'
     : 'border-slate-200/80 border';
 
-  const buttonClasses = isPopular
+  const buttonClasses = isCurrentPlan
+    ? 'bg-slate-200 text-slate-600 shadow-none'
+    : isPopular
     ? 'bg-orange-500 hover:bg-orange-600 text-white'
     : 'bg-slate-800 hover:bg-slate-900 text-white';
 
@@ -47,6 +52,13 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
         <div className="absolute top-0 right-0 mr-4 -mt-3">
           <div className="bg-orange-500 text-white text-xs font-bold uppercase tracking-wider rounded-full px-3 py-1 shadow-md">
             {ribbonText}
+          </div>
+        </div>
+      )}
+      {isCurrentPlan && (
+        <div className="absolute top-0 right-0 mr-4 -mt-3">
+          <div className="bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-full px-3 py-1 shadow-md">
+            Current Plan
           </div>
         </div>
       )}
@@ -73,7 +85,7 @@ const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(({ plan, price, price
 
       <button
         onClick={onClick}
-        disabled={isLoading}
+        disabled={isLoading || isCurrentPlan}
         className={`w-full h-11 mt-8 flex items-center justify-center text-center font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonClasses}`}
       >
         {isLoading ? 'Processing...' : cta}
@@ -92,17 +104,34 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
   const { addToast } = useToastStore();
   const createCheckout = useAction(api.polar.createCheckout);
+  const changeSubscriptionPlan = useAction(api.polar.changeSubscriptionPlan);
   const currentUser = useQuery(api.users.getCurrentUser);
+  const isUserLoading = currentUser === undefined;
   const isAuthenticated = !!currentUser;
+  const currentPlan = currentUser?.subscriptionPlan || 'Free';
+  const currentBillingCycle = (currentUser?.billingCycle || 'monthly') as BillingCycle;
+  const hasPaidPlan = currentPlan in SUBSCRIPTION_PLANS;
 
   const handleSubscribe = async (plan: PaidPlan, billingCycle: BillingCycle) => {
+    if (isUserLoading) return;
+
     if (!isAuthenticated) {
       onNavigate('signin');
       return;
     }
 
+    if (currentPlan === plan && currentBillingCycle === billingCycle) {
+      return;
+    }
+
     setIsCheckingOut(plan);
     try {
+      if (hasPaidPlan) {
+        await changeSubscriptionPlan({ plan, billingCycle });
+        addToast(`Subscription updated to ${plan}.`, 'success');
+        return;
+      }
+
       const { url } = await createCheckout({
         plan,
         billingCycle,
@@ -177,6 +206,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   ];
 
   const formatPrice = (plan: PaidPlan) => `$${planPrice(plan, billingCycle)}`;
+  const isCurrentSelection = (plan: PaidPlan) => currentPlan === plan && currentBillingCycle === billingCycle;
+  const ctaForPlan = (plan: PaidPlan) => {
+    if (isCurrentSelection(plan)) return 'Current Plan';
+    if (hasPaidPlan && currentPlan === plan) {
+      return billingCycle === 'annual' ? 'Switch to Annual' : 'Switch to Monthly';
+    }
+    if (hasPaidPlan) return `Switch to ${plan}`;
+    return plan === 'Personal' ? 'Get Personal' : plan === 'Creator' ? 'Choose Creator' : 'Go Business';
+  };
   const annualBreakdown = (plan: PaidPlan) => `($${monthlyBreakdown(plan)}/month)`;
   const savingsText = (plan: PaidPlan) => {
     const savings = annualSavings(plan);
@@ -230,6 +268,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         <p className="mt-4 text-xl text-slate-600 max-w-2xl mx-auto">
           Start for free, then unlock more features and designs as you grow.
         </p>
+        {isAuthenticated && (
+          <p className="mt-4 text-sm font-medium text-slate-600">
+            Your current plan is <span className="text-slate-900">{currentPlan}</span>
+            {hasPaidPlan && <span> billed {currentBillingCycle}</span>}.
+          </p>
+        )}
       </div>
 
       <div className="flex justify-center items-center my-10">
@@ -264,9 +308,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
               savings={billingCycle === 'annual' ? savingsText('Personal') : undefined}
               description={SUBSCRIPTION_PLANS.Personal.description}
               features={["50 redesigns per month", ...commonFeatures]}
-              cta="Get Personal"
+              cta={ctaForPlan('Personal')}
               onClick={() => handleSubscribe('Personal', billingCycle)}
               isLoading={isCheckingOut === 'Personal'}
+              isCurrentPlan={isCurrentSelection('Personal')}
             />
             <PlanCard
               ref={popularCardRef}
@@ -277,11 +322,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
               savings={billingCycle === 'annual' ? savingsText('Creator') : undefined}
               description={SUBSCRIPTION_PLANS.Creator.description}
               features={["200 redesigns per month", ...commonFeatures]}
-              cta="Choose Creator"
+              cta={ctaForPlan('Creator')}
               isPopular={true}
               ribbonText={billingCycle === 'annual' ? 'Best Value' : 'Most Popular'}
               onClick={() => handleSubscribe('Creator', billingCycle)}
               isLoading={isCheckingOut === 'Creator'}
+              isCurrentPlan={isCurrentSelection('Creator')}
             />
             <PlanCard
               plan="Business"
@@ -291,9 +337,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
               savings={billingCycle === 'annual' ? savingsText('Business') : undefined}
               description={SUBSCRIPTION_PLANS.Business.description}
               features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
-              cta="Go Business"
+              cta={ctaForPlan('Business')}
               onClick={() => handleSubscribe('Business', billingCycle)}
               isLoading={isCheckingOut === 'Business'}
+              isCurrentPlan={isCurrentSelection('Business')}
             />
           </div>
         </div>
