@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 
 const ALLOWED_STYLES = new Set([
@@ -218,8 +218,8 @@ export const updateSubscription = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
-      console.error("User not found for subscription update:", args.userId);
-      throw new Error("User not found");
+      console.warn("Skipping subscription update for deleted or missing user:", args.userId);
+      return { updated: false, reason: "user_not_found" };
     }
 
     await ctx.db.patch(args.userId, {
@@ -232,6 +232,79 @@ export const updateSubscription = mutation({
       expirationDate: args.currentPeriodEnd,
       subscriptionId: args.subscriptionId,
     });
+
+    return { updated: true };
+  },
+});
+
+export const deleteCurrentAccountData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.db.get(userId);
+    if (!user) return { deleted: true, redesigns: 0 };
+
+    const redesigns = await ctx.db
+      .query("redesigns")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const redesign of redesigns) {
+      await ctx.db.delete(redesign._id);
+    }
+
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const session of sessions) {
+      const refreshTokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const refreshToken of refreshTokens) {
+        await ctx.db.delete(refreshToken._id);
+      }
+
+      const verifiers = await ctx.db
+        .query("authVerifiers")
+        .filter((q) => q.eq(q.field("sessionId"), session._id))
+        .collect();
+      for (const verifier of verifiers) {
+        await ctx.db.delete(verifier._id);
+      }
+
+      await ctx.db.delete(session._id);
+    }
+
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", userId))
+      .collect();
+    for (const account of accounts) {
+      const verificationCodes = await ctx.db
+        .query("authVerificationCodes")
+        .withIndex("accountId", (q) => q.eq("accountId", account._id))
+        .collect();
+      for (const verificationCode of verificationCodes) {
+        await ctx.db.delete(verificationCode._id);
+      }
+
+      await ctx.db.delete(account._id);
+    }
+
+    const rateLimits = await ctx.db
+      .query("authRateLimits")
+      .filter((q) => q.eq(q.field("identifier"), user.email))
+      .collect();
+    for (const rateLimit of rateLimits) {
+      await ctx.db.delete(rateLimit._id);
+    }
+
+    await ctx.db.delete(userId);
+
+    return { deleted: true, redesigns: redesigns.length };
   },
 });
 

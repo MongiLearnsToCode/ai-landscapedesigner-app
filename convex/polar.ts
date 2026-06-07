@@ -2,7 +2,7 @@ import { Polar } from "@polar-sh/sdk";
 import { Webhook, WebhookVerificationError } from "standardwebhooks";
 import { v } from "convex/values";
 import { action, httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
 import { PLAN_LIMITS } from "./constants";
 
@@ -171,6 +171,14 @@ function subscriptionDateValue(subscription: any) {
       ?? subscription.created_at
       ?? subscription.createdAt
   ) ?? 0;
+}
+
+function shouldCancelBeforeAccountDeletion(subscription: any) {
+  if (!subscription) return false;
+
+  const status = subscription.status;
+  const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd;
+  return !cancelAtPeriodEnd && (status === "active" || status === "trialing" || status === "past_due");
 }
 
 function latestCustomerSubscription(subscriptions: any[]) {
@@ -342,6 +350,32 @@ export const resumeSubscription = action({
     });
 
     return await syncSubscriptionToUser(ctx, userId, updated);
+  },
+});
+
+export const deleteAccount = action({
+  args: {},
+  handler: async (ctx): Promise<{ deleted: boolean; redesigns: number }> => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.runQuery(api.users.getCurrentUser);
+    if (!user) return { deleted: true, redesigns: 0 };
+
+    const currentPlan = user.subscriptionPlan ?? "Free";
+    const hasPolarBilling = Boolean(user.polarCustomerId || user.subscriptionId || currentPlan !== "Free");
+    if (hasPolarBilling) {
+      const polar = getPolarClient();
+      const subscription = await getLatestCustomerSubscription(polar, userId);
+      if (shouldCancelBeforeAccountDeletion(subscription)) {
+        await polar.subscriptions.update({
+          id: subscription.id,
+          subscriptionUpdate: { cancelAtPeriodEnd: true },
+        });
+      }
+    }
+
+    return await ctx.runMutation(internal.users.deleteCurrentAccountData);
   },
 });
 

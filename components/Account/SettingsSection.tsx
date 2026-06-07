@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import { LANDSCAPING_STYLES } from '../../constants';
 import type { LandscapingStyle, RedesignDensity } from '../../types';
@@ -342,12 +342,12 @@ const PreferenceSettings: React.FC = () => {
   );
 };
 
-const AccountAccess: React.FC<{ onSignOut: () => void }> = ({ onSignOut }) => (
+const AccountAccess: React.FC<{ onSignOut: () => void; onDeleteAccount: () => void }> = ({ onSignOut, onDeleteAccount }) => (
   <div className="bg-white rounded-lg shadow-md mt-8">
     <div className="p-6 border-b border-slate-200">
       <h3 className="text-lg font-semibold text-slate-800">Account Access</h3>
     </div>
-    <div className="p-6">
+    <div className="p-6 space-y-4">
       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200/80 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
           <h4 className="font-semibold text-slate-800">Sign Out</h4>
@@ -362,16 +362,31 @@ const AccountAccess: React.FC<{ onSignOut: () => void }> = ({ onSignOut }) => (
           Sign Out
         </button>
       </div>
+      <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+        <div>
+          <h4 className="font-semibold text-red-900">Delete Account</h4>
+          <p className="mt-1 text-sm text-red-700">
+            Permanently remove your profile, login credentials, preferences, and saved projects.
+          </p>
+        </div>
+        <button
+          onClick={onDeleteAccount}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Delete Account
+        </button>
+      </div>
     </div>
   </div>
 );
 
-export const SettingsSection: React.FC<{ onSignOut: () => void }> = ({ onSignOut }) => {
+export const SettingsSection: React.FC<{ onSignOut: () => void; onDeleteAccount: () => void }> = ({ onSignOut, onDeleteAccount }) => {
   return (
     <div className="space-y-8">
       <ProfileSettings />
       <PreferenceSettings />
-      <AccountAccess onSignOut={onSignOut} />
+      <AccountAccess onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />
     </div>
   );
 };

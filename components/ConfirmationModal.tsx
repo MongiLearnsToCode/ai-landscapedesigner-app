@@ -5,11 +5,12 @@ import { AlertTriangle } from 'lucide-react';
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
+  isConfirming?: boolean;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -20,6 +21,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  isConfirming = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(modalRef, isOpen);
@@ -27,6 +29,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (isConfirming) return;
         onClose();
       }
     };
@@ -36,7 +39,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleEsc);
     };
-  }, [isOpen, onClose]);
+  }, [isConfirming, isOpen, onClose]);
 
   if (!isOpen) {
     return null;
@@ -45,7 +48,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
-      onClick={onClose}
+      onClick={isConfirming ? undefined : onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"
@@ -73,14 +76,16 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
           <button
             type="button"
-            className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm transition-colors"
+            className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300 sm:w-auto sm:text-sm transition-colors"
+            disabled={isConfirming}
             onClick={onConfirm}
           >
             {confirmText}
           </button>
           <button
             type="button"
-            className="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 sm:mt-0 sm:w-auto sm:text-sm transition-colors"
+            className="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:w-auto sm:text-sm transition-colors"
+            disabled={isConfirming}
             onClick={onClose}
           >
             {cancelText}
