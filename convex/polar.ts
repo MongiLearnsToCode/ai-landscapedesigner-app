@@ -180,6 +180,38 @@ function latestCustomerSubscription(subscriptions: any[]) {
   })[0];
 }
 
+async function getLatestCustomerSubscription(polar: Polar, userId: string) {
+  const page = await polar.subscriptions.list({
+    externalCustomerId: userId,
+    limit: 10,
+    sorting: ["-started_at"],
+  });
+
+  return latestCustomerSubscription(page.result.items);
+}
+
+async function syncSubscriptionToUser(ctx: any, userId: any, subscription: any) {
+  if (!subscription) {
+    await ctx.runMutation(api.users.updateSubscription, {
+      userId,
+      status: "active",
+      plan: "Free",
+      billingCycle: "monthly",
+      limit: PLAN_LIMITS.Free.limit,
+    });
+
+    return { synced: true, plan: "Free", status: "active" };
+  }
+
+  const update = subscriptionUpdate(subscription);
+  await ctx.runMutation(api.users.updateSubscription, {
+    userId,
+    ...update,
+  });
+
+  return { synced: true, plan: update.plan, status: update.status };
+}
+
 export const createCheckout = action({
   args: {
     plan: v.union(v.literal("Personal"), v.literal("Creator"), v.literal("Business")),
@@ -231,33 +263,85 @@ export const syncCustomerSubscription = action({
     if (!userId) throw new Error("Unauthorized");
 
     const polar = getPolarClient();
-    const page = await polar.subscriptions.list({
-      externalCustomerId: userId,
-      limit: 10,
-      sorting: ["-started_at"],
-    });
-    const subscriptions = page.result.items;
-    const subscription = latestCustomerSubscription(subscriptions);
+    const subscription = await getLatestCustomerSubscription(polar, userId);
 
-    if (!subscription) {
-      await ctx.runMutation(api.users.updateSubscription, {
-        userId,
-        status: "active",
-        plan: "Free",
-        billingCycle: "monthly",
-        limit: PLAN_LIMITS.Free.limit,
+    return await syncSubscriptionToUser(ctx, userId, subscription);
+  },
+});
+
+export const changeSubscriptionPlan = action({
+  args: {
+    plan: v.union(v.literal("Personal"), v.literal("Creator"), v.literal("Business")),
+    billingCycle: v.union(v.literal("monthly"), v.literal("annual")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const polar = getPolarClient();
+    let subscription = await getLatestCustomerSubscription(polar, userId);
+    if (!subscription) throw new Error("No active subscription found");
+
+    const targetProductId = productIdFor(args.plan, args.billingCycle);
+    const currentProductId = subscription.product_id ?? subscription.productId;
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? subscription.cancelAtPeriodEnd;
+
+    if (cancelAtPeriodEnd) {
+      subscription = await polar.subscriptions.update({
+        id: subscription.id,
+        subscriptionUpdate: { cancelAtPeriodEnd: false },
       });
-
-      return { synced: true, plan: "Free", status: "active" };
     }
 
-    const update = subscriptionUpdate(subscription);
-    await ctx.runMutation(api.users.updateSubscription, {
-      userId,
-      ...update,
+    if (currentProductId !== targetProductId) {
+      subscription = await polar.subscriptions.update({
+        id: subscription.id,
+        subscriptionUpdate: {
+          productId: targetProductId,
+          prorationBehavior: "prorate",
+        },
+      });
+    }
+
+    return await syncSubscriptionToUser(ctx, userId, subscription);
+  },
+});
+
+export const cancelSubscription = action({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const polar = getPolarClient();
+    const subscription = await getLatestCustomerSubscription(polar, userId);
+    if (!subscription) throw new Error("No active subscription found");
+
+    const updated = await polar.subscriptions.update({
+      id: subscription.id,
+      subscriptionUpdate: { cancelAtPeriodEnd: true },
     });
 
-    return { synced: true, plan: update.plan, status: update.status };
+    return await syncSubscriptionToUser(ctx, userId, updated);
+  },
+});
+
+export const resumeSubscription = action({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const polar = getPolarClient();
+    const subscription = await getLatestCustomerSubscription(polar, userId);
+    if (!subscription) throw new Error("No subscription found");
+
+    const updated = await polar.subscriptions.update({
+      id: subscription.id,
+      subscriptionUpdate: { cancelAtPeriodEnd: false },
+    });
+
+    return await syncSubscriptionToUser(ctx, userId, updated);
   },
 });
 

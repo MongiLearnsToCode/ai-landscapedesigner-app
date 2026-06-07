@@ -25,8 +25,14 @@ const CurrentPlan: React.FC = () => {
   const userData = useQuery(api.users.getCurrentUser);
   const createCustomerPortalSession = useAction(api.polar.createCustomerPortalSession);
   const syncCustomerSubscription = useAction(api.polar.syncCustomerSubscription);
+  const changeSubscriptionPlan = useAction(api.polar.changeSubscriptionPlan);
+  const cancelSubscription = useAction(api.polar.cancelSubscription);
+  const resumeSubscription = useAction(api.polar.resumeSubscription);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [isSyncingBilling, setIsSyncingBilling] = useState(false);
+  const [showPlanChooser, setShowPlanChooser] = useState(false);
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState<BillingCycle>('monthly');
+  const [billingAction, setBillingAction] = useState<string | null>(null);
   const [lastPlan, setLastPlan] = useState<string>('');
   const hasSyncedPortalReturn = useRef(false);
 
@@ -110,6 +116,58 @@ const CurrentPlan: React.FC = () => {
   const plan = userData?.subscriptionPlan || 'Free';
   const status = userData?.subscriptionStatus || 'active';
   const billingCycle = (userData?.billingCycle || 'monthly') as BillingCycle;
+  const currentPeriodEnd = userData?.currentPeriodEnd
+    ? new Date(userData.currentPeriodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+  const isCanceling = plan !== 'Free' && status === 'canceled';
+  const paidPlans = Object.keys(SUBSCRIPTION_PLANS) as PaidPlan[];
+
+  useEffect(() => {
+    setSelectedBillingCycle(billingCycle);
+  }, [billingCycle]);
+
+  const handleChangePlan = async (targetPlan: PaidPlan) => {
+    setBillingAction(`change-${targetPlan}`);
+    try {
+      await changeSubscriptionPlan({
+        plan: targetPlan,
+        billingCycle: selectedBillingCycle,
+      });
+      addToast(`Subscription updated to ${targetPlan}.`, 'success');
+      setShowPlanChooser(false);
+    } catch (error) {
+      console.error('Subscription change error:', error);
+      addToast('Unable to update subscription. Please try again.', 'error');
+    } finally {
+      setBillingAction(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setBillingAction('cancel');
+    try {
+      await cancelSubscription();
+      addToast('Subscription will cancel at the end of the billing period.', 'success');
+    } catch (error) {
+      console.error('Subscription cancellation error:', error);
+      addToast('Unable to cancel subscription. Please try again.', 'error');
+    } finally {
+      setBillingAction(null);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    setBillingAction('resume');
+    try {
+      await resumeSubscription();
+      addToast('Subscription resumed.', 'success');
+    } catch (error) {
+      console.error('Subscription resume error:', error);
+      addToast('Unable to resume subscription. Please try again.', 'error');
+    } finally {
+      setBillingAction(null);
+    }
+  };
 
   const getPlanInfo = (planName: string) => {
     if (planName in SUBSCRIPTION_PLANS) {
@@ -128,14 +186,14 @@ const CurrentPlan: React.FC = () => {
   const footer = (
     <div className="flex justify-between items-center">
       <p className="text-sm text-slate-600">
-        {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription'}
+        {plan === 'Free' ? 'For more features, upgrade your plan.' : 'Manage your subscription in-app.'}
       </p>
       <div className="flex gap-2">
         <button
-          onClick={() => navigateTo('pricing')}
+          onClick={() => plan === 'Free' ? navigateTo('pricing') : setShowPlanChooser((value) => !value)}
           className="px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
         >
-          {plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
+          {plan === 'Free' ? 'Upgrade Plan' : showPlanChooser ? 'Close Plans' : 'Change Plan'}
         </button>
         {plan !== 'Free' && (
           <button
@@ -143,7 +201,7 @@ const CurrentPlan: React.FC = () => {
             disabled={isOpeningPortal || isSyncingBilling}
             className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isOpeningPortal ? 'Opening...' : isSyncingBilling ? 'Syncing...' : 'Manage Billing'}
+            {isOpeningPortal ? 'Opening...' : isSyncingBilling ? 'Syncing...' : 'Payment & Invoices'}
           </button>
         )}
       </div>
@@ -168,6 +226,9 @@ const CurrentPlan: React.FC = () => {
           {billingCycle && plan !== 'Free' && (
             <p className="text-sm text-slate-400 mt-1">Billed {billingCycle}</p>
           )}
+          {isCanceling && currentPeriodEnd && (
+            <p className="text-sm text-orange-600 mt-1">Access continues until {currentPeriodEnd}</p>
+          )}
         </div>
         <div className="text-right">
           <p className="text-4xl font-bold text-slate-800">
@@ -175,6 +236,83 @@ const CurrentPlan: React.FC = () => {
           </p>
         </div>
       </div>
+      {plan !== 'Free' && (
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="flex flex-wrap items-center gap-3">
+            {isCanceling ? (
+              <button
+                onClick={handleResumeSubscription}
+                disabled={billingAction !== null}
+                className="px-4 py-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {billingAction === 'resume' ? 'Resuming...' : 'Resume Subscription'}
+              </button>
+            ) : (
+              <button
+                onClick={handleCancelSubscription}
+                disabled={billingAction !== null}
+                className="px-4 py-2 text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {billingAction === 'cancel' ? 'Canceling...' : 'Cancel at Period End'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {showPlanChooser && plan !== 'Free' && (
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h4 className="font-semibold text-slate-800">Change subscription</h4>
+            <div className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+              {(['monthly', 'annual'] as BillingCycle[]).map((cycle) => (
+                <button
+                  key={cycle}
+                  onClick={() => setSelectedBillingCycle(cycle)}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    selectedBillingCycle === cycle
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {cycle === 'monthly' ? 'Monthly' : 'Annual'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {paidPlans.map((paidPlan) => {
+              const isCurrentSelection = paidPlan === plan && selectedBillingCycle === billingCycle;
+              return (
+                <button
+                  key={paidPlan}
+                  onClick={() => handleChangePlan(paidPlan)}
+                  disabled={billingAction !== null || isCurrentSelection}
+                  className={`text-left p-4 rounded-lg border transition-colors disabled:cursor-not-allowed ${
+                    isCurrentSelection
+                      ? 'border-orange-300 bg-orange-50'
+                      : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50'
+                  } ${billingAction !== null ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-slate-800">{paidPlan}</span>
+                    {isCurrentSelection && (
+                      <span className="text-xs font-medium text-orange-700">Current</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">{SUBSCRIPTION_PLANS[paidPlan].description}</p>
+                  <p className="mt-3 text-lg font-bold text-slate-800">
+                    ${planPrice(paidPlan, selectedBillingCycle)}
+                    <span className="text-sm font-medium text-slate-500">/{selectedBillingCycle === 'annual' ? 'year' : 'month'}</span>
+                  </p>
+                  {billingAction === `change-${paidPlan}` && (
+                    <p className="mt-2 text-sm text-orange-600">Updating...</p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </SectionCard>
   );
 };
