@@ -132,11 +132,9 @@ export const Header: React.FC = () => {
                       alt={user.name}
                       className="h-8 w-8 rounded-full ring-2 ring-orange-500/20"
                     />
-                    <div className="flex flex-col leading-none">
+                    <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-slate-700">{user.name}</span>
-                      <span className="mt-1">
-                        <PlanBadge compact />
-                      </span>
+                      <PlanBadge compact />
                     </div>
                   </div>
                   <button
