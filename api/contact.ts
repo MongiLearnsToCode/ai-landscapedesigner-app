@@ -6,6 +6,9 @@ interface ContactFormData {
   message: string;
 }
 
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AI Landscape Designer <noreply@ai-landscapedesigner.com>';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@ai-landscapedesigner.com';
+
 // Rate limiting for contact form submissions (max 3 per hour per IP)
 const CONTACT_RATE_LIMIT = {
   maxRequests: 3,
@@ -89,8 +92,8 @@ const sendContactEmail = async (formData: ContactFormData): Promise<void> => {
   console.log('📧 Sending contact email to support team...');
 
   const { data, error } = await resendInstance.emails.send({
-    from: 'AI Landscape Designer <noreply@ai-landscapedesigner.com>',
-    to: ['support@ai-landscapedesigner.com'],
+    from: RESEND_FROM_EMAIL,
+    to: [SUPPORT_EMAIL],
     subject: `New Contact Form Submission from ${escapeHtml(name)}`,
     html: `
       <!DOCTYPE html>
@@ -166,7 +169,7 @@ const sendAutoReplyEmail = async (formData: ContactFormData): Promise<void> => {
     console.log('📧 Sending auto-reply email to user...');
 
     const { data, error } = await resendInstance.emails.send({
-      from: 'AI Landscape Designer <noreply@ai-landscapedesigner.com>',
+      from: RESEND_FROM_EMAIL,
       to: [email],
       subject: 'Thank you for contacting AI Landscape Designer',
       html: `
@@ -198,7 +201,7 @@ const sendAutoReplyEmail = async (formData: ContactFormData): Promise<void> => {
 
                 <p>Our team will review your inquiry and get back to you within 24-48 hours. In the meantime, feel free to explore our platform and create beautiful landscape designs.</p>
 
-                <p>If you have any urgent questions, you can also reach us directly at <a href="mailto:support@ai-landscapedesigner.com">support@ai-landscapedesigner.com</a>.</p>
+                <p>If you have any urgent questions, you can also reach us directly at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
 
                 <p>Best regards,<br>The AI Landscape Designer Team</p>
 

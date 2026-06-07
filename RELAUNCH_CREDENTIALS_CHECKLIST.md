@@ -11,27 +11,32 @@ Used for:
 Steps:
 
 1. Go to the Resend dashboard.
-2. Verify the sending domain for `ai-landscapedesigner.com`.
+2. Confirm the sending domain for `ai-landscapedesigner.com` is still verified.
 3. Create an API key with send permissions.
 4. Add it locally in `.env.local`:
 
 ```bash
 RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
+SUPPORT_EMAIL=support@ai-landscapedesigner.com
 ```
 
 5. Add it to Convex:
 
 ```bash
 npx convex env set RESEND_API_KEY
+npx convex env set RESEND_FROM_EMAIL
 ```
 
 6. Add it to Vercel production:
 
 ```bash
 vercel env add RESEND_API_KEY production
+vercel env add RESEND_FROM_EMAIL production
+vercel env add SUPPORT_EMAIL production
 ```
 
-Do not consider email ready until Resend shows the domain as verified.
+Email sends from `AI Landscape Designer <noreply@ai-landscapedesigner.com>` and routes contact submissions to `support@ai-landscapedesigner.com` by default.
 
 ## 2. Cloudinary
 
@@ -137,6 +142,8 @@ GOOGLE_GENAI_USE_VERTEXAI=true
 GOOGLE_CLOUD_PROJECT=ai-landscapedesigner
 GOOGLE_CLOUD_LOCATION=us-central1
 RESEND_API_KEY=...
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
+SUPPORT_EMAIL=support@ai-landscapedesigner.com
 VITE_CLOUDINARY_CLOUD_NAME=...
 VITE_CLOUDINARY_UPLOAD_PRESET=...
 ```
@@ -149,6 +156,8 @@ vercel env add GOOGLE_GENAI_USE_VERTEXAI production
 vercel env add GOOGLE_CLOUD_PROJECT production
 vercel env add GOOGLE_CLOUD_LOCATION production
 vercel env add RESEND_API_KEY production
+vercel env add RESEND_FROM_EMAIL production
+vercel env add SUPPORT_EMAIL production
 vercel env add VITE_CLOUDINARY_CLOUD_NAME production
 vercel env add VITE_CLOUDINARY_UPLOAD_PRESET production
 ```

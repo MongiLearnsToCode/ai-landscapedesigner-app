@@ -5,7 +5,7 @@ This guide explains how to set up the contact form email functionality using Res
 ## Prerequisites
 
 1. A [Resend](https://resend.com) account
-2. A domain verified in Resend (for production emails)
+2. The `ai-landscapedesigner.com` domain verified in Resend for production emails
 
 ## Setup Steps
 
@@ -25,31 +25,26 @@ Create a `.env.local` file in the project root (copy from `.env.example`):
 ```bash
 # Resend API Key (required for contact form emails - server-side only)
 RESEND_API_KEY=re_your_actual_api_key_here
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
+SUPPORT_EMAIL=support@ai-landscapedesigner.com
 ```
 
 <Warning>
 **Security Note**: API keys are sensitive credentials that should never be committed to version control or shared publicly. Always use environment variables and keep your `.env.local` file secure.
 </Warning>
 
-### 3. Verify Domain (Production Only)
+### 3. Verified Production Domain
 
-For production use, you need to verify your domain in Resend:
+Production email is configured to send from the verified `ai-landscapedesigner.com` domain:
 
-1. Go to Domains in your Resend dashboard
-2. Add your domain (e.g., `ai-landscapedesigner.com`)
-3. Follow the DNS verification steps
-4. Update the `from` email in `api/contact.ts` to use your verified domain
+- From address: `AI Landscape Designer <noreply@ai-landscapedesigner.com>`
+- Support inbox: `support@ai-landscapedesigner.com`
 
-### 4. Update Email Addresses (Optional)
+If the sending address ever changes, set these server-side env vars instead of editing the API route:
 
-In `api/contact.ts`, update these email addresses:
-
-```typescript
-// Change this to your support email
-to: ['your-support@yourdomain.com']
-
-// Change this to your verified domain
-from: 'Your App <noreply@yourdomain.com>'
+```bash
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
+SUPPORT_EMAIL=support@ai-landscapedesigner.com
 ```
 
 ## Features
@@ -83,11 +78,11 @@ A valid `RESEND_API_KEY` is required for development. Set it in your `.env.local
 RESEND_API_KEY=re_your_actual_api_key_here
 ```
 
-The contact form will send real emails during development, so use a test API key or ensure your domain is verified.
+The contact form will send real emails during development, so use a test API key or the verified `ai-landscapedesigner.com` sender.
 
 ### Production Testing
 1. Set up a real Resend API key
-2. Verify your domain
+2. Confirm `ai-landscapedesigner.com` still shows as verified in Resend
 3. Test the contact form on your production site
 4. Check your email inbox for the contact submissions
 

@@ -12,6 +12,7 @@ Set these in the Convex dashboard:
 # Convex Auth
 CONVEX_SITE_URL=https://your-deployment.convex.site
 RESEND_API_KEY=re_your_actual_api_key_here
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
 
 # Polar billing
 POLAR_ACCESS_TOKEN=polar_oat_your_access_token
@@ -31,7 +32,7 @@ Configure Polar webhooks to send subscription and order events to:
 https://your-deployment.convex.site/polar-webhook
 ```
 
-`POLAR_WEBHOOK_SECRET` must match the webhook secret configured in Polar. `RESEND_API_KEY` is used by Convex Auth to send password reset codes.
+`POLAR_WEBHOOK_SECRET` must match the webhook secret configured in Polar. `RESEND_API_KEY` is used by Convex Auth to send password reset codes. `RESEND_FROM_EMAIL` should stay on the verified `ai-landscapedesigner.com` domain unless another domain is verified in Resend.
 
 ## Vercel / Local Server Variables
 
@@ -48,6 +49,8 @@ GOOGLE_CLOUD_LOCATION=us-central1
 # Local development only, if not using `gcloud auth application-default login`:
 # GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
 RESEND_API_KEY=re_your_actual_api_key_here
+RESEND_FROM_EMAIL="AI Landscape Designer <noreply@ai-landscapedesigner.com>"
+SUPPORT_EMAIL=support@ai-landscapedesigner.com
 
 # Cloudinary unsigned upload config
 VITE_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
@@ -58,5 +61,6 @@ VITE_CLOUDINARY_UPLOAD_PRESET=your-cloudinary-upload-preset
 
 - `VITE_*` values are bundled into browser code. Do not put secrets behind a `VITE_` prefix.
 - `RESEND_API_KEY`, `POLAR_ACCESS_TOKEN`, and `POLAR_WEBHOOK_SECRET` are server-side only.
+- `RESEND_FROM_EMAIL` defaults to `AI Landscape Designer <noreply@ai-landscapedesigner.com>`, and `SUPPORT_EMAIL` defaults to `support@ai-landscapedesigner.com`.
 - Gemini image generation uses Vertex AI through Application Default Credentials. Enable Vertex AI API for `GOOGLE_CLOUD_PROJECT`, grant the runtime identity Vertex AI permissions, and set `GOOGLE_CLOUD_LOCATION` to a region where the selected models are available.
 - The database is Convex-only. Do not add `DATABASE_URL`, Drizzle, or Neon setup back to relaunch docs unless the architecture changes.
