@@ -267,7 +267,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           Choose the plan that's right for you
         </h2>
         <p className="mt-4 text-xl text-slate-600 max-w-2xl mx-auto">
-          Start for free, then unlock more features and designs as you grow.
+          {hasPaidPlan
+            ? 'Compare plans or adjust your subscription as your needs change.'
+            : 'Start for free, then unlock more features and designs as you grow.'}
         </p>
         {isAuthenticated && (
           <p className="mt-4 text-sm font-medium text-slate-600">
@@ -349,17 +351,31 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="mt-12 pt-8 text-center border-t border-slate-200/80 max-w-3xl mx-auto">
-        <p className="text-lg text-slate-700">
-          Want to try it out first? Get 3 images free →
-	          <Link
-	            to="/"
-	            className="ml-2 font-semibold text-orange-500 hover:underline"
-	          >
-	            Start Free
-	          </Link>
-        </p>
-      </div>
+      {hasPaidPlan ? (
+        <div className="mt-12 pt-8 text-center border-t border-slate-200/80 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-700">
+            Manage billing, invoices, or renewal settings in
+            <Link
+              to="/settings?section=billing"
+              className="ml-2 font-semibold text-orange-500 hover:underline"
+            >
+              App Settings
+            </Link>
+          </p>
+        </div>
+      ) : (
+        <div className="mt-12 pt-8 text-center border-t border-slate-200/80 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-700">
+            Want to try it out first? Get 3 images free →
+            <Link
+              to="/"
+              className="ml-2 font-semibold text-orange-500 hover:underline"
+            >
+              Start Free
+            </Link>
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 text-center">
         <p className="text-xs text-slate-400">
