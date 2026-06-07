@@ -4,16 +4,21 @@ import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import {
+  annualSavings,
+  monthlyBreakdown,
+  planPrice,
+  SUBSCRIPTION_PLANS,
+  type BillingCycle,
+  type PaidPlan,
+} from '../constants';
 
 interface PricingPageProps {
   onNavigate: (page: Page) => void;
 }
 
-type BillingCycle = 'monthly' | 'annual';
-type PaidPlan = 'Personal' | 'Creator' | 'Business';
-
 interface PlanCardProps {
-  plan: string;
+  plan: PaidPlan;
   price: string;
   pricePer: string;
   monthlyBreakdown?: string;
@@ -171,6 +176,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     "Advanced customization",
   ];
 
+  const formatPrice = (plan: PaidPlan) => `$${planPrice(plan, billingCycle)}`;
+  const annualBreakdown = (plan: PaidPlan) => `($${monthlyBreakdown(plan)}/month)`;
+  const savingsText = (plan: PaidPlan) => {
+    const savings = annualSavings(plan);
+    const percent = Math.round((savings / (SUBSCRIPTION_PLANS[plan].monthlyPrice * 12)) * 100);
+    return `Save $${savings} (${percent}%)`;
+  };
+
   const ScrollIndicator: React.FC<{ direction: 'left' | 'right'; visible: boolean }> = ({ direction, visible }) => (
     <div
       className={`absolute top-0 bottom-0 ${direction === 'left' ? 'left-0' : 'right-0'} w-20 pointer-events-none transition-opacity duration-300 z-10
@@ -245,11 +258,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 tablet-portrait-scroll-container">
             <PlanCard
               plan="Personal"
-              price={billingCycle === 'monthly' ? "$12" : "$120"}
+              price={formatPrice('Personal')}
               pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-              monthlyBreakdown={billingCycle === 'annual' ? '($10/month)' : undefined}
-              savings={billingCycle === 'annual' ? 'Save $24 (17%)' : undefined}
-              description="For casual users or hobbyists."
+              monthlyBreakdown={billingCycle === 'annual' ? annualBreakdown('Personal') : undefined}
+              savings={billingCycle === 'annual' ? savingsText('Personal') : undefined}
+              description={SUBSCRIPTION_PLANS.Personal.description}
               features={["50 redesigns per month", ...commonFeatures]}
               cta="Get Personal"
               onClick={() => handleSubscribe('Personal', billingCycle)}
@@ -258,11 +271,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
             <PlanCard
               ref={popularCardRef}
               plan="Creator"
-              price={billingCycle === 'monthly' ? "$29" : "$240"}
+              price={formatPrice('Creator')}
               pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-              monthlyBreakdown={billingCycle === 'annual' ? '($20/month)' : undefined}
-              savings={billingCycle === 'annual' ? 'Save $108 (31%)' : undefined}
-              description="For regular creators & freelancers."
+              monthlyBreakdown={billingCycle === 'annual' ? annualBreakdown('Creator') : undefined}
+              savings={billingCycle === 'annual' ? savingsText('Creator') : undefined}
+              description={SUBSCRIPTION_PLANS.Creator.description}
               features={["200 redesigns per month", ...commonFeatures]}
               cta="Choose Creator"
               isPopular={true}
@@ -272,11 +285,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
             />
             <PlanCard
               plan="Business"
-              price={billingCycle === 'monthly' ? "$60" : "$480"}
+              price={formatPrice('Business')}
               pricePer={billingCycle === 'monthly' ? "/ month" : "/ year"}
-              monthlyBreakdown={billingCycle === 'annual' ? '($40/month)' : undefined}
-              savings={billingCycle === 'annual' ? 'Save $240 (33%)' : undefined}
-              description="For teams, agencies & power users."
+              monthlyBreakdown={billingCycle === 'annual' ? annualBreakdown('Business') : undefined}
+              savings={billingCycle === 'annual' ? savingsText('Business') : undefined}
+              description={SUBSCRIPTION_PLANS.Business.description}
               features={["Unlimited redesigns*", ...commonFeatures, "Priority support"]}
               cta="Go Business"
               onClick={() => handleSubscribe('Business', billingCycle)}

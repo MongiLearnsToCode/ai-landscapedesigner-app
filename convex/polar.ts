@@ -9,6 +9,8 @@ import { PLAN_LIMITS } from "./constants";
 type BillingCycle = "monthly" | "annual";
 type Plan = "Personal" | "Creator" | "Business";
 
+const USER_FACING_CHECKOUT_ERROR = "Unable to start checkout. Please contact support.";
+
 const PRODUCT_ENV_KEYS: Record<Plan, Record<BillingCycle, string>> = {
   Personal: {
     monthly: "POLAR_PRODUCT_PERSONAL_MONTHLY",
@@ -60,8 +62,9 @@ function planForProduct(productId?: string, productName?: string): Plan | "Free"
     }
   }
 
-  if (productName && productName in PLAN_LIMITS) {
-    return productName as Plan;
+  const normalizedProductName = productName?.replace(/\s+plan$/i, "").trim();
+  if (normalizedProductName && normalizedProductName in PLAN_LIMITS) {
+    return normalizedProductName as Plan;
   }
 
   return "Free";
@@ -99,8 +102,19 @@ function orderUserId(order: any) {
   return order.customer?.externalId ?? order.externalCustomerId ?? order.metadata?.convexUserId;
 }
 
+function polarErrorDetails(error: unknown) {
+  if (!(error instanceof Error)) return { message: String(error) };
+
+  return {
+    name: error.name,
+    message: error.message,
+  };
+}
+
 function subscriptionUpdate(subscription: any) {
-  const plan = planForProduct(subscription.productId, subscription.product?.name);
+  const plan = subscription.product?.metadata?.plan && subscription.product.metadata.plan in PLAN_LIMITS
+    ? subscription.product.metadata.plan as Plan
+    : planForProduct(subscription.productId, subscription.product?.name);
   const isActive = subscription.status === "active" || subscription.status === "trialing";
   const isGraceState = subscription.status === "past_due";
   const hasAccess = (isActive || isGraceState) && plan !== "Free";
@@ -132,19 +146,30 @@ export const createCheckout = action({
     if (!user) throw new Error("User not found");
 
     const polar = getPolarClient();
-    const checkout = await polar.checkouts.create({
-      products: [productIdFor(args.plan, args.billingCycle)],
-      externalCustomerId: userId,
-      customerEmail: user.email,
-      customerName: user.name ?? undefined,
-      successUrl: args.successUrl,
-      returnUrl: args.returnUrl,
-      metadata: {
-        convexUserId: userId,
+    let checkout;
+    try {
+      checkout = await polar.checkouts.create({
+        products: [productIdFor(args.plan, args.billingCycle)],
+        externalCustomerId: userId,
+        customerEmail: user.email,
+        customerName: user.name ?? undefined,
+        successUrl: args.successUrl,
+        returnUrl: args.returnUrl,
+        metadata: {
+          convexUserId: userId,
+          plan: args.plan,
+          billingCycle: args.billingCycle,
+        },
+      });
+    } catch (error) {
+      console.error("Polar checkout creation failed", {
+        ...polarErrorDetails(error),
         plan: args.plan,
         billingCycle: args.billingCycle,
-      },
-    });
+        sandbox: process.env.POLAR_SANDBOX === "true",
+      });
+      throw new Error(USER_FACING_CHECKOUT_ERROR);
+    }
 
     return { url: checkout.url };
   },

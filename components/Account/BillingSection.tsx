@@ -3,6 +3,7 @@ import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAppStore } from '../../stores/appStore';
 import { useToastStore } from '../../stores/toastStore';
+import { planPrice, SUBSCRIPTION_PLANS, type BillingCycle, type PaidPlan } from '../../constants';
 
 const SectionCard: React.FC<{ title: string; children: React.ReactNode; footer?: React.ReactNode }> = ({ title, children, footer }) => (
   <div className="bg-white rounded-lg shadow-md">
@@ -57,24 +58,21 @@ const CurrentPlan: React.FC = () => {
 
   const plan = userData?.subscriptionPlan || 'Free';
   const status = userData?.subscriptionStatus || 'active';
-  const billingCycle = userData?.billingCycle || 'monthly';
+  const billingCycle = (userData?.billingCycle || 'monthly') as BillingCycle;
 
-  // Plan pricing based on Polar plans
   const getPlanInfo = (planName: string) => {
-    switch (planName) {
-      case 'Personal':
-        return { price: 10, description: 'Perfect for individuals' };
-      case 'Creator':
-        return { price: 29, description: 'For content creators' };
-      case 'Business':
-        return { price: 99, description: 'For teams and businesses' };
-      default:
-        return { price: 0, description: 'Our basic free-forever plan' };
+    if (planName in SUBSCRIPTION_PLANS) {
+      const paidPlan = planName as PaidPlan;
+      return {
+        price: planPrice(paidPlan, billingCycle),
+        description: SUBSCRIPTION_PLANS[paidPlan].description,
+      };
     }
+
+    return { price: 0, description: 'Our basic free-forever plan' };
   };
 
   const planInfo = getPlanInfo(plan);
-  const price = billingCycle === 'annual' ? Math.floor(planInfo.price * 10) : planInfo.price;
 
   const footer = (
     <div className="flex justify-between items-center">
@@ -122,7 +120,7 @@ const CurrentPlan: React.FC = () => {
         </div>
         <div className="text-right">
           <p className="text-4xl font-bold text-slate-800">
-            ${price}<span className="text-lg font-medium text-slate-500">/{billingCycle === 'annual' ? 'year' : 'month'}</span>
+            ${planInfo.price}<span className="text-lg font-medium text-slate-500">/{billingCycle === 'annual' ? 'year' : 'month'}</span>
           </p>
         </div>
       </div>

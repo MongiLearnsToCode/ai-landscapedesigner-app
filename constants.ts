@@ -1,5 +1,45 @@
 import type { StyleOption } from './types';
 
+export type BillingCycle = 'monthly' | 'annual';
+export type PaidPlan = 'Personal' | 'Creator' | 'Business';
+
+export const SUBSCRIPTION_PLANS: Record<PaidPlan, {
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  monthlyRedesignLimit: number;
+}> = {
+  Personal: {
+    description: 'For casual users or hobbyists.',
+    monthlyPrice: 12,
+    annualPrice: 120,
+    monthlyRedesignLimit: 50,
+  },
+  Creator: {
+    description: 'For regular creators & freelancers.',
+    monthlyPrice: 29,
+    annualPrice: 240,
+    monthlyRedesignLimit: 200,
+  },
+  Business: {
+    description: 'For teams, agencies & power users.',
+    monthlyPrice: 60,
+    annualPrice: 480,
+    monthlyRedesignLimit: 999999,
+  },
+};
+
+export const planPrice = (plan: PaidPlan, billingCycle: BillingCycle) =>
+  billingCycle === 'annual'
+    ? SUBSCRIPTION_PLANS[plan].annualPrice
+    : SUBSCRIPTION_PLANS[plan].monthlyPrice;
+
+export const monthlyBreakdown = (plan: PaidPlan) =>
+  Math.floor(SUBSCRIPTION_PLANS[plan].annualPrice / 12);
+
+export const annualSavings = (plan: PaidPlan) =>
+  (SUBSCRIPTION_PLANS[plan].monthlyPrice * 12) - SUBSCRIPTION_PLANS[plan].annualPrice;
+
 export const LANDSCAPING_STYLES: StyleOption[] = [
   { 
     id: 'modern', 
