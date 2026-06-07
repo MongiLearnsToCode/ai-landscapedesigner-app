@@ -123,6 +123,10 @@ export const DesignerPage: React.FC = () => {
 
   const [designerState, setDesignerState] = useState<DesignerState>(getInitialState);
   const { originalImage, selectedStyles, allowStructuralChanges, climateZone, lockAspectRatio, redesignDensity } = designerState;
+  const hadSavedDesignerSessionRef = useRef(
+    typeof window !== 'undefined' ? Boolean(localStorage.getItem('designerSession')) : false
+  );
+  const appliedPreferencesForUserRef = useRef<string | null>(null);
 
   const [redesignedImage, setRedesignedImage] = useState<string | null>(null);
   const [designCatalog, setDesignCatalog] = useState<DesignCatalog | null>(null);
@@ -146,6 +150,33 @@ export const DesignerPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('designerSession', JSON.stringify(designerState));
   }, [designerState]);
+
+  // Apply account defaults only to a fresh designer session.
+  useEffect(() => {
+    if (!user || appliedPreferencesForUserRef.current === user._id || hadSavedDesignerSessionRef.current || originalImage || redesignedImage) {
+      return;
+    }
+
+    const preferredStyles = Array.isArray(user.defaultStyles)
+      ? user.defaultStyles.filter((style): style is LandscapingStyle => (
+        LANDSCAPING_STYLES.some((option) => option.id === style)
+      )).slice(0, 2)
+      : [];
+
+    const preferredDensity = ['minimal', 'default', 'lush'].includes(user.defaultRedesignDensity || '')
+      ? user.defaultRedesignDensity as RedesignDensity
+      : 'default';
+
+    setDesignerState((prev) => ({
+      ...prev,
+      selectedStyles: preferredStyles.length > 0 ? preferredStyles : prev.selectedStyles,
+      allowStructuralChanges: user.defaultAllowStructuralChanges ?? prev.allowStructuralChanges,
+      climateZone: user.defaultClimateZone ?? prev.climateZone,
+      lockAspectRatio: user.defaultLockAspectRatio ?? prev.lockAspectRatio,
+      redesignDensity: preferredDensity,
+    }));
+    appliedPreferencesForUserRef.current = user._id;
+  }, [user, originalImage, redesignedImage]);
 
   // Cleanup on unmount
   useEffect(() => {

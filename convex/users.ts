@@ -2,6 +2,29 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 
+const ALLOWED_STYLES = new Set([
+  "modern",
+  "minimalist",
+  "rustic",
+  "mediterranean",
+  "japanese",
+  "tropical",
+  "farmhouse",
+  "coastal",
+  "desert",
+  "urban-modern",
+  "bohemian",
+  "english-cottage",
+]);
+
+const ALLOWED_DENSITIES = new Set(["minimal", "default", "lush"]);
+
+const cleanOptionalString = (value: string | undefined, maxLength: number) => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, maxLength) : undefined;
+};
+
 // Get current user profile
 export const getCurrentUser = query({
   args: {},
@@ -92,6 +115,78 @@ export const ensureUser = mutation({
     });
 
     return newUserId;
+  },
+});
+
+// Update current user's profile fields
+export const updateProfile = mutation({
+  args: {
+    name: v.string(),
+    image: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const name = cleanOptionalString(args.name, 80);
+    if (!name) {
+      throw new Error("Name is required");
+    }
+
+    const image = cleanOptionalString(args.image, 500);
+    if (image && !/^https?:\/\//i.test(image)) {
+      throw new Error("Profile image must be a valid URL");
+    }
+
+    await ctx.db.patch(userId, {
+      name,
+      image,
+    });
+  },
+});
+
+// Update current user's app defaults and notification preferences
+export const updatePreferences = mutation({
+  args: {
+    emailNotifications: v.boolean(),
+    productUpdates: v.boolean(),
+    defaultClimateZone: v.optional(v.string()),
+    defaultStyles: v.array(v.string()),
+    defaultRedesignDensity: v.string(),
+    defaultAllowStructuralChanges: v.boolean(),
+    defaultLockAspectRatio: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const defaultStyles = args.defaultStyles
+      .filter((style) => ALLOWED_STYLES.has(style))
+      .slice(0, 2);
+
+    if (defaultStyles.length === 0) {
+      throw new Error("Select at least one default style");
+    }
+
+    if (!ALLOWED_DENSITIES.has(args.defaultRedesignDensity)) {
+      throw new Error("Default density is invalid");
+    }
+
+    await ctx.db.patch(userId, {
+      emailNotifications: args.emailNotifications,
+      productUpdates: args.productUpdates,
+      defaultClimateZone: cleanOptionalString(args.defaultClimateZone, 120),
+      defaultStyles,
+      defaultRedesignDensity: args.defaultRedesignDensity,
+      defaultAllowStructuralChanges: args.defaultAllowStructuralChanges,
+      defaultLockAspectRatio: args.defaultLockAspectRatio,
+    });
   },
 });
 

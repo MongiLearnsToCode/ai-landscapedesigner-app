@@ -11,6 +11,15 @@ export default defineSchema({
     email: v.string(),
     emailVerified: v.optional(v.boolean()),
 
+    // User-controlled profile and app preferences
+    emailNotifications: v.optional(v.boolean()),
+    productUpdates: v.optional(v.boolean()),
+    defaultClimateZone: v.optional(v.string()),
+    defaultStyles: v.optional(v.array(v.string())),
+    defaultRedesignDensity: v.optional(v.string()),
+    defaultAllowStructuralChanges: v.optional(v.boolean()),
+    defaultLockAspectRatio: v.optional(v.boolean()),
+
     // Polar billing integration
     polarCustomerId: v.optional(v.string()),
 
