@@ -366,7 +366,7 @@ const AccountAccess: React.FC<{ onSignOut: () => void; onDeleteAccount: () => vo
         <div>
           <h4 className="font-semibold text-red-900">Delete Account</h4>
           <p className="mt-1 text-sm text-red-700">
-            Permanently remove your profile, login credentials, preferences, and saved projects.
+            Permanently remove your profile, login credentials, preferences, and saved projects. Active paid subscription renewal will be canceled first.
           </p>
         </div>
         <button

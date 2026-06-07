@@ -88,11 +88,18 @@ export const SettingsPage: React.FC = () => {
         }}
         onConfirm={handleConfirmDeleteAccount}
         title="Delete Account"
-        message="This permanently removes your profile, login credentials, preferences, and saved projects. If you have an active paid subscription, renewal will be canceled before deletion. This cannot be undone."
+        message={(
+          <ul className="list-disc space-y-1 pl-5">
+            <li>This permanently removes your profile, login credentials, preferences, and saved projects.</li>
+            <li>If you have an active paid subscription, renewal will be canceled before deletion.</li>
+            <li>This cannot be undone.</li>
+          </ul>
+        )}
         confirmText={isDeletingAccount ? 'Deleting…' : 'Delete Account'}
         cancelText="Keep Account"
         isConfirming={isDeletingAccount}
         requiredConfirmationText="DELETE"
+        confirmationInputName="delete-account-confirmation"
       />
     </>
   );

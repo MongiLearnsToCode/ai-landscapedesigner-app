@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { AlertTriangle } from 'lucide-react';
 
@@ -7,11 +7,12 @@ interface ConfirmationModalProps {
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   isConfirming?: boolean;
   requiredConfirmationText?: string;
+  confirmationInputName?: string;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -24,10 +25,19 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelText = 'Cancel',
   isConfirming = false,
   requiredConfirmationText,
+  confirmationInputName = 'destructive-action-confirmation',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const messageId = useId();
+  const confirmationInputId = useId();
+  const confirmationHelpId = useId();
+  const confirmationStatusId = useId();
   const [confirmationText, setConfirmationText] = useState('');
   const isConfirmationMatched = !requiredConfirmationText || confirmationText === requiredConfirmationText;
+  const describedByIds = requiredConfirmationText
+    ? `${messageId} ${confirmationHelpId} ${confirmationStatusId}`
+    : messageId;
   useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
@@ -61,7 +71,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClick={isConfirming ? undefined : onClose}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirmation-title"
+      aria-labelledby={titleId}
+      aria-describedby={describedByIds}
     >
       <div
         ref={modalRef}
@@ -73,23 +84,24 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
             </div>
             <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 id="confirmation-title" className="text-lg leading-6 font-bold text-slate-900">
+                <h3 id={titleId} className="text-lg leading-6 font-bold text-slate-900">
                     {title}
                 </h3>
-                <div className="mt-2">
-                    <p className="text-sm text-slate-600">
+                <div id={messageId} className="mt-2">
+                    <div className="text-sm text-slate-600">
                         {message}
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>
         {requiredConfirmationText && (
           <div className="mt-5">
-            <label htmlFor="confirmation-text" className="block text-sm font-medium text-slate-700">
-              Type <span className="font-bold text-slate-900">{requiredConfirmationText}</span> to confirm
+            <label htmlFor={confirmationInputId} className="block text-sm font-medium text-slate-700">
+              Type <span className="font-bold text-slate-900" translate="no">{requiredConfirmationText}</span> to confirm
             </label>
             <input
-              id="confirmation-text"
+              id={confirmationInputId}
+              name={confirmationInputName}
               type="text"
               value={confirmationText}
               onChange={(event) => setConfirmationText(event.target.value)}
@@ -97,10 +109,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               autoComplete="off"
               spellCheck={false}
               className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-              aria-describedby="confirmation-text-help"
+              aria-describedby={`${confirmationHelpId} ${confirmationStatusId}`}
             />
-            <p id="confirmation-text-help" className="mt-2 text-xs text-slate-500">
+            <p id={confirmationHelpId} className="mt-2 text-xs text-slate-500">
               This extra step prevents accidental permanent deletion.
+            </p>
+            <p id={confirmationStatusId} className="mt-1 text-xs font-medium text-red-700" aria-live="polite">
+              {isConfirmationMatched ? 'Deletion confirmation matched.' : `Type ${requiredConfirmationText} exactly to enable deletion.`}
             </p>
           </div>
         )}
